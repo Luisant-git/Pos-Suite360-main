@@ -94,6 +94,7 @@ const saleSchema = z.object({
   totalDiscount: z.coerce.number(),
   totalDiscountPercent: z.coerce.number().optional(),
   roundOff: z.coerce.number(),
+  tax: z.coerce.number().optional(),
   netAmount: z.coerce.number(),
 
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),

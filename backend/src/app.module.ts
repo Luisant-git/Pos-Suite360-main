@@ -27,10 +27,14 @@ import { ReportsModule } from './reports/reports.module';
 import { TaxesModule } from './taxes/taxes.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads/',

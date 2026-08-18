@@ -9,7 +9,7 @@ import api from '../../services/api';
 
 const taxSchema = z.object({
   name: z.string().min(1, 'Tax Name is required'),
-  rate: z.coerce.number().min(0, 'Rate must be positive'),
+  rate: z.number().min(0, 'Rate must be positive'),
 });
 
 type TaxFormValues = z.infer<typeof taxSchema>;
@@ -105,7 +105,7 @@ const Taxes = () => {
           <div>
             <label className="block text-[13px] font-bold text-[#1F2937] mb-1">Rate (%) *</label>
             <input 
-              {...register('rate')}
+              {...register('rate', { valueAsNumber: true })}
               type="number" 
               step="0.01"
               placeholder="e.g. 18"

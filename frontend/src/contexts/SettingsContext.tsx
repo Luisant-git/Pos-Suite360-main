@@ -14,6 +14,7 @@ interface Settings {
   signatureImage?: string;
   enableTax: boolean;
   taxType: string;
+  state?: string;
 }
 
 interface SettingsContextType {

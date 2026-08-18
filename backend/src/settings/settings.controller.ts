@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SettingsService } from './settings.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -8,7 +9,10 @@ import { extname } from 'path';
 @Controller('settings')
 @UseGuards(JwtAuthGuard)
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly configService: ConfigService
+  ) {}
 
   @Get()
   async getSettings() {
@@ -34,7 +38,7 @@ export class SettingsController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    const baseUrl = process.env.UPLOAD_URL || 'http://localhost:3000/uploads';
+    const baseUrl = this.configService.get<string>('UPLOAD_URL') || 'http://localhost:3000/uploads';
     return {
       url: `${baseUrl}/signatures/${file.filename}`
     };

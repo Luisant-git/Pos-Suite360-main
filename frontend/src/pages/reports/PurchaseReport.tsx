@@ -11,7 +11,7 @@ import PaginationControls from '../../components/PaginationControls';
 
 const PurchaseReport = () => {
   const navigate = useNavigate();
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, settings } = useSettings();
   const [fromDate, setFromDate] = useState(() => new Date(new Date().setDate(1)).toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]); // Today
   const [supplierId, setSupplierId] = useState('');
