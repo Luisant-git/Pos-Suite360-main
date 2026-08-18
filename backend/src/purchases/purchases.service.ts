@@ -1,0 +1,211 @@
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { CreatePurchaseDto } from './dto/create-purchase.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { TransactionType } from '@prisma/client';
+
+@Injectable()
+export class PurchasesService {
+  constructor(private prisma: PrismaService) {}
+
+  async create(createPurchaseDto: CreatePurchaseDto, userId: number = 1) {
+    // Execute in a transaction to guarantee data integrity between purchase and stock ledger
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create Purchase and PurchaseItems
+      const purchase = await tx.purchase.create({
+        data: {
+          invoiceNo: createPurchaseDto.invoiceNo,
+          date: new Date(createPurchaseDto.date),
+          supplierId: createPurchaseDto.supplierId,
+          paymentModeId: createPurchaseDto.paymentModeId,
+          subtotal: createPurchaseDto.subtotal,
+          tax: createPurchaseDto.tax || 0,
+          discount: createPurchaseDto.discount || 0,
+          grandTotal: createPurchaseDto.grandTotal,
+          items: {
+            create: createPurchaseDto.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              rate: item.rate,
+              tax: item.tax || 0,
+              amount: item.amount,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      // 2. Update stock, rates, and ledger for each item
+      for (const item of createPurchaseDto.items) {
+        // Fetch current product to compare rates
+        const currentProduct = await tx.product.findUnique({ where: { id: item.productId } });
+        if (!currentProduct) {
+          throw new BadRequestException(`Product not found: ${item.productId}`);
+        }
+
+        let newPurchaseRate = Number(currentProduct.purchaseRate);
+        let newWholesaleRate = Number(currentProduct.wholesaleRate);
+        let newSellingRate = Number(currentProduct.sellingRate);
+        let newMrp = Number(currentProduct.mrp);
+
+        if (item.rate && item.rate > 0) newPurchaseRate = item.rate;
+        if (item.wRate && item.wRate > 0) newWholesaleRate = item.wRate;
+        if (item.sRate && item.sRate > 0) newSellingRate = item.sRate;
+        if (item.mrp && item.mrp > 0) newMrp = item.mrp;
+
+        // Increment current stock and update rates
+        const updatedProduct = await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            currentStock: { increment: item.quantity },
+            purchaseRate: newPurchaseRate,
+            wholesaleRate: newWholesaleRate,
+            sellingRate: newSellingRate,
+            mrp: newMrp,
+          },
+        });
+
+        // Add ledger entry
+        await tx.stockTransaction.create({
+          data: {
+            date: new Date(createPurchaseDto.date),
+            productId: item.productId,
+            type: TransactionType.PURCHASE,
+            quantityIn: item.quantity,
+            quantityOut: 0,
+            balance: updatedProduct.currentStock,
+            reference: purchase.invoiceNo,
+          },
+        });
+      }
+
+      return purchase;
+    }).catch(err => {
+      console.error('PRISMA ERROR IN PURCHASE CREATE:', err);
+      throw new BadRequestException(err.message || 'Error creating purchase');
+    });
+  }
+
+  findAll(query?: any) {
+    const where: any = {};
+    if (query?.fromDate || query?.toDate) {
+      where.date = {};
+      if (query.fromDate) where.date.gte = new Date(query.fromDate);
+      if (query.toDate) {
+        const toDate = new Date(query.toDate);
+        toDate.setHours(23, 59, 59, 999);
+        where.date.lte = toDate;
+      }
+    }
+    if (query?.supplierId) {
+      where.supplierId = Number(query.supplierId);
+    }
+    if (query?.invoiceNo) {
+      where.invoiceNo = { contains: query.invoiceNo, mode: 'insensitive' };
+    }
+    if (query?.paymentModeId) {
+      where.paymentModeId = Number(query.paymentModeId);
+    }
+
+    return this.prisma.purchase.findMany({
+      where,
+      include: {
+        supplier: true,
+        paymentMode: true,
+      },
+      orderBy: [
+        { date: 'desc' },
+        { id: 'desc' }
+      ],
+    });
+  }
+
+  findOne(id: number) {
+    return this.prisma.purchase.findUnique({
+      where: { id },
+      include: {
+        supplier: true,
+        paymentMode: true,
+        items: {
+          include: {
+            product: {
+              include: {
+                unit: true
+              }
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async getLatestRate(productId: number) {
+    const latestItem = await this.prisma.purchaseItem.findFirst({
+      where: { productId },
+      orderBy: { id: 'desc' }, // Order by id desc to get the most recent insertion
+    });
+    return latestItem || null;
+  }
+
+  async getNextEntryNo() {
+    const lastPurchase = await this.prisma.purchase.findFirst({
+      orderBy: { id: 'desc' },
+      select: { invoiceNo: true },
+    });
+
+    let nextNumber = 1;
+    if (lastPurchase && lastPurchase.invoiceNo.startsWith('PUR-')) {
+      const match = lastPurchase.invoiceNo.match(/PUR-(\d+)/);
+      if (match && !isNaN(parseInt(match[1], 10))) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    
+    return `PUR-${String(nextNumber).padStart(5, '0')}`;
+  }
+
+  async remove(id: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const purchase = await tx.purchase.findUnique({
+        where: { id },
+        include: { items: true }
+      });
+
+      if (!purchase) {
+        throw new BadRequestException('Purchase not found');
+      }
+
+      // 1. Reverse stock and ledger
+      for (const item of purchase.items) {
+        const updatedProduct = await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            currentStock: { decrement: item.quantity },
+          },
+        });
+
+        // Add reverting ledger entry
+        await tx.stockTransaction.create({
+          data: {
+            date: new Date(),
+            productId: item.productId,
+            type: TransactionType.PURCHASE_RETURN,
+            quantityIn: 0,
+            quantityOut: item.quantity,
+            balance: updatedProduct.currentStock,
+            reference: `Reverted ${purchase.invoiceNo}`,
+          },
+        });
+      }
+
+      // 2. Delete Purchase Items
+      await tx.purchaseItem.deleteMany({
+        where: { purchaseId: id },
+      });
+
+      // 3. Delete Purchase
+      return tx.purchase.delete({
+        where: { id },
+      });
+    });
+  }
+}

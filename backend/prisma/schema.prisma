@@ -1,0 +1,499 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------
+// Auth & Access Models
+// ------------------------------------------------------
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  name      String
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id])
+  
+  sales            Sale[]
+  salesReturns     SalesReturn[]
+  supplierPayments SupplierPayment[]
+  customerReceipts CustomerReceipt[]
+  createdAt        DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  permissions String[] // Storing simple permission keys, e.g. ["PRODUCTS_READ", "PRODUCTS_WRITE"]
+  users       User[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// Master Tables
+// ------------------------------------------------------
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+  
+  parentId  Int?
+  parent    Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Brand {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+  
+  parentId  Int?
+  parent    Brand?    @relation("BrandHierarchy", fields: [parentId], references: [id])
+  children  Brand[]   @relation("BrandHierarchy")
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Unit {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique // e.g., Nos, Kg, Liters
+  shortCode String?
+  products  Product[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Supplier {
+  id                 Int        @id @default(autoincrement())
+  name               String
+  contactPerson      String?
+  phone              String?
+  email              String?
+  address            String?
+  state              String?
+  gstNumber          String?
+  openingBalance     Decimal    @default(0)
+  openingBalanceType String     @default("Cr")
+  accountNo          String?
+  ifscCode           String?
+  bankBranch         String?
+  purchases          Purchase[]
+  purchaseReturns    PurchaseReturn[]
+  products           Product[]
+  payments           SupplierPayment[]
+  
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model Customer {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  contactPerson      String?
+  phone              String
+  email              String?
+  address            String?  // Billing Address
+  state              String?
+  shippingAddress    String?
+  openingBalance     Decimal  @default(0)
+  openingBalanceType String   @default("Dr")
+  creditLimit        Decimal  @default(0)
+  creditDays         Int      @default(30)
+  sales              Sale[]
+  salesReturns       SalesReturn[]
+  receipts           CustomerReceipt[]
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PaymentMode {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique // e.g., Cash, UPI, Credit Card
+  description String?
+  purchases        Purchase[]
+  sales            Sale[]
+  expenses         Expense[]
+  supplierPayments SupplierPayment[]
+  customerReceipts CustomerReceipt[]
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model PaymentType {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique // e.g., Net Banking, Cheque
+  description String?
+  supplierPayments SupplierPayment[]
+  customerReceipts CustomerReceipt[]
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ExpenseCategory {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  expenses  Expense[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ------------------------------------------------------
+// Product Model
+// ------------------------------------------------------
+
+model Product {
+  id             Int      @id @default(autoincrement())
+  name           String
+  code           String   @unique
+  barcode        String?  @unique
+  
+  categoryId     Int?
+  category       Category? @relation(fields: [categoryId], references: [id])
+  
+  brandId        Int?
+  brand          Brand?   @relation(fields: [brandId], references: [id])
+  
+  unitId         Int
+  unit           Unit     @relation(fields: [unitId], references: [id])
+  
+  supplierId     Int?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id])
+  
+  purchaseRate   Decimal  @default(0)
+  sellingRate    Decimal  @default(0)
+  wholesaleRate  Decimal  @default(0)
+  mrp            Decimal  @default(0)
+  taxPercent     Decimal  @default(0)
+  minStock       Int      @default(0) // Used as Min Qty (Alert)
+  reorderLevel   Int      @default(0)
+  
+  currentStock   Int      @default(0) // Usually computed, but caching it for quick access is common in POS
+  
+  purchaseItems       PurchaseItem[]
+  purchaseReturnItems PurchaseReturnItem[]
+  saleItems           SaleItem[]
+  salesReturnItems    SalesReturnItem[]
+  stockLedger         StockTransaction[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// Transaction Models (Purchase)
+// ------------------------------------------------------
+
+model Purchase {
+  id            Int      @id @default(autoincrement())
+  invoiceNo     String   @unique
+  date          DateTime @default(now())
+  supplierInvoiceNo String?
+  invoiceDate   DateTime?
+  
+  supplierId    Int
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  
+  subtotal      Decimal  @default(0)
+  tax           Decimal  @default(0)
+  discount      Decimal  @default(0)
+  grandTotal    Decimal  @default(0)
+  
+  paymentModeId Int
+  paymentMode   PaymentMode @relation(fields: [paymentModeId], references: [id])
+  
+  items         PurchaseItem[]
+  purchaseReturns PurchaseReturn[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PurchaseItem {
+  id         Int      @id @default(autoincrement())
+  purchaseId Int
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+  
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  
+  quantity   Int
+  rate       Decimal
+  tax        Decimal  @default(0)
+  amount     Decimal
+}
+
+model PurchaseReturn {
+  id            Int      @id @default(autoincrement())
+  returnNo      String   @unique
+  date          DateTime @default(now())
+  
+  purchaseId    Int?
+  purchase      Purchase? @relation(fields: [purchaseId], references: [id])
+  
+  supplierId    Int
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  
+  totalAmount   Decimal  @default(0)
+  remarks       String?
+  
+  items         PurchaseReturnItem[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PurchaseReturnItem {
+  id               Int      @id @default(autoincrement())
+  purchaseReturnId Int
+  purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id])
+  
+  productId        Int
+  product          Product  @relation(fields: [productId], references: [id])
+  
+  returnQty        Int
+  rate             Decimal
+  amount           Decimal
+}
+
+// ------------------------------------------------------
+// Transaction Models (Sales)
+// ------------------------------------------------------
+
+model Sale {
+  id            Int      @id @default(autoincrement())
+  invoiceNo     String   @unique
+  date          DateTime @default(now())
+  
+  customerId    Int
+  customer      Customer @relation(fields: [customerId], references: [id])
+  
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  
+  subtotal      Decimal  @default(0)
+  tax           Decimal  @default(0)
+  discount      Decimal  @default(0)
+  grandTotal    Decimal  @default(0)
+  
+  paymentModeId Int
+  paymentMode   PaymentMode @relation(fields: [paymentModeId], references: [id])
+  
+  items         SaleItem[]
+  salesReturns  SalesReturn[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SaleItem {
+  id         Int      @id @default(autoincrement())
+  saleId     Int
+  sale       Sale     @relation(fields: [saleId], references: [id])
+  
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+  
+  quantity   Int
+  rate       Decimal
+  discount   Decimal  @default(0)
+  tax        Decimal  @default(0)
+  amount     Decimal
+}
+
+model SalesReturn {
+  id            Int      @id @default(autoincrement())
+  returnNo      String   @unique
+  date          DateTime @default(now())
+  
+  saleId        Int?
+  sale          Sale?    @relation(fields: [saleId], references: [id])
+  
+  customerId    Int
+  customer      Customer @relation(fields: [customerId], references: [id])
+  
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  
+  totalAmount   Decimal  @default(0)
+  remarks       String?
+  
+  items         SalesReturnItem[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SalesReturnItem {
+  id            Int      @id @default(autoincrement())
+  salesReturnId Int
+  salesReturn   SalesReturn @relation(fields: [salesReturnId], references: [id])
+  
+  productId     Int
+  product       Product  @relation(fields: [productId], references: [id])
+  
+  returnQty     Int
+  rate          Decimal
+  amount        Decimal
+}
+
+// ------------------------------------------------------
+// Expense Model
+// ------------------------------------------------------
+
+model Expense {
+  id                Int             @id @default(autoincrement())
+  date              DateTime        @default(now())
+  
+  expenseCategoryId Int
+  category          ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  
+  amount            Decimal
+  
+  paymentModeId     Int
+  paymentMode       PaymentMode     @relation(fields: [paymentModeId], references: [id])
+  
+  notes             String?
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+// ------------------------------------------------------
+// Payment & Receipt Models
+// ------------------------------------------------------
+
+model SupplierPayment {
+  id              Int      @id @default(autoincrement())
+  paymentNo       String   @unique
+  date            DateTime @default(now())
+  
+  supplierId      Int
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+  
+  amount          Decimal
+  
+  paymentModeId   Int?
+  paymentMode     PaymentMode? @relation(fields: [paymentModeId], references: [id])
+  
+  paymentTypeId   Int?
+  paymentType     PaymentType? @relation(fields: [paymentTypeId], references: [id])
+  
+  reference       String?
+  remarks         String?
+  
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CustomerReceipt {
+  id              Int      @id @default(autoincrement())
+  receiptNo       String   @unique
+  date            DateTime @default(now())
+  
+  customerId      Int
+  customer        Customer @relation(fields: [customerId], references: [id])
+  
+  amount          Decimal
+  
+  paymentModeId   Int?
+  paymentMode     PaymentMode? @relation(fields: [paymentModeId], references: [id])
+  
+  paymentTypeId   Int?
+  paymentType     PaymentType? @relation(fields: [paymentTypeId], references: [id])
+  
+  reference       String?
+  remarks         String?
+  
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// Inventory Models (Stock Ledger)
+// ------------------------------------------------------
+
+model StockTransaction {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @default(now())
+  
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  type        TransactionType // PURCHASE, SALE, ADJUSTMENT, RETURN
+  quantityIn  Int      @default(0)
+  quantityOut Int      @default(0)
+  balance     Int      // Snapshot of stock balance after this transaction
+  
+  reference   String?  // Could be Invoice No or Adjustment ID
+  
+  createdAt   DateTime @default(now())
+}
+
+enum TransactionType {
+  OPENING
+  PURCHASE
+  SALE
+  PURCHASE_RETURN
+  SALE_RETURN
+  ADJUSTMENT
+}
+
+// ------------------------------------------------------
+// Settings Model
+// ------------------------------------------------------
+
+model Settings {
+  id               Int      @id @default(autoincrement())
+  shopName         String   @default("My Shop")
+  shopAddress      String?
+  phone            String?
+  email            String?
+  currencySymbol   String   @default("RM")
+  currencyPosition String   @default("before")
+  invoicePrefix    String   @default("INV-")
+  invoiceNotes     String?
+  signatureImage   String?
+  state            String?
+  enableTax        Boolean  @default(false)
+  taxType          String?  @default("exclusive")
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// Tax Model
+// ------------------------------------------------------
+
+model Tax {
+  id          Int      @id @default(autoincrement())
+  name        String   // e.g., "GST 18", "GST 9"
+  rate        Decimal  @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3B82F6; /* Classic Bootstrap Blue */
+  --color-primary-focus: #2563EB; 
+  --color-sidebar: #2A3F54; /* Dark Charcoal */
+  --color-sidebar-hover: #172D44;
+  --color-secondary: #73879C; /* Sidebar text */
+  --color-background: #F7F7F7; /* Light grey canvas */
+  --color-surface: #ffffff; /* White */
+  --color-surface-hover: #f9f9f9; 
+  --color-border: #E6E9ED; /* Subtle borders */
+  --color-text: #73879C; /* Classic grey text */
+  --color-text-dark: #2A3F54; /* Headings */
+  
+  --font-sans: "Inter", Roboto, Arial, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input, textarea, select {
+    color: var(--color-text-dark);
+    font-weight: bold;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #9CA3AF; /* lighter gray for placeholder */
+    font-weight: 400;
+  }
+
+  /* Hide number input spin buttons */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+
+.html-content ol { list-style-type: decimal; padding-left: 1.5rem; }
+.html-content ul { list-style-type: disc; padding-left: 1.5rem; }
+.html-content p { margin-bottom: 0.5rem; }
+.html-content strong { font-weight: bold; }
+.html-content em { font-style: italic; }
+
+.html-content, .html-content * { color: #000000 !important; font-weight: 700 !important; }
+.print\:text-black { color: #000000 !important; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  @page { margin: 10mm; size: A4 portrait; }
+  .print\:hidden { display: none !important; }
+}
+
+@media (max-width: 768px) {
+  .responsive-table {
+    display: block;
+    width: 100%;
+  }
+  .responsive-table thead {
+    display: none;
+  }
+  .responsive-table tbody, .responsive-table tr, .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+  .responsive-table tr {
+    margin-bottom: 15px;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.5rem;
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .responsive-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #F3F4F6;
+    text-align: right;
+  }
+  .responsive-table td:last-child {
+    border-bottom: none;
+  }
+  .responsive-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #4B5563;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    margin-right: 1rem;
+    white-space: nowrap;
+  }
+  .responsive-table td > input, .responsive-table td > select, .responsive-table td > div {
+    flex-grow: 1;
+    max-width: 60%;
+  }
+}
