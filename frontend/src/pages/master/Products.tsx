@@ -433,6 +433,7 @@ const Products = () => {
                 <th className="px-3 py-2 border-r border-[#444]">Category</th>
                 <th className="px-3 py-2 border-r border-[#444]">Brand</th>
                 <th className="px-3 py-2 border-r border-[#444] text-center">Stock</th>
+                {settings?.enableTax && <th className="px-3 py-2 border-r border-[#444] text-center">Tax %</th>}
                 <th className="px-3 py-2 border-r border-[#444] text-right">Pur Rate</th>
                 <th className="px-3 py-2 border-r border-[#444] text-right">Wholesale</th>
                 <th className="px-3 py-2 border-r border-[#444] text-right">Sale Rate</th>
@@ -441,9 +442,9 @@ const Products = () => {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={10} className="text-center p-4">Loading...</td></tr>
+                <tr><td colSpan={12} className="text-center p-4">Loading...</td></tr>
               ) : filteredProducts.length === 0 ? (
-                <tr><td colSpan={10} className="text-center p-4">No products found.</td></tr>
+                <tr><td colSpan={12} className="text-center p-4">No products found.</td></tr>
               ) : (
                 filteredProducts.map((product: any, index: number) => (
                   <tr key={product.id} className={`border-b border-[#E5E7EB] ${index % 2 === 0 ? 'bg-white' : 'bg-[#F9F9F9]'} hover:bg-blue-50`}>
@@ -459,6 +460,11 @@ const Products = () => {
                     <td data-label="Stock" className="px-3 py-2.5 border-r border-[#E5E7EB] text-center font-bold">
                       {product.currentStock} {product.unit?.name}
                     </td>
+                    {settings?.enableTax && (
+                      <td data-label="Tax %" className="px-3 py-2.5 border-r border-[#E5E7EB] text-center font-medium">
+                        {product.taxPercent ? `${Number(product.taxPercent)}%` : '0%'}
+                      </td>
+                    )}
                     <td data-label="Pur Rate" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right text-gray-600 font-medium">{formatCurrency(product.purchaseRate)}</td>
                     <td data-label="Wholesale" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-bold text-[#16A34A]">{formatCurrency(product.wholesaleRate)}</td>
                     <td data-label="Sale Rate" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-bold text-[#3B82F6]">{formatCurrency(product.sellingRate)}</td>
