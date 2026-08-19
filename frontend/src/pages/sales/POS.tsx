@@ -827,6 +827,15 @@ const POS = () => {
               <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6">
                 
                 <div className="w-full md:flex-1 flex flex-col gap-1">
+                  <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Total Quantity:</label>
+                  <input
+                    value={watch('items').reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)}
+                    readOnly
+                    className="w-full px-3 py-2 border-2 border-[#D1D5DB] bg-[#F3F4F6] rounded text-[18px] outline-none text-right font-bold text-gray-800"
+                  />
+                </div>
+
+                <div className="w-full md:flex-1 flex flex-col gap-1">
                   <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Gross Amount:</label>
                   <input
                     {...register('grossAmount')}
@@ -887,10 +896,6 @@ const POS = () => {
                     readOnly
                     className="w-full px-3 py-2 border-2 border-[#059669] bg-[#ECFDF5] text-[#059669] rounded text-[22px] outline-none text-right font-black shadow-inner"
                   />
-                </div>
-                
-                <div className="w-full md:flex-1 flex flex-col gap-1">
-                  {/* Empty space to balance layout */}
                 </div>
 
               </div>

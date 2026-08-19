@@ -656,6 +656,15 @@ const PurchaseEntry = () => {
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6">
             
             <div className="w-full md:flex-1 flex flex-col gap-1">
+              <label className="text-[14px] font-extrabold text-[#1F2937] uppercase">Total Quantity:</label>
+              <input
+                value={watch('items').reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)}
+                readOnly
+                className="w-full px-3 py-2 border border-[#D1D5DB] bg-[#F9FAFB] rounded text-[20px] outline-none text-right font-black text-[#1F2937]"
+              />
+            </div>
+
+            <div className="w-full md:flex-1 flex flex-col gap-1">
               <label className="text-[14px] font-extrabold text-[#1F2937] uppercase">Total Amount:</label>
               <input
                 {...register('totalAmount')}
@@ -707,7 +716,6 @@ const PurchaseEntry = () => {
               </div>
             </div>
 
-            <div className="w-full md:flex-1 flex flex-col gap-1"></div>
             <div className="w-full md:flex-1 flex flex-col gap-1"></div>
 
           </div>
