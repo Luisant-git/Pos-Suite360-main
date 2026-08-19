@@ -9,8 +9,20 @@ import { useSettings } from '../../contexts/SettingsContext';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
+import Select from 'react-select';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
+
+const indianStates = [
+  "01 - Jammu & Kashmir", "02 - Himachal Pradesh", "03 - Punjab", "04 - Chandigarh",
+  "05 - Uttarakhand", "06 - Haryana", "07 - Delhi", "08 - Rajasthan", "09 - Uttar Pradesh",
+  "10 - Bihar", "11 - Sikkim", "12 - Arunachal Pradesh", "13 - Nagaland", "14 - Manipur",
+  "15 - Mizoram", "16 - Tripura", "17 - Meghalaya", "18 - Assam", "19 - West Bengal",
+  "20 - Jharkhand", "21 - Odisha", "22 - Chhattisgarh", "23 - Madhya Pradesh", "24 - Gujarat",
+  "25 - Daman & Diu", "26 - Dadra & Nagar Haveli", "27 - Maharashtra", "29 - Karnataka",
+  "30 - Goa", "31 - Lakshadweep", "32 - Kerala", "33 - Tamil Nadu", "34 - Puducherry",
+  "35 - Andaman & Nicobar Islands", "36 - Telangana", "37 - Andhra Pradesh", "38 - Ladakh"
+];
 
 const WhatsAppIcon = ({ size = 16, className = "" }: { size?: number, className?: string }) => (
   <svg
@@ -109,7 +121,7 @@ const POS = () => {
   const queryClient = useQueryClient();
   
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '', state: '' });
   const activeTab = 'Amount Details';
   
   const [showLossWarning, setShowLossWarning] = useState(false);
@@ -349,7 +361,7 @@ const POS = () => {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setIsCustomerModalOpen(false);
-      setNewCustomer({ name: '', phone: '', address: '' });
+      setNewCustomer({ name: '', phone: '', address: '', state: '' });
       if (res.data && res.data.id) {
         setValue('customerId', res.data.id);
       }
@@ -361,6 +373,10 @@ const POS = () => {
 
   const handleQuickAddCustomer = () => {
     if (!newCustomer.name) return;
+    if (settings?.enableTax && !newCustomer.state) {
+      toast.error('State is mandatory when Tax is enabled.');
+      return;
+    }
     addCustomerMutation.mutate(newCustomer);
   };
 
@@ -554,8 +570,9 @@ const POS = () => {
                   <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="bg-[#059669] hover:bg-[#047857] text-white px-2 py-1 rounded transition-colors flex items-center gap-1 text-[11px] font-bold">
                     <UserPlus size={12} /> Add Customer
                   </button>
-                  <span className="text-[11px] text-[#6B7280] text-right flex-1 ml-2">
-                    {selectedCustomer ? `${selectedCustomer.address || 'Counter Sale'}` : 'Counter Sale'}
+                  <span className="text-[11px] text-[#6B7280] text-right flex-1 ml-2 flex flex-col items-end">
+                    <span>{selectedCustomer ? `${selectedCustomer.address || 'Counter Sale'}` : 'Counter Sale'}</span>
+                    {selectedCustomer?.state && <span className="font-bold text-[#1F2937]">{selectedCustomer.state}</span>}
                   </span>
                 </div>
               </div>
@@ -948,6 +965,29 @@ const POS = () => {
                   value={newCustomer.phone}
                   onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
                   className="w-full px-3 py-2 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6]" 
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#4B5563] mb-1">State {settings?.enableTax && <span className="text-red-500">*</span>}</label>
+                <Select 
+                  value={newCustomer.state ? { value: newCustomer.state, label: newCustomer.state } : null}
+                  onChange={(val: any) => setNewCustomer({...newCustomer, state: val?.value || ''})}
+                  options={[
+                    { value: '', label: '-- Select State --' },
+                    ...indianStates.map(s => ({ value: s, label: s }))
+                  ]}
+                  className="text-[13px] font-medium"
+                  placeholder="-- Select State --"
+                  styles={{
+                    control: (base: any) => ({
+                      ...base,
+                      minHeight: '38px',
+                      borderColor: '#D1D5DB',
+                      borderRadius: '0.25rem',
+                    }),
+                    menuPortal: (base: any) => ({ ...base, zIndex: 9999 })
+                  }}
+                  menuPortalTarget={document.body}
                 />
               </div>
               <div>

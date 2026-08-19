@@ -9,6 +9,18 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
 import SearchableSelect from '../../components/SearchableSelect';
+import Select from 'react-select';
+
+const indianStates = [
+  "01 - Jammu & Kashmir", "02 - Himachal Pradesh", "03 - Punjab", "04 - Chandigarh",
+  "05 - Uttarakhand", "06 - Haryana", "07 - Delhi", "08 - Rajasthan", "09 - Uttar Pradesh",
+  "10 - Bihar", "11 - Sikkim", "12 - Arunachal Pradesh", "13 - Nagaland", "14 - Manipur",
+  "15 - Mizoram", "16 - Tripura", "17 - Meghalaya", "18 - Assam", "19 - West Bengal",
+  "20 - Jharkhand", "21 - Odisha", "22 - Chhattisgarh", "23 - Madhya Pradesh", "24 - Gujarat",
+  "25 - Daman & Diu", "26 - Dadra & Nagar Haveli", "27 - Maharashtra", "29 - Karnataka",
+  "30 - Goa", "31 - Lakshadweep", "32 - Kerala", "33 - Tamil Nadu", "34 - Puducherry",
+  "35 - Andaman & Nicobar Islands", "36 - Telangana", "37 - Andhra Pradesh", "38 - Ladakh"
+];
 
 const purchaseItemSchema = z.object({
   productId: z.coerce.number().min(0),
@@ -66,7 +78,7 @@ const PurchaseEntry = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
-  const [newSupplier, setNewSupplier] = useState({ name: '', phone: '', address: '' });
+  const [newSupplier, setNewSupplier] = useState({ name: '', phone: '', address: '', state: '' });
 
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
 
@@ -314,7 +326,7 @@ const PurchaseEntry = () => {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       setIsSupplierModalOpen(false);
-      setNewSupplier({ name: '', phone: '', address: '' });
+      setNewSupplier({ name: '', phone: '', address: '', state: '' });
       if (res.data && res.data.id) {
         setValue('supplierId', res.data.id);
       }
@@ -326,6 +338,10 @@ const PurchaseEntry = () => {
 
   const handleQuickAddSupplier = () => {
     if (!newSupplier.name) return;
+    if (settings?.enableTax && !newSupplier.state) {
+      toast.error('State is mandatory when Tax is enabled.');
+      return;
+    }
     addSupplierMutation.mutate(newSupplier);
   };
 
@@ -401,8 +417,9 @@ const PurchaseEntry = () => {
                   <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="bg-[#059669] hover:bg-[#047857] text-white px-2 py-1 rounded transition-colors flex items-center gap-1 text-[11px] font-bold">
                     <Plus size={12} /> Add Supplier
                   </button>
-                  <span className="text-[11px] text-[#6B7280] text-right flex-1 ml-2">
-                    {selectedSupplier ? `${selectedSupplier.address || 'Standard Vendor'}` : 'Standard Vendor'}
+                  <span className="text-[11px] text-[#6B7280] text-right flex-1 ml-2 flex flex-col items-end">
+                    <span>{selectedSupplier ? `${selectedSupplier.address || 'Standard Vendor'}` : 'Standard Vendor'}</span>
+                    {selectedSupplier?.state && <span className="font-bold text-[#1F2937]">{selectedSupplier.state}</span>}
                   </span>
                 </div>
               </div>
@@ -758,6 +775,29 @@ const PurchaseEntry = () => {
                   value={newSupplier.phone}
                   onChange={(e) => setNewSupplier({...newSupplier, phone: e.target.value})}
                   className="w-full px-3 py-2 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6]" 
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#4B5563] mb-1">State {settings?.enableTax && <span className="text-red-500">*</span>}</label>
+                <Select 
+                  value={newSupplier.state ? { value: newSupplier.state, label: newSupplier.state } : null}
+                  onChange={(val: any) => setNewSupplier({...newSupplier, state: val?.value || ''})}
+                  options={[
+                    { value: '', label: '-- Select State --' },
+                    ...indianStates.map(s => ({ value: s, label: s }))
+                  ]}
+                  className="text-[13px] font-medium"
+                  placeholder="-- Select State --"
+                  styles={{
+                    control: (base: any) => ({
+                      ...base,
+                      minHeight: '38px',
+                      borderColor: '#D1D5DB',
+                      borderRadius: '0.25rem',
+                    }),
+                    menuPortal: (base: any) => ({ ...base, zIndex: 9999 })
+                  }}
+                  menuPortalTarget={document.body}
                 />
               </div>
               <div>
