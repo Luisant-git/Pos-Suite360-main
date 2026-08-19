@@ -487,6 +487,7 @@ const PurchaseEntry = () => {
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">MRP</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-20">Disc %</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Disc Amt</th>
+                {settings?.enableTax && <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Tax</th>}
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-28">Total</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-16">Act</th>
               </tr>
@@ -588,6 +589,15 @@ const PurchaseEntry = () => {
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
+                  {settings?.enableTax && (
+                    <td data-label="Tax" className="px-2 py-1 border-r border-[#E5E7EB]">
+                      <input 
+                        {...register(`items.${index}.tax`)} 
+                        type="number" step="0.01" readOnly tabIndex={-1}
+                        className="w-full px-2 py-1 bg-transparent border-none text-[13px] text-right text-gray-500 outline-none" 
+                      />
+                    </td>
+                  )}
                   <td data-label="Total" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input {...register(`items.${index}.total`)} type="number" readOnly tabIndex={-1} className="w-full px-2 py-1 bg-transparent text-[13px] outline-none text-right font-bold" />
                   </td>
