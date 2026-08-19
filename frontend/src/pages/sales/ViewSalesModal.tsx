@@ -205,8 +205,17 @@ export default function ViewSalesModal({ saleId, onClose }: Props) {
                     <span>Discount</span>
                     <span className="font-bold">- {formatCurrency(sale.discount)}</span>
                   </div>
-                  {settings?.enableTax && Number(sale.tax) > 0 && (
+                  {settings?.enableTax && (
                     (() => {
+                      if (Number(sale.tax) === 0) {
+                        return (
+                          <div className="flex justify-between items-center text-gray-600">
+                            <span>Tax</span>
+                            <span className="font-bold">{formatCurrency(0)}</span>
+                          </div>
+                        );
+                      }
+
                       const storeState = (settings.state || '').trim().toLowerCase();
                       const custState = (sale.customer?.state || '').trim().toLowerCase();
                       

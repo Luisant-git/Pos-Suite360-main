@@ -292,8 +292,17 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                     <span className="min-w-[100px] text-right">-{Number(sale?.discount).toFixed(2)}</span>
                   </div>
                 )}
-                {settings?.enableTax && Number(sale?.tax) > 0 && (
+                {settings?.enableTax && (
                   (() => {
+                    if (Number(sale?.tax) === 0) {
+                      return (
+                        <div className="flex justify-between">
+                          <span>TAX :</span>
+                          <span className="min-w-[100px] text-right">0.00</span>
+                        </div>
+                      );
+                    }
+
                     const storeState = (settings.state || '').trim().toLowerCase();
                     const custState = (sale?.customer?.state || '').trim().toLowerCase();
                     
