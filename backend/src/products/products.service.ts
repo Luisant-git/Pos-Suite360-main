@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -79,9 +79,16 @@ export class ProductsService {
     });
   }
 
-  remove(id: number) {
-    return this.prisma.product.delete({
-      where: { id },
-    });
+  async remove(id: number) {
+    try {
+      return await this.prisma.product.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (error?.code === 'P2003') {
+        throw new BadRequestException('Cannot delete product because it is already used in transactions (purchases or sales).');
+      }
+      throw error;
+    }
   }
 }
