@@ -57,11 +57,15 @@ export class SupplierPaymentsService {
       throw new BadRequestException('Supplier not found');
     }
 
+    const creditMode = await this.prisma.paymentMode.findFirst({
+      where: { name: { equals: 'credit', mode: 'insensitive' } }
+    });
+
     // Sum of all CREDIT purchases
     const purchases = await this.prisma.purchase.aggregate({
       where: { 
         supplierId,
-        paymentModeId: 4 // Hardcoded Credit ID
+        paymentModeId: creditMode?.id || -1
       },
       _sum: { grandTotal: true },
     });
@@ -168,10 +172,14 @@ export class SupplierPaymentsService {
       totalPaid += openingBalance;
     }
 
+    const creditMode = await this.prisma.paymentMode.findFirst({
+      where: { name: { equals: 'credit', mode: 'insensitive' } }
+    });
+
     const purchases = await this.prisma.purchase.findMany({
       where: { 
         supplierId,
-        paymentModeId: 4 // Hardcoded Credit ID
+        paymentModeId: creditMode?.id || -1
       },
       orderBy: { date: 'asc' },
     });
