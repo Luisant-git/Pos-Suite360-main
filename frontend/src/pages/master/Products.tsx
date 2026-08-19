@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import api from '../../services/api';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const productSchema = z.object({
   code: z.string().min(1, 'Product Code is required'),
@@ -19,6 +20,7 @@ const productSchema = z.object({
   purchaseRate: z.coerce.number().min(0).default(0),
   wholesaleRate: z.coerce.number().min(0).default(0),
   sellingRate: z.coerce.number().min(0).default(0), // Sale Rate (Retail)
+  taxPercent: z.coerce.number().min(0).default(0),  // GST %
   minStock: z.coerce.number().min(0).default(0),    // Min Qty (Alert)
   reorderLevel: z.coerce.number().min(0).default(0),
 });
@@ -48,16 +50,19 @@ const Products = () => {
       purchaseRate: '' as any,
       wholesaleRate: '' as any,
       sellingRate: '' as any,
+      taxPercent: '' as any,
       minStock: '' as any,
       reorderLevel: '' as any,
     }
   });
 
   // Fetch Master Data
+  const { settings } = useSettings();
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: async () => (await api.get('/categories')).data });
   const { data: brands = [] } = useQuery({ queryKey: ['brands'], queryFn: async () => (await api.get('/brands')).data });
   const { data: units = [] } = useQuery({ queryKey: ['units'], queryFn: async () => (await api.get('/units')).data });
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: async () => (await api.get('/suppliers')).data });
+  const { data: taxes = [] } = useQuery({ queryKey: ['taxes'], queryFn: async () => (await api.get('/taxes')).data, enabled: !!settings?.enableTax });
 
   // Fetch Products
   const { data: products = [], isLoading } = useQuery({ 
@@ -158,6 +163,7 @@ const Products = () => {
     setValue('purchaseRate', Number(product.purchaseRate));
     setValue('wholesaleRate', Number(product.wholesaleRate));
     setValue('sellingRate', Number(product.sellingRate));
+    setValue('taxPercent', Number(product.taxPercent || 0));
     setValue('minStock', Number(product.minStock));
     setValue('reorderLevel', Number(product.reorderLevel));
   };
@@ -238,15 +244,29 @@ const Products = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Default Supplier</label>
-            <select 
-              {...register('supplierId')}
-              className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] bg-white"
-            >
-              <option value="">-- Select Supplier --</option>
-              {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Default Supplier</label>
+              <select 
+                {...register('supplierId')}
+                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] bg-white"
+              >
+                <option value="">-- Select Supplier --</option>
+                {suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            {settings?.enableTax && (
+              <div>
+                <label className="block text-[12px] font-bold text-[#1F2937] mb-1">GST % (Tax)</label>
+                <select 
+                  {...register('taxPercent')}
+                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] bg-white"
+                >
+                  <option value="0">None (0%)</option>
+                  {taxes.map((t: any) => <option key={t.id} value={t.rate}>{t.name} ({Number(t.rate)}%)</option>)}
+                </select>
+              </div>
+            )}
           </div>
 
           <h3 className="font-bold text-[13px] text-gray-500 mt-2 uppercase">Pricing Matrix</h3>
