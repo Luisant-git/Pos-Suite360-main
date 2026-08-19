@@ -117,8 +117,13 @@ const Products = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['nextProductCode'] });
+      toast.success(editingId ? 'Product updated successfully!' : 'Product added successfully!');
       reset();
       setEditingId(null);
+    },
+    onError: (err: any) => {
+      console.error(err);
+      toast.error(err?.response?.data?.message || 'Failed to save product. Please check your inputs.');
     }
   });
 
