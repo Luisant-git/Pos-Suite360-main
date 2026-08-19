@@ -268,7 +268,7 @@ const Products = () => {
                   className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] bg-white"
                 >
                   <option value="0">None (0%)</option>
-                  {taxes.map((t: any) => <option key={t.id} value={t.rate}>{t.name} ({Number(t.rate)}%)</option>)}
+                  {taxes.map((t: any) => <option key={t.id} value={Number(t.rate)}>{t.name} ({Number(t.rate)}%)</option>)}
                 </select>
               </div>
             )}
