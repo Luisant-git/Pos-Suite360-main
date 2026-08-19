@@ -57,7 +57,7 @@ const Products = () => {
   });
 
   // Fetch Master Data
-  const { settings } = useSettings();
+  const { settings, formatCurrency } = useSettings();
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: async () => (await api.get('/categories')).data });
   const { data: brands = [] } = useQuery({ queryKey: ['brands'], queryFn: async () => (await api.get('/brands')).data });
   const { data: units = [] } = useQuery({ queryKey: ['units'], queryFn: async () => (await api.get('/units')).data });
@@ -459,9 +459,9 @@ const Products = () => {
                     <td data-label="Stock" className="px-3 py-2.5 border-r border-[#E5E7EB] text-center font-bold">
                       {product.currentStock} {product.unit?.name}
                     </td>
-                    <td data-label="Pur Rate" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right text-gray-600 font-medium">RM {Number(product.purchaseRate).toFixed(2)}</td>
-                    <td data-label="Wholesale" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-bold text-[#16A34A]">RM {Number(product.wholesaleRate).toFixed(2)}</td>
-                    <td data-label="Sale Rate" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-bold text-[#3B82F6]">RM {Number(product.sellingRate).toFixed(2)}</td>
+                    <td data-label="Pur Rate" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right text-gray-600 font-medium">{formatCurrency(product.purchaseRate)}</td>
+                    <td data-label="Wholesale" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-bold text-[#16A34A]">{formatCurrency(product.wholesaleRate)}</td>
+                    <td data-label="Sale Rate" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-bold text-[#3B82F6]">{formatCurrency(product.sellingRate)}</td>
                     <td data-label="Actions" className="px-3 py-2.5 text-center">
                       <div className="flex justify-center gap-2">
                         <button type="button" 
