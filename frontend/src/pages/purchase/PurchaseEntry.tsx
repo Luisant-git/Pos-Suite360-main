@@ -20,6 +20,7 @@ const purchaseItemSchema = z.object({
   mrp: z.coerce.number().min(0),
   discPercent: z.coerce.number().min(0).max(100),
   discAmt: z.coerce.number().min(0),
+  tax: z.coerce.number().optional(),
   total: z.coerce.number(),
 }).superRefine((data, ctx) => {
   if (data.productId > 0) {
@@ -51,6 +52,7 @@ const purchaseSchema = z.object({
   totalAmount: z.coerce.number(),
   totalDiscount: z.coerce.number(),
   totalDiscountPercent: z.coerce.number().optional(),
+  tax: z.coerce.number().optional(),
   roundOff: z.coerce.number(),
   netAmount: z.coerce.number(),
 
@@ -81,10 +83,11 @@ const PurchaseEntry = () => {
       supplierId: 0,
       date: new Date().toISOString().split('T')[0],
       paymentModeId: 0,
-      items: [{ productId: 0, quantity: '' as any, unit: 'Nos', pRate: '' as any, wRate: '' as any, sRate: '' as any, mrp: '' as any, discPercent: '' as any, discAmt: '' as any, total: 0 }],
+      items: [{ productId: 0, quantity: '' as any, unit: 'Nos', pRate: '' as any, wRate: '' as any, sRate: '' as any, mrp: '' as any, discPercent: '' as any, discAmt: '' as any, tax: 0, total: 0 }],
       totalAmount: 0,
       totalDiscountPercent: '' as any,
       totalDiscount: '' as any,
+      tax: 0,
       roundOff: '' as any,
       netAmount: 0
     }
@@ -116,6 +119,7 @@ const PurchaseEntry = () => {
   // Calculations
   useEffect(() => {
     let totalAmount = 0;
+    let totalTax = 0;
     
     items.forEach((item, index) => {
       const q = Number(item.quantity) || 0;
@@ -123,23 +127,39 @@ const PurchaseEntry = () => {
       
       let discAmt = Number(item.discAmt) || 0;
 
+      const subtotal = (q * pRate) - discAmt;
+      
+      let itemTax = 0;
+      if (settings?.enableTax && item.productId > 0) {
+        const product = products.find((p: any) => p.id === Number(item.productId));
+        if (product && product.taxPercent) {
+          const taxPercent = Number(product.taxPercent) || 0;
+          itemTax = (subtotal * taxPercent) / 100;
+        }
+      }
 
-      const total = (q * pRate) - discAmt;
+      const total = subtotal + itemTax;
+      
+      if (item.tax !== itemTax) {
+        setValue(`items.${index}.tax`, Number(itemTax.toFixed(2)), { shouldValidate: false });
+      }
       
       if (item.total !== total) {
         setValue(`items.${index}.total`, Number(total.toFixed(2)), { shouldValidate: false });
       }
-      totalAmount += total;
+      totalAmount += subtotal;
+      totalTax += itemTax;
     });
 
     const d = Number(watchTotalDiscount) || 0;
     const r = Number(watchRoundOff) || 0;
-    const netAmount = totalAmount - d + r;
+    const netAmount = totalAmount + totalTax - d + r;
 
     setValue('totalAmount', Number(totalAmount.toFixed(2)));
+    setValue('tax', Number(totalTax.toFixed(2)));
     setValue('netAmount', Number(netAmount.toFixed(2)));
 
-  }, [JSON.stringify(items), watchTotalDiscount, watchRoundOff, setValue]);
+  }, [JSON.stringify(items), watchTotalDiscount, watchRoundOff, setValue, settings?.enableTax, products]);
 
   const handleProductChange = async (index: number, productId: string) => {
     const product = products.find((p: any) => p.id === Number(productId));
@@ -213,7 +233,7 @@ const PurchaseEntry = () => {
       invoiceDate: data.invoiceDate ? new Date(data.invoiceDate).toISOString() : null,
       subtotal: data.totalAmount,
       discount: data.totalDiscount,
-      tax: 0,
+      tax: data.tax || 0,
       grandTotal: data.netAmount,
       items: validItems.map(item => ({
         productId: item.productId,
@@ -222,7 +242,7 @@ const PurchaseEntry = () => {
         wRate: item.wRate,
         sRate: item.sRate,
         mrp: item.mrp,
-        tax: 0,
+        tax: item.tax || 0,
         amount: item.total,
       }))
     };

@@ -56,6 +56,7 @@ const saleItemSchema = z.object({
   unit: z.string().optional(),
   discPercent: z.coerce.number().min(0).max(100),
   discAmt: z.coerce.number().min(0),
+  tax: z.coerce.number().optional(),
   total: z.coerce.number(),
 }).superRefine((data, ctx) => {
   if (data.productId > 0) {
@@ -119,15 +120,15 @@ const POS = () => {
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
   const printAfterSaveRef = useRef(false);
 
-  const { register, control, handleSubmit, watch, setValue, reset } = useForm<SaleFormValues>({
+  const { register, control, handleSubmit, watch, setValue, getValues, reset } = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       invoiceNo: 'Generating...',
       customerId: 0,
-      rateType: 'Wholesale Rate',
+      rateType: 'Retail Rate',
       paymentModeId: 0,
-      items: [{ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 }],
+      items: [{ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, tax: 0, total: 0 }],
       grossAmount: 0,
       totalDiscountPercent: '' as any,
       totalDiscount: '' as any,
@@ -166,6 +167,7 @@ const POS = () => {
   // Calculations
   useEffect(() => {
     let grossAmount = 0;
+    let totalTax = 0;
     
     items.forEach((item, index) => {
       const q = Number(item.quantity) || 0;
@@ -173,23 +175,39 @@ const POS = () => {
       
       let discAmt = Number(item.discAmt) || 0;
 
+      const subtotal = (q * rate) - discAmt;
+      
+      let itemTax = 0;
+      if (settings?.enableTax && item.productId > 0) {
+        const product = products.find((p: any) => p.id === Number(item.productId));
+        if (product && product.taxPercent) {
+          const taxPercent = Number(product.taxPercent) || 0;
+          itemTax = (subtotal * taxPercent) / 100;
+        }
+      }
 
-      const total = (q * rate) - discAmt;
+      const total = subtotal + itemTax;
+      
+      if (item.tax !== itemTax) {
+        setValue(`items.${index}.tax`, Number(itemTax.toFixed(2)), { shouldValidate: false });
+      }
       
       if (item.total !== total) {
         setValue(`items.${index}.total`, Number(total.toFixed(2)), { shouldValidate: false });
       }
-      grossAmount += total;
+      grossAmount += subtotal;
+      totalTax += itemTax;
     });
 
     const d = Number(watchTotalDiscount) || 0;
     const r = Number(watchRoundOff) || 0;
-    const netAmount = grossAmount - d + r;
+    const netAmount = grossAmount + totalTax - d + r;
 
     setValue('grossAmount', Number(grossAmount.toFixed(2)));
+    setValue('tax', Number(totalTax.toFixed(2)));
     setValue('netAmount', Number(netAmount.toFixed(2)));
 
-  }, [JSON.stringify(items), watchTotalDiscount, watchRoundOff, setValue]);
+  }, [JSON.stringify(items), watchTotalDiscount, watchRoundOff, setValue, settings?.enableTax, products]);
 
   // Product change handler
   const handleProductChange = async (index: number, productId: string) => {
@@ -197,8 +215,13 @@ const POS = () => {
     if (product) {
       setValue(`items.${index}.stock`, product.currentStock || 0);
       setValue(`items.${index}.unit`, product.unit?.shortCode || product.unit?.name || 'Nos');
-      // Do not auto-fetch rate; leave empty for manual entry
-      setValue(`items.${index}.rate`, '' as any);
+      
+      const rateType = getValues('rateType');
+      let rate = Number(product.sellingRate) || 0;
+      if (rateType === 'Wholesale Rate') rate = Number(product.wholesaleRate) || 0;
+      else if (rateType === 'MRP') rate = Number(product.mrp) || 0;
+      
+      setValue(`items.${index}.rate`, rate > 0 ? rate : ('' as any));
     }
   };
 
@@ -252,14 +275,14 @@ const POS = () => {
       paymentModeId: Number(data.paymentModeId),
       subtotal: Number(data.grossAmount),
       discount: Number(data.totalDiscount),
-      tax: 0,
+      tax: Number(data.tax || 0),
       grandTotal: Number(data.netAmount),
       items: validItems.map(item => ({
         productId: Number(item.productId),
         quantity: Number(item.quantity),
         rate: Number(item.rate),
         discount: Number(item.discAmt || 0),
-        tax: 0,
+        tax: Number(item.tax || 0),
         amount: Number(item.total),
       }))
     };
@@ -536,6 +559,41 @@ const POS = () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            <div className="w-full lg:flex-1 lg:max-w-[150px]">
+              <label className="block text-[11px] font-bold text-[#1F2937] mb-1">Rate Type</label>
+              <select
+                {...register('rateType')}
+                onChange={(e) => {
+                  register('rateType').onChange(e);
+                  const newRateType = e.target.value;
+                  const currentItems = watch('items');
+                  currentItems.forEach((item, index) => {
+                    if (item.productId > 0) {
+                      const p = products.find((prod: any) => prod.id === Number(item.productId));
+                      if (p) {
+                        let rate = Number(p.sellingRate) || 0;
+                        if (newRateType === 'Wholesale Rate') rate = Number(p.wholesaleRate) || 0;
+                        else if (newRateType === 'MRP') rate = Number(p.mrp) || 0;
+                        
+                        const q = Number(item.quantity) || 0;
+                        const total = rate * q;
+                        
+                        setValue(`items.${index}.rate`, rate > 0 ? rate : ('' as any));
+                        if (total > 0) {
+                           setValue(`items.${index}.total`, total);
+                        }
+                      }
+                    }
+                  });
+                }}
+                className="w-full px-2 py-1.5 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] bg-white"
+              >
+                <option value="Retail Rate">Retail Rate</option>
+                <option value="Wholesale Rate">Wholesale Rate</option>
+                <option value="MRP">MRP</option>
+              </select>
             </div>
 
             <div className="w-full lg:flex-1 lg:max-w-[200px]">
