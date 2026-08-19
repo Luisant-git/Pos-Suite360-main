@@ -1,5 +1,6 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useCallback, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 
 interface Settings {
@@ -32,6 +33,9 @@ const SettingsContext = createContext<SettingsContextType>({
 export const useSettings = () => useContext(SettingsContext);
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
+  const location = useLocation(); // Trigger re-render on route change (e.g., after login)
+  const token = localStorage.getItem('token');
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
@@ -39,10 +43,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       return res.data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!localStorage.getItem('token'), // Prevent fetching when not logged in
+    enabled: !!token, // Now dynamically re-evaluates when route changes
   });
 
-  const formatCurrency = (amount: number | string) => {
+  const formatCurrency = useCallback((amount: number | string) => {
     const num = Number(amount) || 0;
     const formatted = num.toFixed(2);
     const symbol = settings?.currencySymbol || 'RM';
@@ -52,10 +56,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       return `${formatted} ${symbol}`;
     }
     return `${symbol} ${formatted}`;
-  };
+  }, [settings?.currencySymbol, settings?.currencyPosition]);
+
+  const value = useMemo(() => ({
+    settings: settings || null,
+    isLoading,
+    formatCurrency
+  }), [settings, isLoading, formatCurrency]);
 
   return (
-    <SettingsContext.Provider value={{ settings, isLoading, formatCurrency }}>
+    <SettingsContext.Provider value={value}>
       {children}
     </SettingsContext.Provider>
   );

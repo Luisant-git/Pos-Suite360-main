@@ -7,6 +7,7 @@ import { z } from 'zod';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import api from '../../services/api';
 import Select from 'react-select';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const indianStates = [
   "01 - Jammu & Kashmir", "02 - Himachal Pradesh", "03 - Punjab", "04 - Chandigarh",
@@ -41,6 +42,7 @@ const Suppliers = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFullTable, setIsFullTable] = useState(false);
+  const { formatCurrency } = useSettings();
 
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<SupplierFormValues>({
     resolver: zodResolver(supplierSchema) as any,
@@ -358,7 +360,7 @@ const Suppliers = () => {
                     <td data-label="Mobile" className="px-3 py-3 border-r border-[#E5E7EB] font-medium text-gray-700">{supplier.phone || '-'}</td>
                     <td data-label="Complete Address" className="px-3 py-3 border-r border-[#E5E7EB] text-gray-600 truncate max-w-[200px]">{supplier.address || '-'}</td>
                     <td data-label="Opening Bal" className="px-3 py-3 border-r border-[#E5E7EB] text-right font-bold text-gray-800">
-                      RM {Number(supplier.openingBalance).toFixed(2)} ({supplier.openingBalanceType})
+                      {formatCurrency(supplier.openingBalance)} ({supplier.openingBalanceType})
                     </td>
                     <td data-label="Actions" className="px-3 py-3 text-center">
                       <div className="flex justify-center gap-2">
