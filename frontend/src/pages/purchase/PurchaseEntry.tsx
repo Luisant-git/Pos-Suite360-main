@@ -139,14 +139,20 @@ const PurchaseEntry = () => {
       
       let discAmt = Number(item.discAmt) || 0;
 
-      const subtotal = (q * pRate) - discAmt;
+      let subtotal = (q * pRate) - discAmt;
       
       let itemTax = 0;
       if (settings?.enableTax && item.productId > 0) {
         const product = products.find((p: any) => p.id === Number(item.productId));
         if (product && product.taxPercent) {
           const taxPercent = Number(product.taxPercent) || 0;
-          itemTax = (subtotal * taxPercent) / 100;
+          if (settings.taxType === 'inclusive') {
+            const totalWithTax = subtotal;
+            itemTax = totalWithTax - (totalWithTax / (1 + (taxPercent / 100)));
+            subtotal = totalWithTax - itemTax;
+          } else {
+            itemTax = (subtotal * taxPercent) / 100;
+          }
         }
       }
 
