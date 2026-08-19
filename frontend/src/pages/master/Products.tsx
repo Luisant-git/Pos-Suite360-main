@@ -145,11 +145,15 @@ const Products = () => {
     mutation.mutate(data);
   };
 
+  const onFormError = (errors: any) => {
+    toast.error('Please fill all mandatory fields correctly.');
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F10') {
         e.preventDefault();
-        handleSubmit(onSubmit as any)();
+        handleSubmit(onSubmit as any, onFormError)();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -160,9 +164,9 @@ const Products = () => {
     setEditingId(product.id);
     setValue('code', product.code);
     setValue('name', product.name);
-    setValue('categoryId', product.categoryId.toString());
+    setValue('categoryId', product.categoryId ? product.categoryId.toString() : '');
     setValue('brandId', product.brandId ? product.brandId.toString() : '');
-    setValue('unitId', product.unitId.toString());
+    setValue('unitId', product.unitId ? product.unitId.toString() : '');
     setValue('supplierId', product.supplierId ? product.supplierId.toString() : '');
     setValue('currentStock', Number(product.currentStock));
     setValue('purchaseRate', Number(product.purchaseRate));
@@ -189,7 +193,7 @@ const Products = () => {
           </button>
         </div>
         
-        <form onSubmit={handleSubmit(onSubmit as any)} className="p-4 flex flex-col gap-3">
+        <form onSubmit={handleSubmit(onSubmit as any, onFormError)} className="p-4 flex flex-col gap-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Product Code *</label>

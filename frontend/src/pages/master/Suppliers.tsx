@@ -7,6 +7,7 @@ import { z } from 'zod';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import api from '../../services/api';
 import Select from 'react-select';
+import toast from 'react-hot-toast';
 import { useSettings } from '../../contexts/SettingsContext';
 
 const indianStates = [
@@ -26,7 +27,7 @@ const supplierSchema = z.object({
   phone: z.string().min(1, 'Mobile No is required'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   address: z.string().optional(),
-  state: z.string().optional(),
+  state: z.string().min(1, 'State is required'),
   openingBalance: z.coerce.number().default(0),
   openingBalanceType: z.string().default('Cr'),
   accountNo: z.string().optional(),
@@ -80,8 +81,13 @@ const Suppliers = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      toast.success(editingId ? 'Supplier updated successfully!' : 'Supplier added successfully!');
       reset();
       setEditingId(null);
+    },
+    onError: (err: any) => {
+      console.error(err);
+      toast.error(err?.response?.data?.message || 'Failed to save supplier.');
     }
   });
 
@@ -89,6 +95,12 @@ const Suppliers = () => {
     mutationFn: (id: number) => api.delete(`/suppliers/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      toast.success('Supplier deleted successfully');
+      setItemToDelete(null);
+    },
+    onError: (err: any) => {
+      console.error(err);
+      toast.error('Failed to delete supplier. It may be in use.');
       setItemToDelete(null);
     }
   });
@@ -97,11 +109,15 @@ const Suppliers = () => {
     mutation.mutate(data);
   };
 
+  const onFormError = (errors: any) => {
+    toast.error('Please fill all mandatory fields correctly.');
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F10') {
         e.preventDefault();
-        handleSubmit(onSubmit as any)();
+        handleSubmit(onSubmit as any, onFormError)();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -134,7 +150,7 @@ const Suppliers = () => {
           <h2 className="font-bold text-[14px] text-[#1E3A8A]">SUPPLIER MASTER FORM</h2>
         </div>
         
-        <form onSubmit={handleSubmit(onSubmit as any)} className="p-3 flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
+        <form onSubmit={handleSubmit(onSubmit as any, onFormError)} className="p-3 flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
           
           <div>
             <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Supplier Name *</label>
@@ -227,6 +243,7 @@ const Suppliers = () => {
                 />
               )}
             />
+            {errors.state && <span className="text-red-500 text-xs mt-1 block">{errors.state.message}</span>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
