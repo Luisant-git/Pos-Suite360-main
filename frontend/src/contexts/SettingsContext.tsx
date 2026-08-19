@@ -33,7 +33,7 @@ const SettingsContext = createContext<SettingsContextType>({
 export const useSettings = () => useContext(SettingsContext);
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
-  const location = useLocation(); // Trigger re-render on route change (e.g., after login)
+  useLocation(); // Trigger re-render on route change (e.g., after login)
   const token = localStorage.getItem('token');
 
   const { data: settings, isLoading } = useQuery({
