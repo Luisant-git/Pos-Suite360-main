@@ -110,6 +110,7 @@ const Suppliers = () => {
   };
 
   const onFormError = (errors: any) => {
+    console.error(errors);
     toast.error('Please fill all mandatory fields correctly.');
   };
 

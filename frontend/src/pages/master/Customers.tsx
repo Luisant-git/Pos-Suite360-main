@@ -110,7 +110,8 @@ const Customers = () => {
   };
 
   const onFormError = (errors: any) => {
-    toast.error('Please fill all mandatory fields correctly.');
+    console.error(errors);
+    toast.error('Please fill all required fields correctly.');
   };
 
   useEffect(() => {
