@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Edit, Trash2, CheckCircle, Box, Grid, Maximize, Minimize } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -26,7 +26,7 @@ const RawMaterialMaster = () => {
   const [isFullTable, setIsFullTable] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<RawMaterialFormValues>({
+  const { register, handleSubmit, reset, setValue, getValues, formState: { errors } } = useForm<RawMaterialFormValues>({
     resolver: zodResolver(rawMaterialSchema) as any,
     defaultValues: {
       code: '',
@@ -87,6 +87,21 @@ const RawMaterialMaster = () => {
       setItemToDelete(null);
     }
   });
+
+  const generateNextCode = () => {
+    const rmCodes = rawMaterials
+      .filter((m: any) => m.code?.startsWith('RM-'))
+      .map((m: any) => parseInt(m.code.replace('RM-', '')))
+      .filter((n: number) => !isNaN(n));
+    const maxCode = rmCodes.length > 0 ? Math.max(...rmCodes) : 0;
+    return `RM-${String(maxCode + 1).padStart(3, '0')}`;
+  };
+
+  useEffect(() => {
+    if (rawMaterials && !editingId && !getValues('code')) {
+      setValue('code', generateNextCode());
+    }
+  }, [rawMaterials, editingId, setValue, getValues]);
 
   const onSubmit = (data: RawMaterialFormValues) => {
     mutation.mutate(data);
@@ -181,7 +196,7 @@ const RawMaterialMaster = () => {
           {editingId && (
             <button 
               type="button" 
-              onClick={() => { reset(); setEditingId(null); }}
+              onClick={() => { reset(); setEditingId(null); setValue('code', generateNextCode()); }}
               className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded flex justify-center items-center gap-2 transition-colors"
             >
               CANCEL EDIT
