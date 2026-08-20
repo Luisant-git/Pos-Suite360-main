@@ -88,8 +88,7 @@ const MainLayout = () => {
   const { settings } = useSettings();
   const [user, setUser] = useState({ name: 'Pro X Admin' });
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  
+
   useEffect(() => {
     // Fetch permissions for the demo admin role
     api.get('/roles').then(res => {
@@ -135,8 +134,6 @@ const MainLayout = () => {
       } catch (e) {}
     }
 
-    const timer = setInterval(() => setCurrentDate(new Date()), 60000);
-    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -163,7 +160,6 @@ const MainLayout = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [navigate]);
 
-  const formattedDate = `${currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} ${currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
 
   const isMasterActive = location.pathname.startsWith('/master');
   const isPurchaseActive = location.pathname.startsWith('/purchase');

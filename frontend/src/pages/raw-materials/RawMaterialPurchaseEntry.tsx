@@ -137,7 +137,6 @@ const RawMaterialPurchaseEntry = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSubmit, handleClear, navigate]);
 
-  const selectedSupplier = suppliers.find((s: any) => s.id === supplierId);
 
   return (
     <div className="absolute inset-0 bg-[#F3F4F6] flex flex-col font-sans overflow-hidden z-10">

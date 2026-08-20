@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Printer, Download, Receipt, Calendar, FileText, Building2, User, Phone, MapPin, Hash, X, Truck } from 'lucide-react';
+import { Printer, Download, Receipt, Calendar, FileText, Building2, X, Truck } from 'lucide-react';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useRef } from 'react';
