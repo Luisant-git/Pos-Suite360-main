@@ -17,6 +17,8 @@ const ReportTabs = () => {
   const tabs = [
     { name: 'Purchase Report', path: '/reports/purchase', icon: <ShoppingBag size={14} /> },
     { name: 'Purchase Return Report', path: '/reports/purchase-return', icon: <CornerDownLeft size={14} /> },
+    { name: 'RM Purchase Report', path: '/reports/raw-material-purchase', icon: <Truck size={14} /> },
+    { name: 'Production Report', path: '/reports/production', icon: <Box size={14} /> },
     { name: 'Sales Report', path: '/reports/sales', icon: <FileText size={14} /> },
     { name: 'Sales Return Report', path: '/reports/sales-return', icon: <CornerDownLeft size={14} /> },
     { name: 'Stock as on Date', path: '/reports/stock', icon: <Box size={14} /> },

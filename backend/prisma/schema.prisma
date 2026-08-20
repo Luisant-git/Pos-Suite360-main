@@ -71,6 +71,7 @@ model Unit {
   name      String    @unique // e.g., Nos, Kg, Liters
   shortCode String?
   products  Product[]
+  rawMaterials RawMaterial[]
   
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -92,6 +93,7 @@ model Supplier {
   bankBranch         String?
   purchases          Purchase[]
   purchaseReturns    PurchaseReturn[]
+  rawMaterialPurchases RawMaterialPurchase[]
   products           Product[]
   payments           SupplierPayment[]
   
@@ -191,6 +193,7 @@ model Product {
   saleItems           SaleItem[]
   salesReturnItems    SalesReturnItem[]
   stockLedger         StockTransaction[]
+  productionFinishedProducts Production[] @relation("ProductionFinishedProduct")
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -496,4 +499,77 @@ model Tax {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// Manufacturing & Raw Materials Models
+// ------------------------------------------------------
+
+model RawMaterialPurchase {
+  id            Int      @id @default(autoincrement())
+  invoiceNo     String   @unique
+  date          DateTime @default(now())
+  
+  supplierId    Int
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  
+  subtotal      Decimal  @default(0)
+  tax           Decimal  @default(0)
+  grandTotal    Decimal  @default(0)
+  
+  items         RawMaterialPurchaseItem[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model RawMaterial {
+  id             Int      @id @default(autoincrement())
+  name           String
+  code           String   @unique
+  
+  unitId         Int
+  unit           Unit     @relation(fields: [unitId], references: [id])
+  
+  currentStock   Int      @default(0)
+  purchaseRate   Decimal  @default(0)
+  
+  rawMaterialPurchaseItems RawMaterialPurchaseItem[]
+  productionRawMaterials   Production[] @relation("ProductionRawMaterial")
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model RawMaterialPurchaseItem {
+  id                    Int      @id @default(autoincrement())
+  rawMaterialPurchaseId Int
+  rawMaterialPurchase   RawMaterialPurchase @relation(fields: [rawMaterialPurchaseId], references: [id])
+  
+  rawMaterialId         Int
+  rawMaterial           RawMaterial  @relation(fields: [rawMaterialId], references: [id])
+  
+  widthMm               Decimal
+  lengthM               Decimal
+  sqM                   Decimal
+  quantity              Int
+  price                 Decimal
+  amount                Decimal
+}
+
+model Production {
+  id                Int      @id @default(autoincrement())
+  date              DateTime @default(now())
+  workName          String
+  
+  rawMaterialId     Int
+  rawMaterial       RawMaterial  @relation("ProductionRawMaterial", fields: [rawMaterialId], references: [id])
+  intakeQuantity    Int
+  
+  finishedProductId Int
+  finishedProduct   Product  @relation("ProductionFinishedProduct", fields: [finishedProductId], references: [id])
+  outcomeQuantity   Int
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

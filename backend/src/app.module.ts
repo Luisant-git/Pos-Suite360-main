@@ -25,7 +25,10 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { ReportsModule } from './reports/reports.module';
 import { TaxesModule } from './taxes/taxes.module';
-
+import { ProductionModule } from './production/production.module';
+import { RawMaterialPurchasesModule } from './raw-material-purchases/raw-material-purchases.module';
+import { RawMaterialsModule } from './raw-materials/raw-materials.module';
+import { RolesModule } from './roles/roles.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
@@ -62,7 +65,11 @@ import { join } from 'path';
     ExpensesModule,
     WhatsappModule,
     ReportsModule,
-    TaxesModule
+    TaxesModule,
+    ProductionModule,
+    RawMaterialPurchasesModule,
+    RawMaterialsModule,
+    RolesModule
   ],
   controllers: [AppController],
   providers: [AppService],

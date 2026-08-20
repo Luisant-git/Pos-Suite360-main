@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronDown, LogOut, Settings as SettingsIcon, Zap, ArrowLeft, Menu, X } from 'lucide-react';
+import { ChevronDown, LogOut, Settings as SettingsIcon, Zap, ArrowLeft, Menu, X, Shield } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
-
+import api from '../services/api';
 const NavItem = ({ title, icon, to, onClick }: { title: string, icon: string, to: string, onClick?: () => void }) => (
   <NavLink 
     to={to} 
@@ -87,7 +87,28 @@ const MainLayout = () => {
   const location = useLocation();
   const { settings } = useSettings();
   const [user, setUser] = useState({ name: 'Pro X Admin' });
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  
+  useEffect(() => {
+    // Fetch permissions for the demo admin role
+    api.get('/roles').then(res => {
+      if (res.data.length > 0) {
+        setPermissions(res.data[0].permissions || []);
+      }
+    }).catch(err => console.error(err));
+  }, []);
+
+  const hasPerm = (perm: string) => {
+    // If no permissions are set, default to showing everything so the app remains usable before setup
+    if (permissions.length === 0) return true;
+    return permissions.includes(perm);
+  };
+
+  const hasAnyPerm = (perms: string[]) => {
+    if (permissions.length === 0) return true;
+    return perms.some(p => permissions.includes(p));
+  };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [desktopLayout] = useState(() => localStorage.getItem('desktopLayout') || 'topbar');
@@ -145,8 +166,9 @@ const MainLayout = () => {
   const formattedDate = `${currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} ${currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
 
   const isMasterActive = location.pathname.startsWith('/master');
-  const isSalesActive = location.pathname.startsWith('/sales');
   const isPurchaseActive = location.pathname.startsWith('/purchase');
+  const isManufacturingActive = location.pathname.startsWith('/raw-materials') || location.pathname.startsWith('/production');
+  const isSalesActive = location.pathname.startsWith('/sales');
   const isReportsActive = location.pathname.startsWith('/reports');
 
   const showBackButton = location.pathname !== '/dashboard' && location.pathname !== '/quick-start' && location.pathname !== '/';
@@ -154,7 +176,7 @@ const MainLayout = () => {
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <div className={`flex ${desktopLayout === 'sidebar' ? 'flex-row' : 'flex-col'} h-screen bg-[#F3F5F8] overflow-hidden font-sans text-[13px] print:h-auto print:overflow-visible print:bg-white`}>
+    <div className={`flex ${desktopLayout === 'sidebar' ? 'flex-row' : 'flex-col'} h-screen bg-[#F3F5F8] overflow-hidden font-sans text-[13px] print:static print:block print:h-auto print:overflow-visible print:bg-white`}>
       
       {/* Desktop Sidebar Navigation */}
       {desktopLayout === 'sidebar' && (
@@ -192,6 +214,12 @@ const MainLayout = () => {
               <MobileDropdownItem to="/purchase/payments" icon="fa-credit-card" title="Supplier Payments" />
             </MobileNavDropdown>
 
+            <MobileNavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
+              <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />
+              <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />
+              <MobileDropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" />
+            </MobileNavDropdown>
+
             <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
               <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />
               <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />
@@ -206,6 +234,9 @@ const MainLayout = () => {
               <MobileDropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />
               <MobileDropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />
               <div className="my-1 border-t border-[#2A3F54]/30"></div>
+              <MobileDropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />
+              <MobileDropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />
+              <div className="my-1 border-t border-[#2A3F54]/30"></div>
               <MobileDropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />
               <MobileDropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />
             </MobileNavDropdown>
@@ -214,7 +245,7 @@ const MainLayout = () => {
       )}
 
       {/* Main Content Wrapper */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:block print:h-auto">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:static print:overflow-visible print:block print:h-auto">
         {/* Top Navigation Bar - Premium Blue */}
       <header className="bg-gradient-to-r from-[#1E40AF] to-[#2563EB] text-white shadow-lg z-30 print:hidden flex-shrink-0 border-b border-blue-800">
         <div className="flex items-center justify-between px-3 sm:px-4 h-[60px]">
@@ -251,56 +282,77 @@ const MainLayout = () => {
               <nav className="hidden lg:flex h-full items-center">
                 <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" />
               
+              {hasAnyPerm(['master_products', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
               <NavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Inventory</div>
-                <DropdownItem to="/master/products" icon="fa-cubes" title="Products" />
-                <DropdownItem to="/master/brands" icon="fa-tags" title="Brands" />
-                <DropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" />
-                <DropdownItem to="/master/units" icon="fa-balance-scale" title="Units" />
+                {hasPerm('master_products') && <DropdownItem to="/master/products" icon="fa-cubes" title="Products" />}
+                {hasPerm('master_brands') && <DropdownItem to="/master/brands" icon="fa-tags" title="Brands" />}
+                {hasPerm('master_categories') && <DropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" />}
+                {hasPerm('master_units') && <DropdownItem to="/master/units" icon="fa-balance-scale" title="Units" />}
                 
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">People</div>
-                <DropdownItem to="/master/suppliers" icon="fa-building-o" title="Suppliers" />
-                <DropdownItem to="/master/customers" icon="fa-users" title="Customers" />
+                {hasPerm('master_suppliers') && <DropdownItem to="/master/suppliers" icon="fa-building-o" title="Suppliers" />}
+                {hasPerm('master_customers') && <DropdownItem to="/master/customers" icon="fa-users" title="Customers" />}
                 
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Settings</div>
-                <DropdownItem to="/master/payment-modes" icon="fa-credit-card-alt" title="Payment Modes" />
-                <DropdownItem to="/master/payment-types" icon="fa-money" title="Payment Types" />
-                <DropdownItem to="/master/expense-categories" icon="fa-list-alt" title="Expense Categories" />
+                {hasPerm('master_payment_modes') && <DropdownItem to="/master/payment-modes" icon="fa-credit-card-alt" title="Payment Modes" />}
+                {hasPerm('master_payment_types') && <DropdownItem to="/master/payment-types" icon="fa-money" title="Payment Types" />}
+                {hasPerm('master_expense_categories') && <DropdownItem to="/master/expense-categories" icon="fa-list-alt" title="Expense Categories" />}
                 {settings?.enableTax && (
                   <DropdownItem to="/master/taxes" icon="fa-percent" title="Tax GST" />
                 )}
               </NavDropdown>
+              )}
 
+              {hasAnyPerm(['purchase_entry', 'purchase_return', 'purchase_payments']) && (
               <NavDropdown title="Purchases" icon="fa-truck" isActive={isPurchaseActive}>
-                <DropdownItem to="/purchase/new" icon="fa-shopping-basket" title="Purchase Entry" />
-                <DropdownItem to="/purchase/return" icon="fa-undo" title="Purchase Return" isWarning />
+                {hasPerm('purchase_entry') && <DropdownItem to="/purchase/new" icon="fa-shopping-basket" title="Purchase Entry" />}
+                {hasPerm('purchase_return') && <DropdownItem to="/purchase/return" icon="fa-undo" title="Purchase Return" isWarning />}
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
-                <DropdownItem to="/purchase/payments" icon="fa-credit-card" title="Supplier Payments" />
+                {hasPerm('purchase_payments') && <DropdownItem to="/purchase/payments" icon="fa-credit-card" title="Supplier Payments" />}
               </NavDropdown>
+              )}
 
+              {hasAnyPerm(['mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
+              <NavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
+                {hasPerm('mfg_rm_master') && <DropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />}
+                {hasPerm('mfg_rm_purchase') && <DropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />}
+                {hasPerm('mfg_production') && <DropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" />}
+              </NavDropdown>
+              )}
+
+              {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
               <NavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
-                <DropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />
-                <DropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />
+                {hasPerm('sales_pos') && <DropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />}
+                {hasPerm('sales_return') && <DropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />}
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
-                <DropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />
+                {hasPerm('sales_receipts') && <DropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />}
               </NavDropdown>
+              )}
 
-              <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" />
+              {hasPerm('expenses_entry') && <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" />}
 
+              {hasAnyPerm(['reports_sales', 'reports_purchase', 'reports_manufacturing', 'reports_financial']) && (
               <NavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive}>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sales & Purchase</div>
-                <DropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />
-                <DropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />
-                <DropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />
-                <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />
+                {hasPerm('reports_sales') && <DropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
+                {hasPerm('reports_sales') && <DropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
+                {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
+                {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
                 
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
+                <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Manufacturing</div>
+                {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
+                {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
+
+                <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Financial</div>
-                <DropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />
-                <DropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />
+                {hasPerm('reports_financial') && <DropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />}
+                {hasPerm('reports_financial') && <DropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />}
               </NavDropdown>
+              )}
             </nav>
             )}
           </div>
@@ -309,17 +361,19 @@ const MainLayout = () => {
           <div className="flex items-center gap-2 sm:gap-4 h-full">
             <Link 
               to="/quick-start"
-              className="hidden md:flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-4 sm:px-5 py-1.5 sm:py-2 rounded-md font-bold transition-all shadow-lg shadow-orange-500/40 text-[12px] sm:text-[13px] transform hover:-translate-y-0.5 shrink-0"
+              className={`hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-1.5 sm:py-2 rounded-md font-bold transition-all shadow-lg shadow-orange-500/40 text-[12px] sm:text-[13px] transform hover:-translate-y-0.5 shrink-0 ${showBackButton ? 'px-3 sm:px-3 w-8 sm:w-10' : 'px-4 sm:px-5'}`}
+              title="Quick Start"
             >
-              <Zap size={14} fill="currentColor" /> <span className="hidden sm:inline">Quick Start</span>
+              <Zap size={14} fill="currentColor" className="shrink-0" /> 
+              {!showBackButton && <span className="hidden sm:inline whitespace-nowrap">Quick Start</span>}
             </Link>
             
-            {!showBackButton && (
+            {/* {!showBackButton && (
               <div className="hidden 2xl:flex items-center text-sm font-medium text-blue-50 bg-[#1E3A8A]/50 px-4 py-1.5 rounded-md border border-blue-400/30 backdrop-blur-sm shadow-inner shrink-0">
                 <i className="fa fa-clock-o mr-2 text-blue-300"></i>
                 {formattedDate}
               </div>
-            )}
+            )} */}
 
             {!showBackButton && <div className="h-8 w-px bg-blue-400/30 mx-2 hidden md:block"></div>}
 
@@ -352,6 +406,12 @@ const MainLayout = () => {
                       <SettingsIcon size={16} />
                     </div>
                     Settings
+                  </Link>
+                  <Link to="/master/permissions" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors font-bold mt-1">
+                    <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <Shield size={16} />
+                    </div>
+                    Menu Permissions
                   </Link>
                   {/* 
                   <button 
@@ -400,43 +460,62 @@ const MainLayout = () => {
             <nav className="flex-1 py-2 overflow-y-auto custom-scrollbar">
               <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" onClick={closeMobileMenu} />
               
+              {hasAnyPerm(['master_products', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
               <MobileNavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
-                <MobileDropdownItem to="/master/products" icon="fa-cubes" title="Products" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/master/brands" icon="fa-tags" title="Brands" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/master/units" icon="fa-balance-scale" title="Units" onClick={closeMobileMenu} />
+                {hasPerm('master_products') && <MobileDropdownItem to="/master/products" icon="fa-cubes" title="Products" onClick={closeMobileMenu} />}
+                {hasPerm('master_brands') && <MobileDropdownItem to="/master/brands" icon="fa-tags" title="Brands" onClick={closeMobileMenu} />}
+                {hasPerm('master_categories') && <MobileDropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" onClick={closeMobileMenu} />}
+                {hasPerm('master_units') && <MobileDropdownItem to="/master/units" icon="fa-balance-scale" title="Units" onClick={closeMobileMenu} />}
                 <div className="my-1 border-t border-[#2A3F54]/30"></div>
-                <MobileDropdownItem to="/master/suppliers" icon="fa-building-o" title="Suppliers" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/master/customers" icon="fa-users" title="Customers" onClick={closeMobileMenu} />
+                {hasPerm('master_suppliers') && <MobileDropdownItem to="/master/suppliers" icon="fa-building-o" title="Suppliers" onClick={closeMobileMenu} />}
+                {hasPerm('master_customers') && <MobileDropdownItem to="/master/customers" icon="fa-users" title="Customers" onClick={closeMobileMenu} />}
                 <div className="my-1 border-t border-[#2A3F54]/30"></div>
-                <MobileDropdownItem to="/master/payment-modes" icon="fa-credit-card-alt" title="Payment Modes" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/master/payment-types" icon="fa-money" title="Payment Types" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/master/expense-categories" icon="fa-list-alt" title="Expense Categories" onClick={closeMobileMenu} />
+                {hasPerm('master_payment_modes') && <MobileDropdownItem to="/master/payment-modes" icon="fa-credit-card-alt" title="Payment Modes" onClick={closeMobileMenu} />}
+                {hasPerm('master_payment_types') && <MobileDropdownItem to="/master/payment-types" icon="fa-money" title="Payment Types" onClick={closeMobileMenu} />}
+                {hasPerm('master_expense_categories') && <MobileDropdownItem to="/master/expense-categories" icon="fa-list-alt" title="Expense Categories" onClick={closeMobileMenu} />}
               </MobileNavDropdown>
+              )}
 
+              {hasAnyPerm(['purchase_entry', 'purchase_return', 'purchase_payments']) && (
               <MobileNavDropdown title="Purchases" icon="fa-truck" isActive={isPurchaseActive}>
-                <MobileDropdownItem to="/purchase/new" icon="fa-shopping-basket" title="Purchase Entry" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/purchase/return" icon="fa-undo" title="Purchase Return" isWarning onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/purchase/payments" icon="fa-credit-card" title="Supplier Payments" onClick={closeMobileMenu} />
+                {hasPerm('purchase_entry') && <MobileDropdownItem to="/purchase/new" icon="fa-shopping-basket" title="Purchase Entry" onClick={closeMobileMenu} />}
+                {hasPerm('purchase_return') && <MobileDropdownItem to="/purchase/return" icon="fa-undo" title="Purchase Return" isWarning onClick={closeMobileMenu} />}
+                {hasPerm('purchase_payments') && <MobileDropdownItem to="/purchase/payments" icon="fa-credit-card" title="Supplier Payments" onClick={closeMobileMenu} />}
               </MobileNavDropdown>
+              )}
 
+              {hasAnyPerm(['mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
+              <MobileNavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
+                {hasPerm('mfg_rm_master') && <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" onClick={closeMobileMenu} />}
+                {hasPerm('mfg_rm_purchase') && <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" onClick={closeMobileMenu} />}
+                {hasPerm('mfg_production') && <MobileDropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" onClick={closeMobileMenu} />}
+              </MobileNavDropdown>
+              )}
+
+              {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
               <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
-                <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" onClick={closeMobileMenu} />
+                {hasPerm('sales_pos') && <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" onClick={closeMobileMenu} />}
+                {hasPerm('sales_return') && <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger onClick={closeMobileMenu} />}
+                {hasPerm('sales_receipts') && <MobileDropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" onClick={closeMobileMenu} />}
               </MobileNavDropdown>
+              )}
 
-              <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" onClick={closeMobileMenu} />
+              {hasPerm('expenses_entry') && <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" onClick={closeMobileMenu} />}
 
+              {hasAnyPerm(['reports_sales', 'reports_purchase', 'reports_manufacturing', 'reports_financial']) && (
               <MobileNavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive}>
-                <MobileDropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning onClick={closeMobileMenu} />
+                {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
+                {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
+                {hasPerm('reports_purchase') && <MobileDropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
+                {hasPerm('reports_purchase') && <MobileDropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
                 <div className="my-1 border-t border-[#2A3F54]/30"></div>
-                <MobileDropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" onClick={closeMobileMenu} />
-                <MobileDropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" onClick={closeMobileMenu} />
+                {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
+                {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
+                <div className="my-1 border-t border-[#2A3F54]/30"></div>
+                {hasPerm('reports_financial') && <MobileDropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />}
+                {hasPerm('reports_financial') && <MobileDropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />}
               </MobileNavDropdown>
+              )}
             </nav>
             
             <div className="p-4 border-t border-[#2563EB]">
@@ -453,7 +532,7 @@ const MainLayout = () => {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto relative bg-[#F3F5F8] print:overflow-visible print:bg-white custom-scrollbar">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto relative bg-[#F3F5F8] print:static print:block print:h-auto print:overflow-visible print:bg-white custom-scrollbar">
         <div className="max-w-full mx-auto w-full h-full flex flex-col p-2 sm:p-4 lg:p-8">
           <Outlet context={{ desktopLayout }} />
         </div>

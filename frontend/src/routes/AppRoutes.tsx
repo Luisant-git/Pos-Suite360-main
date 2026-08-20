@@ -17,6 +17,7 @@ import PaymentTypes from '../pages/master/PaymentTypes';
 import ExpenseCategories from '../pages/master/ExpenseCategories';
 import Users from '../pages/master/Users';
 import Taxes from '../pages/master/Taxes';
+import MenuPermissions from '../pages/master/MenuPermissions';
 
 // Purchase
 import PurchaseList from '../pages/purchase/PurchaseList';
@@ -32,6 +33,13 @@ import SalesHistory from '../pages/sales/SalesHistory';
 import SalesView from '../pages/sales/SalesView';
 import CustomerReceipts from '../pages/sales/CustomerReceipts';
 import SalesReturn from '../pages/sales/SalesReturn';
+
+// Raw Materials & Production
+import RawMaterialMaster from '../pages/raw-materials/RawMaterialMaster';
+import RawMaterialPurchaseEntry from '../pages/raw-materials/RawMaterialPurchaseEntry';
+import RawMaterialPurchaseList from '../pages/raw-materials/RawMaterialPurchaseList';
+import ProductionEntry from '../pages/production/ProductionEntry';
+import ProductionList from '../pages/production/ProductionList';
 
 // Inventory
 import Stock from '../pages/inventory/Stock';
@@ -51,6 +59,8 @@ import StockReport from '../pages/reports/StockReport';
 import StockLedgerReport from '../pages/reports/StockLedgerReport';
 import ExpenseReport from '../pages/reports/ExpenseReport';
 import ProfitLossReport from '../pages/reports/ProfitLossReport';
+import RawMaterialPurchaseReport from '../pages/reports/RawMaterialPurchaseReport';
+import ProductionReport from '../pages/reports/ProductionReport';
 
 // Settings
 import Settings from '../pages/Settings';
@@ -79,6 +89,7 @@ const AppRoutes = () => {
         <Route path="/master/expense-categories" element={<ExpenseCategories />} />
         <Route path="/master/users" element={<Users />} />
         <Route path="/master/taxes" element={<Taxes />} />
+        <Route path="/master/permissions" element={<MenuPermissions />} />
 
         {/* Purchase Routes */}
         <Route path="/purchase" element={<PurchaseList />} />
@@ -111,9 +122,18 @@ const AppRoutes = () => {
         <Route path="/reports/purchase" element={<PurchaseReport />} />
         <Route path="/reports/purchase-return" element={<PurchaseReturnReport />} />
         <Route path="/reports/stock" element={<StockReport />} />
-        <Route path="/reports/stock-ledger" element={<StockLedgerReport />} />
-        <Route path="/reports/expenses" element={<ExpenseReport />} />
         <Route path="/reports/profit-ledger" element={<ProfitLossReport />} />
+        <Route path="/reports/expenses" element={<ExpenseReport />} />
+        <Route path="/reports/stock-ledger" element={<StockLedgerReport />} />
+        <Route path="/reports/raw-material-purchase" element={<RawMaterialPurchaseReport />} />
+        <Route path="/reports/production" element={<ProductionReport />} />
+
+        {/* Manufacturing & Raw Materials */}
+        <Route path="/raw-materials/master" element={<RawMaterialMaster />} />
+        <Route path="/raw-materials/purchase" element={<RawMaterialPurchaseEntry />} />
+        <Route path="/raw-materials/purchase-list" element={<RawMaterialPurchaseList />} />
+        <Route path="/production/new" element={<ProductionEntry />} />
+        <Route path="/production/list" element={<ProductionList />} />
 
         {/* Settings */}
         <Route path="/settings" element={<Settings />} />
