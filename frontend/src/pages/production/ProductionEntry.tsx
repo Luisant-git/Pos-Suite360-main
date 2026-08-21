@@ -43,6 +43,18 @@ const ProductionEntry = () => {
 
   const updateItem = (index: number, field: string, value: any) => {
     const newItems = [...items];
+    
+    if (field === 'intakeQuantity') {
+      const rawMaterialId = newItems[index].rawMaterialId;
+      const material = rawMaterials.find((m: any) => m.id === rawMaterialId);
+      const currentStock = material?.currentStock || 0;
+      
+      if (Number(value) > currentStock) {
+        toast.error(`Quantity Intake cannot exceed Current Stock (${currentStock})`);
+        return;
+      }
+    }
+
     newItems[index][field] = value;
     setItems(newItems);
   };
