@@ -210,7 +210,7 @@ const ProductionEntry = () => {
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-10">#</th>
                 <th className="px-2 py-2 text-left text-[12px] font-medium border border-[#334155] w-[250px]">Material Name (Intake)</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Current Stock</th>
-                <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-32">Quality / Grade</th>
+                {/* <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-32">Quality / Grade</th> */}
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Quantity Intake</th>
                 <th className="px-2 py-2 text-left text-[12px] font-medium border border-[#334155] w-[250px]">Finished Product Name (Outcome)</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-28">Outcome Products Count</th>
@@ -241,18 +241,18 @@ const ProductionEntry = () => {
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded bg-[#E5E7EB] text-[13px] outline-none text-right font-bold text-[#4B5563] cursor-not-allowed"
                     />
                   </td>
-                  <td className="px-2 py-1 border-r border-[#E5E7EB]">
+                  {/* <td className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       type="text" value={item.quality} onChange={e => updateItem(index, 'quality', e.target.value)}
                       placeholder="Grade A"
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors" 
                     />
-                  </td>
+                  </td> */}
                   <td className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       type="number" value={item.intakeQuantity} onChange={e => updateItem(index, 'intakeQuantity', e.target.value)}
                       placeholder="0" onFocus={e => e.target.select()}
-                      className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444] focus:bg-red-50 transition-colors text-right font-bold text-red-700" 
+                      className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right font-bold text-blue-700" 
                     />
                   </td>
 
