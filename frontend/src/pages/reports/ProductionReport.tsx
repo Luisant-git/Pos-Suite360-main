@@ -15,6 +15,8 @@ const ProductionReport = () => {
   const [workName, setWorkName] = useState('');
   const [quickSearch, setQuickSearch] = useState('');
   const [viewId, setViewId] = useState<number | null>(null);
+  const [filterRmId, setFilterRmId] = useState<string>('');
+  const [filterProductId, setFilterProductId] = useState<string>('');
 
   // Fetch Report Data
   const { data: productions = [], isLoading, refetch } = useQuery({
@@ -32,14 +34,29 @@ const ProductionReport = () => {
         date: new Date(p.date).toISOString().split('T')[0],
         workName: p.workName || '-',
         rawMaterial: p.rawMaterial?.name || '-',
+        rawMaterialId: p.rawMaterialId,
         intakeQuantity: p.intakeQuantity || 0,
         finishedProduct: p.finishedProduct?.name || '-',
+        finishedProductId: p.finishedProductId,
         outcomeQuantity: p.outcomeQuantity || 0,
       }));
     },
   });
 
+  const { data: rawMaterials = [] } = useQuery({
+    queryKey: ['rawMaterials'],
+    queryFn: async () => (await api.get('/raw-materials')).data,
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => (await api.get('/products')).data,
+  });
+
   const filteredProductions = productions.filter((p: any) => {
+    if (filterRmId && p.rawMaterialId?.toString() !== filterRmId) return false;
+    if (filterProductId && p.finishedProductId?.toString() !== filterProductId) return false;
+
     if (!quickSearch) return true;
     const term = quickSearch.toLowerCase();
     return (
@@ -49,7 +66,7 @@ const ProductionReport = () => {
     );
   });
 
-  const [entriesPerPage, setEntriesPerPage] = useState(25);
+  const entriesPerPage = 25;
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.ceil(filteredProductions.length / entriesPerPage);
@@ -62,7 +79,7 @@ const ProductionReport = () => {
 
       {/* Filter Section */}
       <div className="bg-white border border-[#E2E8F0] shadow-sm rounded-md mb-4 p-4 shrink-0">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 items-end mb-4">
           
           <div>
             <label className="flex items-center gap-1 text-[12px] text-[#64748B] mb-1 font-bold"><Calendar size={12} /> From Date</label>
@@ -99,19 +116,30 @@ const ProductionReport = () => {
           </div>
 
           <div>
-            <label className="flex items-center gap-1 text-[12px] text-[#64748B] mb-1 font-bold">Show</label>
+            <label className="flex items-center gap-1 text-[12px] text-[#3B82F6] mb-1 font-bold"><Box size={12} /> Raw Material</label>
             <select
-              value={entriesPerPage}
-              onChange={(e) => {
-                setEntriesPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
+              value={filterRmId}
+              onChange={(e) => setFilterRmId(e.target.value)}
               className="w-full px-3 py-1.5 border border-[#CBD5E1] rounded outline-none text-[13px] text-[#334155] bg-white focus:border-[#3B82F6]"
             >
-              <option value={10}>10 Entries</option>
-              <option value={25}>25 Entries</option>
-              <option value={50}>50 Entries</option>
-              <option value={100}>100 Entries</option>
+              <option value="">All Raw Materials</option>
+              {rawMaterials.map((rm: any) => (
+                <option key={rm.id} value={rm.id}>{rm.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-1 text-[12px] text-[#3B82F6] mb-1 font-bold"><Box size={12} /> Finished Product</label>
+            <select
+              value={filterProductId}
+              onChange={(e) => setFilterProductId(e.target.value)}
+              className="w-full px-3 py-1.5 border border-[#CBD5E1] rounded outline-none text-[13px] text-[#334155] bg-white focus:border-[#3B82F6]"
+            >
+              <option value="">All Products</option>
+              {products.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
             </select>
           </div>
 
@@ -126,6 +154,8 @@ const ProductionReport = () => {
               setFromDate(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
               setToDate(new Date().toISOString().split('T')[0]);
               setWorkName('');
+              setFilterRmId('');
+              setFilterProductId('');
               setQuickSearch('');
             }} className="text-[#64748B] hover:text-[#334155] flex items-center gap-1 text-[13px] font-bold transition-colors">
               <RotateCcw size={14} /> Reset Filters
