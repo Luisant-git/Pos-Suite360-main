@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { CheckCircle, ArrowLeft, PlusCircle, RotateCcw, List, FileText, Plus, Trash2, Package } from 'lucide-react';
@@ -10,6 +10,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 const RawMaterialPurchaseEntry = () => {
   const navigate = useNavigate();
   const { formatCurrency } = useSettings();
+  const queryClient = useQueryClient();
   
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [supplierId, setSupplierId] = useState(0);
@@ -26,6 +27,34 @@ const RawMaterialPurchaseEntry = () => {
     queryKey: ['rawMaterials'], 
     queryFn: async () => (await api.get('/raw-materials')).data 
   });
+
+  const generateNextCode = () => {
+    const rmCodes = rawMaterials
+      .filter((m: any) => m.code?.startsWith('RM-'))
+      .map((m: any) => parseInt(m.code.replace('RM-', '')))
+      .filter((n: number) => !isNaN(n));
+    const maxCode = rmCodes.length > 0 ? Math.max(...rmCodes) : 0;
+    return `RM-${String(maxCode + 1).padStart(3, '0')}`;
+  };
+
+  const handleCreateNewMaterial = async (index: number, name: string) => {
+    try {
+      const toastId = toast.loading(`Creating ${name}...`);
+      const { data } = await api.post('/raw-materials', {
+        code: generateNextCode(),
+        name,
+        unitId: 1, // Using 1 as a fallback default unit ID
+        currentStock: 0,
+        purchaseRate: 0
+      });
+      queryClient.invalidateQueries({ queryKey: ['rawMaterials'] });
+      updateItem(index, 'rawMaterialId', data.id);
+      toast.success(`${name} created successfully!`, { id: toastId });
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || 'Failed to create raw material');
+    }
+  };
 
   const addItem = () => {
     setItems([...items, { rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
@@ -90,7 +119,7 @@ const RawMaterialPurchaseEntry = () => {
     },
     onSuccess: () => {
       toast.success('Purchase saved successfully');
-      navigate('/dashboard');
+      navigate('/raw-materials/purchase-list');
     },
     onError: (err: any) => {
       console.error(err);
@@ -264,8 +293,10 @@ const RawMaterialPurchaseEntry = () => {
                   <td className="px-2 py-1 text-center text-[13px] border-r border-[#E5E7EB]">{index + 1}</td>
                   <td className="px-2 py-1 border-r border-[#E5E7EB]">
                     <SearchableSelect
+                      creatable={true}
                       value={item.rawMaterialId}
                       onChange={(val) => updateItem(index, 'rawMaterialId', Number(val))}
+                      onCreate={(name) => handleCreateNewMaterial(index, name)}
                       options={[
                         { label: 'Type material name / code...', value: 0 },
                         ...rawMaterials.map((p: any) => ({ label: `${p.code} - ${p.name}`, value: p.id }))

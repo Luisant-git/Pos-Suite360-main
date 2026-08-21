@@ -19,7 +19,11 @@ export class RawMaterialsService {
   findAll() {
     return this.prisma.rawMaterial.findMany({
       include: {
-        unit: true
+        unit: true,
+        rawMaterialPurchaseItems: {
+          orderBy: { id: 'desc' },
+          take: 1
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
