@@ -251,7 +251,7 @@ const RawMaterialPurchaseEntry = () => {
                 <th className="px-3 py-2.5 text-left text-[12px] font-medium border border-[#334155]">Raw Material (Searchable)</th>
                 <th className="px-2 py-2.5 text-center text-[12px] font-medium border border-[#334155] w-24">Width (MM)</th>
                 <th className="px-2 py-2.5 text-center text-[12px] font-medium border border-[#334155] w-24">Length (M)</th>
-                <th className="px-2 py-2.5 text-center text-[12px] font-bold border border-[#334155] w-28 bg-[#334155] text-green-300 tracking-wide">SQ.M AREA</th>
+                <th className="px-2 py-2.5 text-center text-[12px] font-bold border border-[#334155] w-28 bg-[#334155] text-green-300 tracking-wide">SQ.M</th>
                 <th className="px-2 py-2.5 text-center text-[12px] font-medium border border-[#334155] w-20">Qty (Rolls)</th>
                 <th className="px-2 py-2.5 text-center text-[12px] font-medium border border-[#334155] w-28">Price / Sq.M</th>
                 <th className="px-3 py-2.5 text-right text-[12px] font-bold border border-[#334155] w-32 tracking-wide">AMOUNT</th>
@@ -345,9 +345,9 @@ const RawMaterialPurchaseEntry = () => {
             </div>
 
             <div className="w-full md:flex-1 flex flex-col gap-1">
-              <label className="text-[14px] font-extrabold text-[#1F2937] uppercase">Total Sq.M Area:</label>
+              <label className="text-[14px] font-extrabold text-[#1F2937] uppercase">Total SQ.M:</label>
               <input
-                value={items.reduce((acc, item) => acc + (Number(item.sqM) || 0), 0).toFixed(3)}
+                value={items.reduce((acc, item) => acc + ((Number(item.sqM) || 0) * (Number(item.quantity) || 0)), 0).toFixed(3)}
                 readOnly
                 className="w-full px-3 py-2 border border-[#D1D5DB] bg-[#F9FAFB] rounded text-[20px] outline-none text-right font-black text-[#1F2937]"
               />
