@@ -12,7 +12,7 @@ const ProductionEntry = () => {
   const [workName, setWorkName] = useState('');
   
   const [items, setItems] = useState<any[]>([
-    { rawMaterialId: 0, quality: '', intakeQuantity: '', finishedProductId: 0, outcomeQuantity: '' }
+    { rawMaterialId: 0, sqM: '', intakeQuantity: '', finishedProductId: 0, outcomeQuantity: '' }
   ]);
 
   const { data: rawMaterials = [] } = useQuery({ 
@@ -28,7 +28,7 @@ const ProductionEntry = () => {
   const finishedProducts = products;
 
   const addItem = () => {
-    setItems([...items, { rawMaterialId: 0, quality: '', intakeQuantity: '', finishedProductId: 0, outcomeQuantity: '' }]);
+    setItems([...items, { rawMaterialId: 0, sqM: '', intakeQuantity: '', finishedProductId: 0, outcomeQuantity: '' }]);
   };
 
   const removeItem = (index: number) => {
@@ -38,7 +38,7 @@ const ProductionEntry = () => {
   const handleClear = () => {
     setWorkName('');
     setDate(new Date().toISOString().split('T')[0]);
-    setItems([{ rawMaterialId: 0, quality: '', intakeQuantity: '', finishedProductId: 0, outcomeQuantity: '' }]);
+    setItems([{ rawMaterialId: 0, sqM: '', intakeQuantity: '', finishedProductId: 0, outcomeQuantity: '' }]);
   };
 
   const updateItem = (index: number, field: string, value: any) => {
@@ -53,6 +53,16 @@ const ProductionEntry = () => {
         toast.error(`Quantity Intake cannot exceed Current Stock (${currentStock})`);
         return;
       }
+
+      const sqMPerRoll = material?.rawMaterialPurchaseItems?.[0]?.sqM || 0;
+      newItems[index].sqM = (Number(value) * Number(sqMPerRoll)).toFixed(3);
+    }
+    
+    if (field === 'rawMaterialId') {
+      const material = rawMaterials.find((m: any) => m.id === Number(value));
+      const sqMPerRoll = material?.rawMaterialPurchaseItems?.[0]?.sqM || 0;
+      const currentQty = Number(newItems[index].intakeQuantity) || 0;
+      newItems[index].sqM = (currentQty * Number(sqMPerRoll)).toFixed(3);
     }
 
     newItems[index][field] = value;
@@ -222,8 +232,8 @@ const ProductionEntry = () => {
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-10">#</th>
                 <th className="px-2 py-2 text-left text-[12px] font-medium border border-[#334155] w-[250px]">Material Name (Intake)</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Current Stock</th>
-                {/* <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-32">Quality / Grade</th> */}
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Quantity Intake</th>
+                <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-32">SQ.M</th>
                 <th className="px-2 py-2 text-left text-[12px] font-medium border border-[#334155] w-[250px]">Finished Product Name (Outcome)</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-28">Outcome Products Count</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-16">Act</th>
@@ -253,18 +263,17 @@ const ProductionEntry = () => {
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded bg-[#E5E7EB] text-[13px] outline-none text-right font-bold text-[#4B5563] cursor-not-allowed"
                     />
                   </td>
-                  {/* <td className="px-2 py-1 border-r border-[#E5E7EB]">
-                    <input 
-                      type="text" value={item.quality} onChange={e => updateItem(index, 'quality', e.target.value)}
-                      placeholder="Grade A"
-                      className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors" 
-                    />
-                  </td> */}
                   <td className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       type="number" value={item.intakeQuantity} onChange={e => updateItem(index, 'intakeQuantity', e.target.value)}
                       placeholder="0" onFocus={e => e.target.select()}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right font-bold text-blue-700" 
+                    />
+                  </td>
+                  <td className="px-2 py-1 border-r border-[#E5E7EB]">
+                    <input 
+                      type="text" value={item.sqM || '0.000'} readOnly tabIndex={-1}
+                      className="w-full px-2 py-1 border border-[#D1D5DB] rounded bg-[#E5E7EB] text-[13px] outline-none text-right font-bold text-[#4B5563] cursor-not-allowed" 
                     />
                   </td>
 

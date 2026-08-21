@@ -40,7 +40,7 @@ const DropdownItem = ({ to, icon, title, isDanger = false, isWarning = false, on
     <div className={`w-6 flex justify-center ${isDanger ? 'text-red-500' : isWarning ? 'text-amber-500' : 'text-gray-400'}`}>
       <i className={`fa ${icon} text-base`}></i>
     </div>
-    <span>{title}</span>
+    <span className="whitespace-nowrap">{title}</span>
   </NavLink>
 );
 
@@ -77,7 +77,7 @@ const MobileDropdownItem = ({ to, icon, title, onClick, isDanger = false, isWarn
     <div className={`w-5 flex justify-center ${isDanger ? 'text-red-400' : isWarning ? 'text-amber-400' : 'text-blue-300'}`}>
       <i className={`fa ${icon} text-[13px]`}></i>
     </div>
-    <span>{title}</span>
+    <span className="whitespace-nowrap">{title}</span>
   </NavLink>
 );
 
@@ -214,6 +214,7 @@ const MainLayout = () => {
               <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />
               <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />
               <MobileDropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" />
+              <MobileDropdownItem to="/production/edit" icon="fa-check-square-o" title="Update Production Outcome" />
             </MobileNavDropdown>
 
             <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
@@ -316,6 +317,7 @@ const MainLayout = () => {
                 {hasPerm('mfg_rm_master') && <DropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />}
                 {hasPerm('mfg_rm_purchase') && <DropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />}
                 {hasPerm('mfg_production') && <DropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" />}
+                {hasPerm('mfg_production') && <DropdownItem to="/production/edit" icon="fa-check-square-o" title="Update Production Outcome" />}
               </NavDropdown>
               )}
 

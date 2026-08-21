@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Eye } from 'lucide-react';
+import { Plus, Eye, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import PaginationControls from '../../components/PaginationControls';
@@ -10,6 +10,8 @@ const ProductionList = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewId, setViewId] = useState<number | null>(null);
+  const [filterRmId, setFilterRmId] = useState<string>('');
+  const [filterProductId, setFilterProductId] = useState<string>('');
 
   // Fetch Production Entries
   const { data: productions = [], isLoading } = useQuery({
@@ -20,11 +22,24 @@ const ProductionList = () => {
     },
   });
 
+  const { data: rawMaterials = [] } = useQuery({
+    queryKey: ['rawMaterials'],
+    queryFn: async () => (await api.get('/raw-materials')).data,
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => (await api.get('/products')).data,
+  });
+
   // Pagination & Filtering Logic
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const entriesPerPage = 20;
   const [currentPage, setCurrentPage] = useState(1);
 
   const filteredProductions = productions.filter((prod: any) => {
+    if (filterRmId && prod.rawMaterialId?.toString() !== filterRmId) return false;
+    if (filterProductId && prod.finishedProductId?.toString() !== filterProductId) return false;
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const workMatch = prod.workName?.toLowerCase().includes(term);
@@ -60,23 +75,36 @@ const ProductionList = () => {
 
       <div className="flex flex-col flex-1 overflow-hidden">
         
-        {/* Controls / Filters */}
         <div className="bg-white p-3 border-b border-[#E5E7EB] shrink-0 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="flex items-center gap-2 text-[12px] font-bold text-gray-700">
-            <span>Show</span>
-          <select 
-            className="border border-[#ccc] rounded px-2 py-1 outline-none text-[#1F2937] bg-white"
-            value={entriesPerPage}
-            onChange={(e) => {
-              setEntriesPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-          >
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-            <span>entries</span>
+            <span>Filter by:</span>
+            <select 
+              className="border border-[#ccc] rounded px-2 py-1 outline-none text-[#1F2937] bg-white w-32 sm:w-40"
+              value={filterRmId}
+              onChange={(e) => {
+                setFilterRmId(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="">All Raw Materials</option>
+              {rawMaterials.map((rm: any) => (
+                <option key={rm.id} value={rm.id}>{rm.name}</option>
+              ))}
+            </select>
+            
+            <select 
+              className="border border-[#ccc] rounded px-2 py-1 outline-none text-[#1F2937] bg-white w-32 sm:w-40"
+              value={filterProductId}
+              onChange={(e) => {
+                setFilterProductId(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="">All Products</option>
+              {products.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -127,13 +155,22 @@ const ProductionList = () => {
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-medium">{production.finishedProduct?.name}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#059669] font-bold text-right">{production.outcomeQuantity}</td>
                     <td className="px-3 py-2.5 text-center">
-                      <button 
-                        onClick={() => setViewId(production.id)}
-                        className="p-1.5 bg-[#EBF5FF] text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white rounded transition-colors"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
+                      <div className="flex justify-center gap-2">
+                        <button 
+                          onClick={() => navigate(`/production/edit/${production.id}`)}
+                          className="p-1.5 bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white rounded transition-colors"
+                          title="Edit Outcome"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button 
+                          onClick={() => setViewId(production.id)}
+                          className="p-1.5 bg-[#EBF5FF] text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white rounded transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

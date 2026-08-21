@@ -73,4 +73,49 @@ export class ProductionService {
     }
     return production;
   }
+  async update(id: number, updateData: { outcomeQuantity: number }) {
+    return this.prisma.$transaction(async (tx) => {
+      const oldProduction = await tx.production.findUnique({
+        where: { id },
+        include: { finishedProduct: true }
+      });
+
+      if (!oldProduction) {
+        throw new Error('Production entry not found');
+      }
+
+      const delta = updateData.outcomeQuantity - oldProduction.outcomeQuantity;
+
+      if (delta === 0) {
+        return oldProduction;
+      }
+
+      // 1. Update the Production record
+      const production = await tx.production.update({
+        where: { id },
+        data: { outcomeQuantity: updateData.outcomeQuantity }
+      });
+
+      // 2. Adjust Finished Product Stock
+      const finishedProduct = await tx.product.update({
+        where: { id: oldProduction.finishedProductId },
+        data: { currentStock: { increment: delta } },
+      });
+
+      // 3. Add Stock Ledger Entry for the adjustment
+      await tx.stockTransaction.create({
+        data: {
+          productId: oldProduction.finishedProductId,
+          type: 'ADJUSTMENT',
+          quantityIn: delta > 0 ? delta : 0,
+          quantityOut: delta < 0 ? Math.abs(delta) : 0,
+          balance: finishedProduct.currentStock,
+          reference: `Production Outcome Update - ${oldProduction.workName}`,
+          date: new Date(),
+        },
+      });
+
+      return production;
+    });
+  }
 }
