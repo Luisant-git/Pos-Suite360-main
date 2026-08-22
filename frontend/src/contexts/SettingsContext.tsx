@@ -11,6 +11,8 @@ interface Settings {
   currencySymbol: string;
   currencyPosition: string;
   invoicePrefix: string;
+  invoiceTitle?: string;
+  invoiceHeader?: string;
   invoiceNotes?: string;
   signatureImage?: string;
   enableTax: boolean;
