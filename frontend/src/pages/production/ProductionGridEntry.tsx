@@ -86,7 +86,6 @@ const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => vo
         if (product.rawMaterials.length > 1) {
           const additionalItems = product.rawMaterials.slice(1).map((rmMap: any) => {
              const rmId = rmMap.rawMaterialId;
-             const mat = rawMaterials.find((m: any) => m.id === rmId);
              const sqM = '0.000';
              return {
                rawMaterialId: rmId,

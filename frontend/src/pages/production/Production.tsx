@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Edit, Trash2, CheckCircle, Box, Grid, Maximize, Minimize, Search, PlusCircle, RotateCcw, ArrowRight, Eye } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Box, Grid, Maximize, Minimize, Search, PlusCircle, RotateCcw, Eye } from 'lucide-react';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -100,7 +100,6 @@ const Production = () => {
         if (product.rawMaterials.length > 1) {
           const additionalItems = product.rawMaterials.slice(1).map((rmMap: any) => {
              const rmId = rmMap.rawMaterialId;
-             const mat = rawMaterials.find((m: any) => m.id === rmId);
              const sqM = '0.000';
              return {
                rawMaterialId: rmId,
