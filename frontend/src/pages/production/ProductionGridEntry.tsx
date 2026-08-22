@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CheckCircle, ArrowLeft, PlusCircle, RotateCcw, List, Plus, Trash2, Box, FileText } from 'lucide-react';
+import { CheckCircle, PlusCircle, RotateCcw, List, Plus, Trash2, FileText } from 'lucide-react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
