@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Briefcase, PlusSquare } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
+import { useNavigate } from 'react-router-dom';
 
 const ExpenseEntry = () => {
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
@@ -11,6 +13,8 @@ const ExpenseEntry = () => {
   const [amount, setAmount] = useState('');
   const [paymentModeId, setPaymentModeId] = useState('');
   const [notes, setNotes] = useState('');
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const navigate = useNavigate();
   
   const queryClient = useQueryClient();
 
@@ -61,6 +65,21 @@ const ExpenseEntry = () => {
     });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+      if (e.key === 'Escape' && !isInput) {
+        if (isLeaveModalOpen) {
+          setIsLeaveModalOpen(false);
+        } else {
+          setIsLeaveModalOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLeaveModalOpen, navigate]);
+
   return (
     <div className="flex flex-col h-full bg-[#F3F4F6]">
       {/* Header */}
@@ -69,9 +88,9 @@ const ExpenseEntry = () => {
           <Briefcase size={20} className="text-blue-400" />
           <h2 className="text-base font-bold tracking-wide">DAILY EXPENSES MANAGEMENT</h2>
         </div>
-        <Link to="/dashboard" className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 rounded text-sm flex items-center gap-2 shadow-sm">
+        <button onClick={() => setIsLeaveModalOpen(true)} className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 rounded text-sm flex items-center gap-2 shadow-sm">
           <X size={16} /> Close (Esc)
-        </Link>
+        </button>
       </div>
 
       {/* Main Content */}
@@ -185,9 +204,14 @@ const ExpenseEntry = () => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
+      
+      <LeaveConfirmModal 
+        isOpen={isLeaveModalOpen} 
+        onClose={() => setIsLeaveModalOpen(false)} 
+        onConfirm={() => navigate('/dashboard')} 
+      />
     </div>
   );
 };

@@ -6,8 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useNavigate } from 'react-router-dom';
 
 const rawMaterialSchema = z.object({
   code: z.string().min(1, 'Code is required'),
@@ -38,12 +40,32 @@ const RawMaterialMaster = () => {
   });
 
   const { formatCurrency } = useSettings();
+  const navigate = useNavigate();
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+
   const { data: units = [] } = useQuery({ queryKey: ['units'], queryFn: async () => (await api.get('/units')).data });
 
   const { data: rawMaterials = [], isLoading } = useQuery({ 
     queryKey: ['rawMaterials'], 
     queryFn: async () => (await api.get('/raw-materials')).data 
   });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+      if (e.key === 'Escape' && !isInput) {
+        if (itemToDelete) {
+          setItemToDelete(null);
+        } else if (isLeaveModalOpen) {
+          setIsLeaveModalOpen(false);
+        } else {
+          setIsLeaveModalOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [itemToDelete, isLeaveModalOpen, navigate]);
 
   const filteredMaterials = rawMaterials.filter((m: any) => {
     if (searchTerm && !m.name.toLowerCase().includes(searchTerm.toLowerCase()) && !m.code.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -296,12 +318,14 @@ const RawMaterialMaster = () => {
         isOpen={!!itemToDelete}
         itemName={itemToDelete?.name}
         isDeleting={deleteMutation.isPending}
-        onConfirm={() => {
-          if (itemToDelete) {
-            deleteMutation.mutate(itemToDelete.id);
-          }
-        }}
+        onConfirm={() => deleteMutation.mutate(itemToDelete.id)}
         onCancel={() => setItemToDelete(null)}
+      />
+
+      <LeaveConfirmModal 
+        isOpen={isLeaveModalOpen} 
+        onClose={() => setIsLeaveModalOpen(false)} 
+        onConfirm={() => navigate('/dashboard')} 
       />
     </div>
   );

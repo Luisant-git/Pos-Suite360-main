@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { CheckCircle, ArrowLeft, PlusCircle, RotateCcw, List, FileText, Plus, Trash2, Package } from 'lucide-react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 import { useSettings } from '../../contexts/SettingsContext';
 
 const RawMaterialPurchaseEntry = () => {
@@ -15,6 +16,7 @@ const RawMaterialPurchaseEntry = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [supplierId, setSupplierId] = useState(0);
   const [invoiceNo, setInvoiceNo] = useState('');
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   
   const [items, setItems] = useState<any[]>([{ rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
 
@@ -159,12 +161,16 @@ const RawMaterialPurchaseEntry = () => {
         e.preventDefault();
         handleClear();
       } else if (e.key === 'Escape') {
-        navigate('/dashboard');
+        if (isLeaveModalOpen) {
+          setIsLeaveModalOpen(false);
+        } else {
+          setIsLeaveModalOpen(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSubmit, handleClear, navigate]);
+  }, [handleSubmit, handleClear, isLeaveModalOpen, navigate]);
 
 
   return (
@@ -186,7 +192,7 @@ const RawMaterialPurchaseEntry = () => {
           </button>
         </div>
         <button 
-          onClick={() => navigate('/dashboard')}
+          onClick={() => setIsLeaveModalOpen(true)}
           className="text-white hover:text-white/80 transition-colors flex items-center gap-1.5 font-medium text-[13px]"
         >
           <ArrowLeft size={16} /> Back to Dashboard
@@ -417,6 +423,12 @@ const RawMaterialPurchaseEntry = () => {
         </div>
 
       </form>
+      
+      <LeaveConfirmModal 
+        isOpen={isLeaveModalOpen} 
+        onClose={() => setIsLeaveModalOpen(false)} 
+        onConfirm={() => navigate('/dashboard')} 
+      />
     </div>
   );
 };
