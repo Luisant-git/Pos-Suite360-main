@@ -2,13 +2,14 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-export default function SearchableSelect({ options, value, onChange, placeholder, creatable, onCreate }: {
+export default function SearchableSelect({ options, value, onChange, placeholder, creatable, onCreate, disabled }: {
   options: { label: string, value: any }[],
   value: any,
   onChange: (val: any) => void,
   placeholder?: string,
   creatable?: boolean,
-  onCreate?: (name: string) => void
+  onCreate?: (name: string) => void,
+  disabled?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -75,8 +76,8 @@ export default function SearchableSelect({ options, value, onChange, placeholder
   return (
     <div ref={wrapperRef} className="relative w-full text-[13px]">
       <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-2 py-1.5 border border-[#D1D5DB] rounded bg-white flex justify-between items-center cursor-pointer focus-within:border-[#3B82F6]"
+        onClick={() => { if (!disabled) setIsOpen(!isOpen); }}
+        className={`w-full px-2 py-1.5 border border-[#D1D5DB] rounded flex justify-between items-center ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer focus-within:border-[#3B82F6]'}`}
       >
         <span className={value && value !== 0 && value !== '' ? "text-[#1F2937] font-bold" : "text-gray-400 truncate"}>
           {displayLabel}

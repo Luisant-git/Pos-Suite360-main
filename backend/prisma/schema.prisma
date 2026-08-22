@@ -117,9 +117,21 @@ model Customer {
   sales              Sale[]
   salesReturns       SalesReturn[]
   receipts           CustomerReceipt[]
+  productRates       CustomerProductRate[]
   
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+model CustomerProductRate {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rate       Decimal
+
+  @@unique([customerId, productId])
 }
 
 model PaymentMode {
@@ -194,6 +206,7 @@ model Product {
   salesReturnItems    SalesReturnItem[]
   stockLedger         StockTransaction[]
   productionFinishedProducts Production[] @relation("ProductionFinishedProduct")
+  customerRates       CustomerProductRate[]
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -482,6 +495,7 @@ model Settings {
   state            String?
   enableTax        Boolean  @default(false)
   taxType          String?  @default("exclusive")
+  enableCustomerWiseRate Boolean @default(false)
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

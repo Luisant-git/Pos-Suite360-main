@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsNumber, IsEmail } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEmail, ValidateNested, IsArray } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class ProductRateDto {
+  @IsNumber()
+  productId: number;
+
+  @IsNumber()
+  rate: number;
+}
 
 export class CreateCustomerDto {
   @IsString()
@@ -42,4 +51,10 @@ export class CreateCustomerDto {
   @IsNumber()
   @IsOptional()
   creditDays?: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductRateDto)
+  @IsOptional()
+  productRates?: ProductRateDto[];
 }

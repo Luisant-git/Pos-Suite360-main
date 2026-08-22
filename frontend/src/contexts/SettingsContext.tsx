@@ -15,6 +15,7 @@ interface Settings {
   signatureImage?: string;
   enableTax: boolean;
   taxType: string;
+  enableCustomerWiseRate: boolean;
   state?: string;
 }
 

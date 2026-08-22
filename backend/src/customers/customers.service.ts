@@ -8,27 +8,72 @@ export class CustomersService {
   constructor(private prisma: PrismaService) {}
 
   create(createCustomerDto: CreateCustomerDto) {
+    const { productRates, ...data } = createCustomerDto;
     return this.prisma.customer.create({
-      data: createCustomerDto,
+      data: {
+        ...data,
+        productRates: productRates?.length ? {
+          create: productRates
+        } : undefined
+      },
+      include: {
+        productRates: {
+          include: {
+            product: true
+          }
+        }
+      }
     });
   }
 
   findAll() {
     return this.prisma.customer.findMany({
       orderBy: { id: 'desc' },
+      include: {
+        productRates: {
+          include: {
+            product: true
+          }
+        }
+      }
     });
   }
 
   findOne(id: number) {
     return this.prisma.customer.findUnique({
       where: { id },
+      include: {
+        productRates: {
+          include: {
+            product: true
+          }
+        }
+      }
     });
   }
 
-  update(id: number, updateCustomerDto: UpdateCustomerDto) {
+  async update(id: number, updateCustomerDto: UpdateCustomerDto) {
+    const { productRates, ...data } = updateCustomerDto;
+    
+    if (productRates) {
+      await this.prisma.customerProductRate.deleteMany({ where: { customerId: id } });
+    }
+
     return this.prisma.customer.update({
       where: { id },
-      data: updateCustomerDto,
+      data: {
+        ...data,
+        productRates: productRates?.length ? {
+          create: productRates
+        } : undefined
+      },
+      include: {
+        productRates: {
+          include: {
+            product: true
+          }
+        }
+      }
     });
   }
 

@@ -41,6 +41,7 @@ export class SettingsService {
         signatureImage: data.signatureImage,
         enableTax: data.enableTax === true || data.enableTax === 'true',
         taxType: data.taxType,
+        enableCustomerWiseRate: data.enableCustomerWiseRate === true || data.enableCustomerWiseRate === 'true',
       },
       create: {
         id: 1,
@@ -56,6 +57,7 @@ export class SettingsService {
         signatureImage: data.signatureImage,
         enableTax: data.enableTax === true || data.enableTax === 'true',
         taxType: data.taxType || 'exclusive',
+        enableCustomerWiseRate: data.enableCustomerWiseRate === true || data.enableCustomerWiseRate === 'true',
       },
     });
   }

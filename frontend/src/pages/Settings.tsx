@@ -23,6 +23,7 @@ const storeSettingsSchema = z.object({
   signatureImage: z.string().optional(),
   enableTax: z.boolean().optional().default(false),
   taxType: z.string().optional().default('exclusive'),
+  enableCustomerWiseRate: z.boolean().optional().default(false),
 });
 
 type StoreSettingsValues = z.infer<typeof storeSettingsSchema>;
@@ -72,6 +73,7 @@ const Settings = () => {
         signatureImage: settings.signatureImage || '',
         enableTax: settings.enableTax || false,
         taxType: settings.taxType || 'exclusive',
+        enableCustomerWiseRate: settings.enableCustomerWiseRate || false,
       });
     }
   }, [settings, resetStoreForm]);
@@ -242,8 +244,8 @@ const Settings = () => {
                       {...registerStore('currencyPosition')}
                       className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
                     >
-                      <option value="before">Before Amount (e.g. RM 100.00)</option>
-                      <option value="after">After Amount (e.g. 100.00 RM)</option>
+                      <option value="before">Before Amount (e.g. RS 100.00)</option>
+                      <option value="after">After Amount (e.g. 100.00 RS)</option>
                     </select>
                   </div>
                 </div>
@@ -271,6 +273,19 @@ const Settings = () => {
                       </select>
                     </div>
                   )}
+                </div>
+              </div>
+
+              <div className="border-t border-[#E2E8F0] pt-4 mt-2">
+                <div className="flex items-center gap-2 text-[#475569] font-bold text-[13px] mb-2">
+                  <span className="text-[#64748B]"><AlertTriangle size={14} /></span> Sales & Customer Features
+                </div>
+                <div className="flex flex-col gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" {...registerStore('enableCustomerWiseRate')} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    <span className="text-[13px] font-bold text-[#334155]">Enable Customer-Wise Product Rates</span>
+                  </label>
+                  <p className="text-xs text-gray-500 italic ml-6 -mt-3">If enabled, you can define custom product rates per customer in the Customer Master, which overrides standard retail rates during POS billing.</p>
                 </div>
               </div>
 

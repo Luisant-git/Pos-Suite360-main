@@ -143,12 +143,17 @@ const MainLayout = () => {
       if (e.key === 'Escape' && !isInput) {
         // If we are not on the dashboard/home, navigate back
         const path = window.location.pathname;
+        const isDataEntryPath = 
+          ['/purchase/new', '/sales/pos', '/purchase/return', '/sales/return', '/production', '/raw-materials/purchase'].includes(path) ||
+          path.startsWith('/master') ||
+          path.startsWith('/expenses') ||
+          path.startsWith('/raw-materials/master');
+        
         if (
           path !== '/dashboard' && 
           path !== '/quick-start' && 
           path !== '/' &&
-          path !== '/purchase/new' &&
-          path !== '/sales/pos'
+          !isDataEntryPath
         ) {
           navigate(-1);
         }
@@ -213,8 +218,7 @@ const MainLayout = () => {
             <MobileNavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
               <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />
               <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />
-              <MobileDropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" />
-              <MobileDropdownItem to="/production/edit" icon="fa-check-square-o" title="Update Production Outcome" />
+              {hasPerm('mfg_production') && <MobileDropdownItem to="/production" icon="fa-cogs" title="Production Entry" />}
             </MobileNavDropdown>
 
             <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
@@ -267,7 +271,20 @@ const MainLayout = () => {
             {/* Universal Back Button */}
             {showBackButton && (
               <button 
-                onClick={() => navigate(-1)}
+                onClick={() => {
+                  const currentPath = location.pathname;
+                  const isDataEntryPath = 
+                    ['/purchase/new', '/sales/pos', '/purchase/return', '/sales/return', '/production', '/raw-materials/purchase'].includes(currentPath) ||
+                    currentPath.startsWith('/master') ||
+                    currentPath.startsWith('/expenses') ||
+                    currentPath.startsWith('/raw-materials/master');
+
+                  if (isDataEntryPath) {
+                    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                  } else {
+                    navigate(-1);
+                  }
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 mr-2 sm:mr-6 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg transition-all font-bold text-[12px] sm:text-[13px] text-white shadow-sm shrink-0"
                 title="Go Back"
               >
@@ -316,8 +333,7 @@ const MainLayout = () => {
               <NavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
                 {hasPerm('mfg_rm_master') && <DropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />}
                 {hasPerm('mfg_rm_purchase') && <DropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />}
-                {hasPerm('mfg_production') && <DropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" />}
-                {hasPerm('mfg_production') && <DropdownItem to="/production/edit" icon="fa-check-square-o" title="Update Production Outcome" />}
+                {hasPerm('mfg_production') && <DropdownItem to="/production" icon="fa-cogs" title="Production Entry" />}
               </NavDropdown>
               )}
 
@@ -486,7 +502,7 @@ const MainLayout = () => {
               <MobileNavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
                 {hasPerm('mfg_rm_master') && <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_rm_purchase') && <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" onClick={closeMobileMenu} />}
-                {hasPerm('mfg_production') && <MobileDropdownItem to="/production/new" icon="fa-cogs" title="Production Entry" onClick={closeMobileMenu} />}
+                {hasPerm('mfg_production') && <MobileDropdownItem to="/production" icon="fa-cogs" title="Production Entry" onClick={closeMobileMenu} />}
               </MobileNavDropdown>
               )}
 
