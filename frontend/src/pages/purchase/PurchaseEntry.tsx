@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
 import SearchableSelect from '../../components/SearchableSelect';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 import Select from 'react-select';
 
 const indianStates = [
@@ -510,7 +511,12 @@ const PurchaseEntry = () => {
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">MRP</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-20">Disc %</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Disc Amt</th>
-                {settings?.enableTax && <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Tax</th>}
+                {settings?.enableTax && (
+                  <>
+                    <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-20">Tax %</th>
+                    <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Tax Amt</th>
+                  </>
+                )}
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-28">Total</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-16">Act</th>
               </tr>
@@ -613,13 +619,20 @@ const PurchaseEntry = () => {
                     />
                   </td>
                   {settings?.enableTax && (
-                    <td data-label="Tax" className="px-2 py-1 border-r border-[#E5E7EB]">
-                      <input 
-                        {...register(`items.${index}.tax`)} 
-                        type="number" step="0.01" readOnly tabIndex={-1}
-                        className="w-full px-2 py-1 bg-transparent border-none text-[13px] text-right text-gray-500 outline-none" 
-                      />
-                    </td>
+                    <>
+                      <td data-label="Tax %" className="px-2 py-1 border-r border-[#E5E7EB] bg-gray-50">
+                        <div className="w-full px-2 py-1 bg-transparent border-none text-[13px] text-center text-gray-500 font-bold outline-none">
+                          {products.find((p: any) => p.id === watch(`items.${index}.productId`))?.taxPercent || 0}%
+                        </div>
+                      </td>
+                      <td data-label="Tax Amt" className="px-2 py-1 border-r border-[#E5E7EB]">
+                        <input 
+                          {...register(`items.${index}.tax`)} 
+                          type="number" step="0.01" readOnly tabIndex={-1}
+                          className="w-full px-2 py-1 bg-transparent border-none text-[13px] text-right text-gray-500 outline-none" 
+                        />
+                      </td>
+                    </>
                   )}
                   <td data-label="Total" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input {...register(`items.${index}.total`)} type="number" readOnly tabIndex={-1} className="w-full px-2 py-1 bg-transparent text-[13px] outline-none text-right font-bold" />
@@ -744,7 +757,7 @@ const PurchaseEntry = () => {
             <button 
               type="button"
               className="bg-[#0891B2] text-white text-[10px] sm:text-[11px] font-bold px-2 sm:px-3 py-1.5 rounded-sm flex items-center gap-1 cursor-pointer hover:bg-[#0E7490] whitespace-nowrap" 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => setIsLeaveModalOpen(true)}
             >
               <span className="opacity-70 border-r border-[#67E8F9] pr-1 mr-1">Esc</span> Dashboard
             </button>
@@ -871,39 +884,11 @@ const PurchaseEntry = () => {
         </div>
       )}
 
-      {/* Leave Confirmation Modal */}
-      {isLeaveModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up">
-            <div className="bg-[#EF4444] px-4 py-3 flex justify-between items-center text-white">
-              <h3 className="font-bold flex items-center gap-2">Confirm Navigation</h3>
-              <button type="button" onClick={() => setIsLeaveModalOpen(false)} className="hover:text-white/80 transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-5">
-              <p className="text-gray-700 font-medium mb-1 text-center">Are you sure you want to leave?</p>
-              <p className="text-gray-500 text-[13px] text-center mb-5">Any unsaved changes will be lost.</p>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsLeaveModalOpen(false)}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="flex-1 px-4 py-2 bg-[#EF4444] text-white font-bold rounded hover:bg-red-600 transition-colors"
-                >
-                  Leave
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <LeaveConfirmModal 
+        isOpen={isLeaveModalOpen} 
+        onClose={() => setIsLeaveModalOpen(false)} 
+        onConfirm={() => navigate('/dashboard')} 
+      />
 
     </div>
   );
