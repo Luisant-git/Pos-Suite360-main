@@ -39,6 +39,7 @@ import RawMaterialMaster from '../pages/raw-materials/RawMaterialMaster';
 import RawMaterialPurchaseEntry from '../pages/raw-materials/RawMaterialPurchaseEntry';
 import RawMaterialPurchaseList from '../pages/raw-materials/RawMaterialPurchaseList';
 import Production from '../pages/production/Production';
+import ManufacturingProducts from '../pages/production/ManufacturingProducts';
 
 // Inventory
 import Stock from '../pages/inventory/Stock';
@@ -132,6 +133,7 @@ const AppRoutes = () => {
         <Route path="/raw-materials/purchase" element={<RawMaterialPurchaseEntry />} />
         <Route path="/raw-materials/purchase-list" element={<RawMaterialPurchaseList />} />
         <Route path="/production" element={<Production />} />
+        <Route path="/production/products" element={<ManufacturingProducts />} />
 
         {/* Settings */}
         <Route path="/settings" element={<Settings />} />

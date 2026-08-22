@@ -216,6 +216,7 @@ const MainLayout = () => {
             </MobileNavDropdown>
 
             <MobileNavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
+              <MobileDropdownItem to="/production/products" icon="fa-cubes" title="Product Master" />
               <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />
               <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />
               {hasPerm('mfg_production') && <MobileDropdownItem to="/production" icon="fa-cogs" title="Production Entry" />}
@@ -329,8 +330,9 @@ const MainLayout = () => {
               </NavDropdown>
               )}
 
-              {hasAnyPerm(['mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
+              {hasAnyPerm(['master_products', 'mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
               <NavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
+                {hasPerm('master_products') && <DropdownItem to="/production/products" icon="fa-cubes" title="Product Master" />}
                 {hasPerm('mfg_rm_master') && <DropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />}
                 {hasPerm('mfg_rm_purchase') && <DropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />}
                 {hasPerm('mfg_production') && <DropdownItem to="/production" icon="fa-cogs" title="Production Entry" />}
@@ -498,8 +500,9 @@ const MainLayout = () => {
               </MobileNavDropdown>
               )}
 
-              {hasAnyPerm(['mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
+              {hasAnyPerm(['master_products', 'mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
               <MobileNavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
+                {hasPerm('master_products') && <MobileDropdownItem to="/production/products" icon="fa-cubes" title="Product Master" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_rm_master') && <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_rm_purchase') && <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_production') && <MobileDropdownItem to="/production" icon="fa-cogs" title="Production Entry" onClick={closeMobileMenu} />}

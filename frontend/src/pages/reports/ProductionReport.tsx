@@ -207,6 +207,7 @@ const ProductionReport = () => {
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Intake Qty</th>
                 <th className="px-4 py-3 border-r border-[#1E293B]">Finished Product Output</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Produced Qty</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Wastage Qty</th>
                 <th className="px-4 py-3 border-[#1E293B] text-center">Action</th>
               </tr>
             </thead>
@@ -216,25 +217,48 @@ const ProductionReport = () => {
               ) : filteredProductions.length === 0 ? (
                 <tr><td colSpan={7} className="text-center p-6 text-gray-500">No production records found.</td></tr>
               ) : (
-                paginatedProductions.map((p: any, index: number) => (
-                  <tr key={p.id} className={`border-b border-[#E2E8F0] ${index % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'} hover:bg-[#EFF6FF]`}>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#475569]">{p.date}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-[#1E293B]">{p.workName}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#B91C1C]">{p.rawMaterial}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#B91C1C]">{p.intakeQuantity}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#15803D]">{p.finishedProduct}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#15803D]">{p.outcomeQuantity}</td>
-                    <td className="px-4 py-3 text-center">
-                      <button 
-                        onClick={() => setViewId(p.id)}
-                        className="p-1.5 bg-[#EBF5FF] text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white rounded transition-colors"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                paginatedProductions.map((p: any, index: number) => {
+                  const rawMat = rawMaterials.find((rm: any) => rm.id === p.rawMaterialId);
+                  const sqMPerRoll = Number(rawMat?.rawMaterialPurchaseItems?.[0]?.sqM || 0);
+                  const rawSqM = p.intakeQuantity * sqMPerRoll;
+
+                  const prod = products.find((prod: any) => prod.id === p.finishedProductId);
+                  const productSqM = Number(prod?.sqM || 0);
+
+                  // Find the total outcome quantity for this batch (since it's only stored on the last item of a group to prevent double counting stock)
+                  const batchOutcome = productions.find(
+                    (bp: any) => bp.workName === p.workName && bp.finishedProductId === p.finishedProductId && bp.outcomeQuantity > 0
+                  )?.outcomeQuantity || p.outcomeQuantity;
+
+                  const theoreticalYield = productSqM > 0 ? (rawSqM / productSqM) : 0;
+                  
+                  let displayWastage = '-';
+                  if (batchOutcome && batchOutcome > 0) {
+                    const wastage = theoreticalYield > 0 ? (theoreticalYield - batchOutcome) : 0;
+                    displayWastage = Math.max(0, wastage).toFixed(2);
+                  }
+
+                  return (
+                    <tr key={p.id} className={`border-b border-[#E2E8F0] ${index % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'} hover:bg-[#EFF6FF]`}>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#475569]">{p.date}</td>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-[#1E293B]">{p.workName}</td>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#B91C1C]">{p.rawMaterial}</td>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#B91C1C]">{p.intakeQuantity}</td>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#15803D]">{p.finishedProduct}</td>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#15803D]">{batchOutcome > 0 ? batchOutcome : '-'}</td>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-orange-600">{displayWastage}</td>
+                      <td className="px-4 py-3 text-center">
+                        <button 
+                          onClick={() => setViewId(p.id)}
+                          className="p-1.5 bg-[#EBF5FF] text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white rounded transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

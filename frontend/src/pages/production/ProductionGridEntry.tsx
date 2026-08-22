@@ -67,6 +67,42 @@ const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => vo
       newItems[index].sqM = (currentQty * Number(sqMPerRoll)).toFixed(3);
     }
 
+    if (field === 'finishedProductId') {
+      const product = products.find((p: any) => p.id === Number(value));
+      newItems[index].finishedProductId = value;
+
+      if (product && product.rawMaterials && product.rawMaterials.length > 0) {
+        // Update current row with the first raw material
+        const autoRawMatId = product.rawMaterials[0].rawMaterialId;
+        newItems[index].rawMaterialId = autoRawMatId;
+        
+        // Recalculate sqM
+        const material = rawMaterials.find((m: any) => m.id === autoRawMatId);
+        const sqMPerRoll = material?.rawMaterialPurchaseItems?.[0]?.sqM || 0;
+        const currentQty = Number(newItems[index].intakeQuantity) || 0;
+        newItems[index].sqM = (currentQty * Number(sqMPerRoll)).toFixed(3);
+
+        // If there are multiple raw materials, insert additional rows
+        if (product.rawMaterials.length > 1) {
+          const additionalItems = product.rawMaterials.slice(1).map((rmMap: any) => {
+             const rmId = rmMap.rawMaterialId;
+             const mat = rawMaterials.find((m: any) => m.id === rmId);
+             const sqM = '0.000';
+             return {
+               rawMaterialId: rmId,
+               sqM,
+               intakeQuantity: '',
+               finishedProductId: value,
+               outcomeQuantity: newItems[index].outcomeQuantity || ''
+             };
+          });
+          newItems.splice(index + 1, 0, ...additionalItems);
+        }
+      }
+      setItems(newItems);
+      return;
+    }
+
     newItems[index][field] = value;
     setItems(newItems);
   };
@@ -221,11 +257,12 @@ const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => vo
             <thead>
               <tr className="bg-[#0F172A] text-white">
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-10">#</th>
+                <th className="px-2 py-2 text-left text-[12px] font-medium border border-[#334155] w-[250px]">Finished Product Name (Outcome)</th>
+                <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Product Sq.M</th>
                 <th className="px-2 py-2 text-left text-[12px] font-medium border border-[#334155] w-[250px]">Material Name (Intake)</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Current Stock</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-24">Quantity Intake</th>
-                <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-32">SQ.M</th>
-                <th className="px-2 py-2 text-left text-[12px] font-medium border border-[#334155] w-[250px]">Finished Product Name (Outcome)</th>
+                <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-32">RAW SQ.M</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-28">Outcome Products Count</th>
                 <th className="px-2 py-2 text-center text-[12px] font-medium border border-[#334155] w-16">Act</th>
               </tr>
@@ -235,6 +272,27 @@ const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => vo
                 <tr key={index} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
                   <td className="px-2 py-1 text-center text-[13px] border-r border-[#E5E7EB]">{index + 1}</td>
                   
+                  {/* OUTCOME - Product */}
+                  <td className="px-2 py-1 border-r border-[#E5E7EB]">
+                    <SearchableSelect
+                      value={item.finishedProductId}
+                      onChange={(val) => updateItem(index, 'finishedProductId', Number(val))}
+                      options={[
+                        { label: 'Type product...', value: 0 },
+                        ...finishedProducts.map((p: any) => ({ label: `${p.name} (Stock: ${p.currentStock})`, value: p.id }))
+                      ]}
+                    />
+                  </td>
+                  <td className="px-2 py-1 border-r border-[#E5E7EB]">
+                    <input 
+                      type="text" 
+                      readOnly
+                      tabIndex={-1}
+                      value={products.find((p: any) => p.id === item.finishedProductId)?.sqM || '0.000'}
+                      className="w-full px-2 py-1 border border-[#D1D5DB] rounded bg-[#E5E7EB] text-[13px] outline-none text-right font-bold text-[#4B5563] cursor-not-allowed"
+                    />
+                  </td>
+
                   {/* INTAKE */}
                   <td className="px-2 py-1 border-r border-[#E5E7EB]">
                     <SearchableSelect
@@ -268,22 +326,13 @@ const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => vo
                     />
                   </td>
 
-                  {/* OUTCOME */}
-                  <td className="px-2 py-1 border-r border-[#E5E7EB]">
-                    <SearchableSelect
-                      value={item.finishedProductId}
-                      onChange={(val) => updateItem(index, 'finishedProductId', Number(val))}
-                      options={[
-                        { label: 'Type product...', value: 0 },
-                        ...finishedProducts.map((p: any) => ({ label: `${p.name} (Stock: ${p.currentStock})`, value: p.id }))
-                      ]}
-                    />
-                  </td>
+                  {/* OUTCOME - Quantity */}
                   <td className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       type="number" value={item.outcomeQuantity} onChange={e => updateItem(index, 'outcomeQuantity', e.target.value)}
                       placeholder="0" onFocus={e => e.target.select()}
-                      className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] focus:bg-green-50 transition-colors text-right font-bold text-green-700" 
+                      readOnly={true}
+                      className="w-full px-2 py-1 border border-[#D1D5DB] rounded bg-[#E5E7EB] text-[13px] outline-none text-right font-black text-[#4B5563] cursor-not-allowed" 
                     />
                   </td>
 

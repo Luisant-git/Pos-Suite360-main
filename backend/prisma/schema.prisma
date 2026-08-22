@@ -210,6 +210,11 @@ model Product {
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  
+  isManufacturingProduct Boolean @default(false)
+  sqM            Decimal?
+  noOfLabels     Int?
+  rawMaterials   ProductRawMaterial[]
 }
 
 // ------------------------------------------------------
@@ -552,9 +557,19 @@ model RawMaterial {
   
   rawMaterialPurchaseItems RawMaterialPurchaseItem[]
   productionRawMaterials   Production[] @relation("ProductionRawMaterial")
+  productRawMaterials      ProductRawMaterial[]
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model ProductRawMaterial {
+  id            Int      @id @default(autoincrement())
+  productId     Int
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rawMaterialId Int
+  rawMaterial   RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
+  quantity      Decimal? @default(1)
 }
 
 model RawMaterialPurchaseItem {

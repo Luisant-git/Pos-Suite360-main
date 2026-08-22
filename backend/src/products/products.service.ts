@@ -8,8 +8,20 @@ export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
   create(createProductDto: CreateProductDto) {
+    const { rawMaterials, ...productData } = createProductDto;
+    
     return this.prisma.product.create({
-      data: createProductDto,
+      data: {
+        ...productData,
+        rawMaterials: rawMaterials && rawMaterials.length > 0 ? {
+          create: rawMaterials.map(rmId => ({
+            rawMaterialId: rmId
+          }))
+        } : undefined
+      },
+      include: {
+        rawMaterials: true
+      }
     });
   }
 
@@ -42,6 +54,9 @@ export class ProductsService {
         { code: { contains: query.search, mode: 'insensitive' } },
       ];
     }
+    if (query?.isManufacturingProduct !== undefined) {
+      where.isManufacturingProduct = query.isManufacturingProduct === 'true' || query.isManufacturingProduct === true;
+    }
     return this.prisma.product.findMany({
       where,
       orderBy: { id: 'desc' },
@@ -50,6 +65,11 @@ export class ProductsService {
         brand: true,
         unit: true,
         supplier: true,
+        rawMaterials: {
+          include: {
+            rawMaterial: true
+          }
+        }
       },
     });
   }
@@ -62,6 +82,11 @@ export class ProductsService {
         brand: true,
         unit: true,
         supplier: true,
+        rawMaterials: {
+          include: {
+            rawMaterial: true
+          }
+        }
       },
     });
 
@@ -72,10 +97,31 @@ export class ProductsService {
     return product;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
+  async update(id: number, updateProductDto: UpdateProductDto) {
+    const { rawMaterials, ...productData } = updateProductDto as any;
+
+    // If rawMaterials is provided, we need to delete existing and recreate
+    if (rawMaterials !== undefined) {
+      await this.prisma.productRawMaterial.deleteMany({
+        where: { productId: id }
+      });
+    }
+
     return this.prisma.product.update({
       where: { id },
-      data: updateProductDto,
+      data: {
+        ...productData,
+        ...(rawMaterials !== undefined ? {
+          rawMaterials: {
+            create: rawMaterials.map((rmId: number) => ({
+              rawMaterialId: rmId
+            }))
+          }
+        } : {})
+      },
+      include: {
+        rawMaterials: true
+      }
     });
   }
 

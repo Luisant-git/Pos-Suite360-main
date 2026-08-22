@@ -81,6 +81,42 @@ const Production = () => {
       newItems[index].sqM = (currentQty * Number(sqMPerRoll)).toFixed(3);
     }
 
+    if (field === 'finishedProductId') {
+      const product = products.find((p: any) => p.id === Number(value));
+      newItems[index].finishedProductId = value;
+
+      if (product && product.rawMaterials && product.rawMaterials.length > 0) {
+        // Update current row with the first raw material
+        const autoRawMatId = product.rawMaterials[0].rawMaterialId;
+        newItems[index].rawMaterialId = autoRawMatId;
+        
+        // Recalculate sqM
+        const material = rawMaterials.find((m: any) => m.id === autoRawMatId);
+        const sqMPerRoll = material?.rawMaterialPurchaseItems?.[0]?.sqM || 0;
+        const currentQty = Number(newItems[index].intakeQuantity) || 0;
+        newItems[index].sqM = (currentQty * Number(sqMPerRoll)).toFixed(3);
+
+        // If there are multiple raw materials, insert additional rows
+        if (product.rawMaterials.length > 1) {
+          const additionalItems = product.rawMaterials.slice(1).map((rmMap: any) => {
+             const rmId = rmMap.rawMaterialId;
+             const mat = rawMaterials.find((m: any) => m.id === rmId);
+             const sqM = '0.000';
+             return {
+               rawMaterialId: rmId,
+               sqM,
+               intakeQuantity: '',
+               finishedProductId: value,
+               outcomeQuantity: newItems[index].outcomeQuantity || ''
+             };
+          });
+          newItems.splice(index + 1, 0, ...additionalItems);
+        }
+      }
+      setItems(newItems);
+      return;
+    }
+
     newItems[index][field] = value;
     setItems(newItems);
   };
@@ -100,14 +136,15 @@ const Production = () => {
         return api.patch(`/production/${editingId}`, payload);
       } else {
         const validItems = items.filter(i => i.rawMaterialId > 0 && i.finishedProductId > 0);
-        const promises = validItems.map(item => {
+        const promises = validItems.map((item, idx) => {
+          const isLastInGroup = idx === validItems.length - 1 || validItems[idx + 1].finishedProductId !== item.finishedProductId;
           const payload = {
             date,
             workName,
             rawMaterialId: parseInt(item.rawMaterialId),
             intakeQuantity: parseInt(item.intakeQuantity || '0'),
             finishedProductId: parseInt(item.finishedProductId),
-            outcomeQuantity: parseInt(item.outcomeQuantity || '0')
+            outcomeQuantity: isLastInGroup ? parseInt(item.outcomeQuantity || '0') : 0
           };
           return api.post('/production', payload);
         });
@@ -311,8 +348,38 @@ const Production = () => {
                 </div>
                 
                 <div className="p-2 flex flex-col gap-2">
+                  {/* OUTCOME */}
+                  {(index === 0 || item.finishedProductId !== items[index - 1].finishedProductId || !item.finishedProductId) && (
+                    <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[12px] font-bold text-gray-800 mb-1">Finished Product (Outcome)</label>
+                          <SearchableSelect
+                            value={item.finishedProductId}
+                            onChange={(val) => updateItem(index, 'finishedProductId', Number(val))}
+                            disabled={!!editingId}
+                            options={[
+                              { label: 'Select product...', value: 0 },
+                              ...products.map((p: any) => ({ label: `${p.name}`, value: p.id }))
+                            ]}
+                          />
+                        </div>
+                        <div className="sm:col-span-1">
+                          <label className="block text-[10px] font-bold text-gray-600 mb-1 uppercase">Product Sq.M *</label>
+                          <input 
+                             type="text" 
+                             readOnly 
+                             tabIndex={-1}
+                             value={products.find((p: any) => p.id === item.finishedProductId)?.sqM || '0.000'}
+                             className="w-full px-2 py-1.5 border border-[#E5E7EB] rounded bg-gray-100 text-[13px] outline-none text-right font-bold text-gray-500 cursor-not-allowed"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* INTAKE */}
-                  <div className="border border-blue-100 bg-blue-50/50 p-2 rounded">
+                  <div className="bg-blue-50/30 p-3 rounded-md border border-blue-100">
                     <label className="block text-[11px] font-bold text-blue-800 mb-1">Material Name (Intake)</label>
                     <div className="mb-2">
                       <SearchableSelect
@@ -332,11 +399,11 @@ const Production = () => {
                           type="number" value={item.intakeQuantity} onChange={e => updateItem(index, 'intakeQuantity', e.target.value)}
                           placeholder="0" onFocus={e => !editingId && e.target.select()}
                           readOnly={!!editingId}
-                          className={`w-full px-2 py-1.5 border border-[#ccc] rounded text-[13px] outline-none text-right font-bold ${editingId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'focus:border-blue-500 text-blue-700'}`} 
+                          className={`w-full px-2 py-1.5 border border-[#ccc] rounded text-[13px] outline-none text-right font-bold ${editingId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'focus:border-blue-500 text-blue-700 bg-white'}`} 
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-600 mb-1">SQ.M (Auto)</label>
+                        <label className="block text-[10px] font-bold text-gray-600 mb-1">RAW SQ.M (Auto)</label>
                         <input 
                           type="text" value={item.sqM || '0.000'} readOnly tabIndex={-1}
                           className="w-full px-2 py-1.5 border border-[#E5E7EB] rounded bg-gray-100 text-[13px] outline-none text-right font-bold text-gray-500 cursor-not-allowed" 
@@ -345,35 +412,18 @@ const Production = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-center -my-3 z-10">
-                    <div className="bg-white border border-[#E5E7EB] rounded-full p-1 text-gray-400">
-                      <ArrowRight size={14} className="rotate-90" />
-                    </div>
-                  </div>
-
-                  {/* OUTCOME */}
-                  <div className="border border-emerald-100 bg-emerald-50/50 p-2 rounded">
-                    <label className="block text-[11px] font-bold text-emerald-800 mb-1">Finished Product (Outcome)</label>
-                    <div className="mb-2">
-                      <SearchableSelect
-                        value={item.finishedProductId}
-                        onChange={(val) => updateItem(index, 'finishedProductId', Number(val))}
-                        disabled={!!editingId}
-                        options={[
-                          { label: 'Select product...', value: 0 },
-                          ...products.map((p: any) => ({ label: `${p.name}`, value: p.id }))
-                        ]}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-600 mb-1">Outcome Quantity</label>
+                  {/* OUTCOME QUANTITY (Grouped at bottom) */}
+                  {(index === items.length - 1 || item.finishedProductId !== items[index + 1].finishedProductId || !item.finishedProductId) && (
+                    <div className="mt-1 border-t-[3px] border-emerald-500 bg-emerald-50 p-3 rounded-b-lg shadow-sm">
+                      <label className="block text-[11px] font-black text-emerald-900 mb-1 uppercase tracking-wide">Total Outcome Quantity *</label>
                       <input 
                         type="number" value={item.outcomeQuantity} onChange={e => updateItem(index, 'outcomeQuantity', e.target.value)}
                         placeholder="0" onFocus={e => e.target.select()}
-                        className={`w-full px-2 py-1.5 border-2 rounded text-[13px] outline-none text-right font-black ${editingId ? 'border-[#10B981] ring-2 ring-[#10B981]/30 bg-[#ECFDF5] text-emerald-800 text-[15px]' : 'border-[#ccc] focus:border-emerald-500 text-emerald-700'}`} 
+                        readOnly={!editingId}
+                        className={`w-full px-3 py-2 border-2 rounded-md text-[18px] outline-none text-right font-black shadow-inner transition-all ${editingId ? 'border-emerald-600 ring-4 ring-emerald-500/30 bg-emerald-100 text-emerald-900 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/30' : 'border-[#E5E7EB] bg-gray-100 text-gray-500 cursor-not-allowed'}`} 
                       />
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             ))}
