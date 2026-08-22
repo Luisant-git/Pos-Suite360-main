@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Save, Trash2, RotateCcw, FileText, X, List } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 
 const SalesReturn = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const SalesReturn = () => {
   const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
   const printAfterSaveRef = useRef(false);
 
@@ -161,16 +163,17 @@ const SalesReturn = () => {
         e.preventDefault();
         handleSave();
       } else if (e.key === 'Escape') {
-        if (isSaveModalOpen) {
+        if (isSaveModalOpen || isLeaveModalOpen) {
           setIsSaveModalOpen(false);
+          setIsLeaveModalOpen(false);
         } else {
-          navigate('/dashboard');
+          setIsLeaveModalOpen(true);
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave, isSaveModalOpen, navigate]);
+  }, [handleSave, isSaveModalOpen, isLeaveModalOpen, navigate]);
 
   return (
     <div className="absolute inset-0 bg-[#F3F4F6] flex flex-col font-sans overflow-hidden z-10">
@@ -181,9 +184,9 @@ const SalesReturn = () => {
             <Save size={16} /> {saveMutation.isPending ? 'SAVING...' : 'SAVE SALES RETURN (F10)'}
           </button>
         </div>
-        <Link to="/dashboard" className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 rounded text-sm flex items-center gap-2">
+        <button onClick={() => setIsLeaveModalOpen(true)} className="bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 rounded text-sm flex items-center gap-2">
           <X size={16} /> Close (Esc)
-        </Link>
+        </button>
       </div>
 
       {/* Main Content */}
@@ -379,6 +382,11 @@ const SalesReturn = () => {
         </div>
       )}
 
+      <LeaveConfirmModal 
+        isOpen={isLeaveModalOpen} 
+        onClose={() => setIsLeaveModalOpen(false)} 
+        onConfirm={() => navigate('/dashboard')} 
+      />
     </div>
   );
 };
