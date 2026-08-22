@@ -490,6 +490,8 @@ model Settings {
   currencySymbol   String   @default("RM")
   currencyPosition String   @default("before")
   invoicePrefix    String   @default("INV-")
+  invoiceTitle     String   @default("INVOICE")
+  invoiceHeader    String?
   invoiceNotes     String?
   signatureImage   String?
   state            String?

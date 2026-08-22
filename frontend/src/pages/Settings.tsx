@@ -19,6 +19,8 @@ const storeSettingsSchema = z.object({
   currencySymbol: z.string().min(1, 'Currency symbol is required'),
   currencyPosition: z.string(),
   invoicePrefix: z.string().min(1, 'Prefix is required'),
+  invoiceTitle: z.string().optional(),
+  invoiceHeader: z.string().optional(),
   invoiceNotes: z.string().optional(),
   signatureImage: z.string().optional(),
   enableTax: z.boolean().optional().default(false),
@@ -69,6 +71,8 @@ const Settings = () => {
         currencySymbol: settings.currencySymbol || 'RM',
         currencyPosition: settings.currencyPosition || 'before',
         invoicePrefix: settings.invoicePrefix || 'INV-',
+        invoiceTitle: settings.invoiceTitle || 'INVOICE',
+        invoiceHeader: settings.invoiceHeader || '',
         invoiceNotes: settings.invoiceNotes || '',
         signatureImage: settings.signatureImage || '',
         enableTax: settings.enableTax || false,
@@ -319,6 +323,25 @@ const Settings = () => {
                   className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
                 />
                 <p className="text-[11px] text-[#64748B] mt-1">Generated sales bills will use this prefix (e.g. <span className="text-[#2563EB] font-bold">{settings?.invoicePrefix || 'INV-'}788839</span>)</p>
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-[#334155] mb-1">Invoice Title</label>
+                <input
+                  {...registerStore('invoiceTitle')}
+                  placeholder="e.g. TAX INVOICE"
+                  className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-bold text-[#334155] mb-1">Invoice Header (Replaces default Shop Name format)</label>
+                <div className="border border-[#CBD5E1] rounded overflow-hidden">
+                  <Editor
+                    value={watchStore('invoiceHeader') || ''}
+                    onChange={(e: any) => setValueStore('invoiceHeader', e.target.value)}
+                    containerProps={{ style: { height: '120px', fontSize: '13px', color: 'black', fontWeight: '500' } }}
+                  />
+                </div>
+                <p className="text-[11px] text-[#64748B] mt-1">Will be printed at the top of the invoice. Leave blank to use standard Shop Name & Address.</p>
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#334155] mb-1">Invoice Footer Notes (Terms & Conditions)</label>
