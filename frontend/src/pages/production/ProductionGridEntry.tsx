@@ -5,11 +5,13 @@ import toast from 'react-hot-toast';
 import { CheckCircle, ArrowLeft, PlusCircle, RotateCcw, List, Plus, Trash2, Box, FileText } from 'lucide-react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 
-const ProductionEntry = () => {
+const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => void }) => {
   const navigate = useNavigate();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [workName, setWorkName] = useState('');
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   
   const [items, setItems] = useState<any[]>([
     { rawMaterialId: 0, sqM: '', intakeQuantity: '', finishedProductId: 0, outcomeQuantity: '' }
@@ -91,7 +93,7 @@ const ProductionEntry = () => {
     },
     onSuccess: () => {
       toast.success('Production entries saved successfully');
-      navigate('/dashboard'); 
+      handleClear();
     },
     onError: (err: any) => {
       console.error(err);
@@ -126,38 +128,20 @@ const ProductionEntry = () => {
         e.preventDefault();
         handleClear();
       } else if (e.key === 'Escape') {
-        navigate('/dashboard');
+        if (!showLeaveModal) {
+          setShowLeaveModal(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSubmit, handleClear, navigate]);
+  }, [handleSubmit, handleClear, showLeaveModal]);
 
   return (
     <div className="absolute inset-0 bg-[#F3F4F6] flex flex-col font-sans overflow-hidden z-10">
       
       {/* Top Bar */}
-      <div className="bg-[#0B355B] text-white px-2 sm:px-4 py-2 flex flex-wrap gap-4 justify-between items-center shrink-0">
-        <div className="flex flex-wrap items-center gap-4">
-          <h1 className="font-bold text-[14px] uppercase tracking-wider flex items-center gap-2">
-            <Box size={16} />
-            Production Entry
-          </h1>
-          <button 
-            type="button"
-            onClick={() => handleSubmit()}
-            className="bg-[#059669] hover:bg-[#047857] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
-          >
-            <CheckCircle size={16} /> SAVE ENTRY (F10)
-          </button>
-        </div>
-        <button 
-          onClick={() => navigate('/dashboard')}
-          className="text-white hover:text-white/80 transition-colors flex items-center gap-1.5"
-        >
-          <ArrowLeft size={16} /> Back (Esc)
-        </button>
-      </div>
+
 
       <form className="flex flex-col flex-1 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
         
@@ -195,7 +179,7 @@ const ProductionEntry = () => {
             <div className="flex gap-2">
               <button 
                 type="button"
-                onClick={() => navigate('/production/list')}
+                onClick={() => { if (onSwitchToMaster) onSwitchToMaster(); }}
                 className="border border-[#10B981] text-[#10B981] hover:bg-[#10B981] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
               >
                 <List size={14} /> List
@@ -206,6 +190,13 @@ const ProductionEntry = () => {
                 className="border border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
               >
                 <FileText size={14} /> Report
+              </button>
+              <button 
+                type="button"
+                onClick={() => handleSubmit()}
+                className="bg-[#10B981] hover:bg-[#059669] text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] font-bold transition-colors"
+              >
+                <CheckCircle size={14} /> Save Entry (F10)
               </button>
             </div>
             <div className="flex gap-2">
@@ -376,8 +367,13 @@ const ProductionEntry = () => {
         </div>
 
       </form>
+      <LeaveConfirmModal 
+        isOpen={showLeaveModal}
+        onConfirm={() => navigate('/dashboard')}
+        onClose={() => setShowLeaveModal(false)}
+      />
     </div>
   );
 };
 
-export default ProductionEntry;
+export default ProductionGridEntry;
