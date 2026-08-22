@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Edit, Trash2, CheckCircle, Truck, Grid, Maximize, Minimize, Search } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Truck, Grid, Maximize, Minimize, Search, Eye } from 'lucide-react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +9,9 @@ import api from '../../services/api';
 import Select from 'react-select';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../contexts/SettingsContext';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
+import SupplierViewModal from '../../components/SupplierViewModal';
+import { useNavigate } from 'react-router-dom';
 
 const indianStates = [
   "01 - Jammu & Kashmir", "02 - Himachal Pradesh", "03 - Punjab", "04 - Chandigarh",
@@ -38,8 +41,12 @@ const supplierSchema = z.object({
 type SupplierFormValues = z.infer<typeof supplierSchema>;
 
 const Suppliers = () => {
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const navigate = useNavigate();
+
   const queryClient = useQueryClient();
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [itemToView, setItemToView] = useState<any>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFullTable, setIsFullTable] = useState(false);
@@ -126,6 +133,7 @@ const Suppliers = () => {
   }, [handleSubmit, onSubmit]);
 
   const handleEdit = (supplier: any) => {
+    setIsFullTable(false);
     setEditingId(supplier.id);
     setValue('name', supplier.name);
     setValue('contactPerson', supplier.contactPerson || '');
@@ -139,6 +147,23 @@ const Suppliers = () => {
     setValue('ifscCode', supplier.ifscCode || '');
     setValue('bankBranch', supplier.bankBranch || '');
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+      if (e.key === 'Escape' && !isInput) {
+        if (typeof itemToDelete !== 'undefined' && itemToDelete) {
+          setItemToDelete(null);
+        } else if (isLeaveModalOpen) {
+          setIsLeaveModalOpen(false);
+        } else {
+          setIsLeaveModalOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [typeof itemToDelete !== 'undefined' ? itemToDelete : null, isLeaveModalOpen, navigate]);
 
   return (
     <div className="bg-transparent h-[calc(100vh-6rem)] grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -383,6 +408,12 @@ const Suppliers = () => {
                     <td data-label="Actions" className="px-3 py-3 text-center">
                       <div className="flex justify-center gap-2">
                         <button type="button" 
+                          onClick={() => setItemToView(supplier)}
+                          className="text-[#10B981] border border-[#10B981] rounded p-1 hover:bg-[#10B981] hover:text-white transition-colors"
+                        >
+                          <Eye size={12} />
+                        </button>
+                        <button type="button" 
                           onClick={() => handleEdit(supplier)}
                           className="text-[#3B82F6] border border-[#3B82F6] rounded p-1 hover:bg-[#3B82F6] hover:text-white transition-colors"
                         >
@@ -417,7 +448,19 @@ const Suppliers = () => {
         }}
         onCancel={() => setItemToDelete(null)}
       />
-    </div>
+    
+      <LeaveConfirmModal 
+        isOpen={isLeaveModalOpen} 
+        onClose={() => setIsLeaveModalOpen(false)} 
+        onConfirm={() => navigate('/dashboard')} 
+      />
+
+      <SupplierViewModal
+        isOpen={!!itemToView}
+        onClose={() => setItemToView(null)}
+        supplier={itemToView}
+      />
+</div>
   );
 };
 export default Suppliers;

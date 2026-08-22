@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Edit, Trash2, CheckCircle, Users, Grid, Maximize, Minimize, Search } from 'lucide-react';
-import { useForm, Controller } from 'react-hook-form';
+import { Edit, Trash2, CheckCircle, Users, Grid, Maximize, Minimize, Search, Eye } from 'lucide-react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
@@ -9,6 +9,10 @@ import api from '../../services/api';
 import Select from 'react-select';
 import toast from 'react-hot-toast';
 import { useSettings } from '../../contexts/SettingsContext';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
+import CustomerViewModal from '../../components/CustomerViewModal';
+import AddCustomRateModal from '../../components/AddCustomRateModal';
+import { useNavigate } from 'react-router-dom';
 
 const indianStates = [
   "01 - Jammu & Kashmir", "02 - Himachal Pradesh", "03 - Punjab", "04 - Chandigarh",
@@ -33,17 +37,26 @@ const customerSchema = z.object({
   openingBalanceType: z.string().default('Dr'),
   creditLimit: z.coerce.number().default(0),
   creditDays: z.coerce.number().default(30),
+  productRates: z.array(z.object({
+    productId: z.coerce.number().min(1, 'Product is required'),
+    rate: z.coerce.number().min(0, 'Rate must be positive')
+  })).optional()
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
 const Customers = () => {
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const navigate = useNavigate();
+
   const queryClient = useQueryClient();
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [itemToView, setItemToView] = useState<any>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFullTable, setIsFullTable] = useState(false);
-  const { formatCurrency } = useSettings();
+  const [isAddRateModalOpen, setIsAddRateModalOpen] = useState(false);
+  const { formatCurrency, settings } = useSettings();
 
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema) as any,
@@ -59,12 +72,23 @@ const Customers = () => {
       openingBalanceType: 'Dr',
       creditLimit: '' as any,
       creditDays: '' as any,
+      productRates: []
     }
   });
 
-  const { data: customers = [], isLoading } = useQuery({ 
-    queryKey: ['customers'], 
-    queryFn: async () => (await api.get('/customers')).data 
+  const { fields: rateFields, append: appendRate, remove: removeRate } = useFieldArray({
+    control,
+    name: 'productRates'
+  });
+
+  const { data: customers = [], isLoading } = useQuery({
+    queryKey: ['customers'],
+    queryFn: async () => (await api.get('/customers')).data
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => (await api.get('/products')).data
   });
 
   const filteredCustomers = customers.filter((c: any) => {
@@ -126,6 +150,7 @@ const Customers = () => {
   }, [handleSubmit, onSubmit]);
 
   const handleEdit = (customer: any) => {
+    setIsFullTable(false);
     setEditingId(customer.id);
     setValue('name', customer.name);
     setValue('contactPerson', customer.contactPerson || '');
@@ -138,188 +163,269 @@ const Customers = () => {
     setValue('openingBalanceType', customer.openingBalanceType || 'Dr');
     setValue('creditLimit', Number(customer.creditLimit));
     setValue('creditDays', Number(customer.creditDays));
+    setValue('productRates', customer.productRates ? customer.productRates.map((pr: any) => ({
+      productId: Number(pr.productId),
+      rate: Number(pr.rate)
+    })) : []);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+      if (e.key === 'Escape' && !isInput) {
+        if (typeof itemToDelete !== 'undefined' && itemToDelete) {
+          setItemToDelete(null);
+        } else if (isLeaveModalOpen) {
+          setIsLeaveModalOpen(false);
+        } else {
+          setIsLeaveModalOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [typeof itemToDelete !== 'undefined' ? itemToDelete : null, isLeaveModalOpen, navigate]);
 
   return (
     <div className="bg-transparent h-[calc(100vh-6rem)] grid grid-cols-1 xl:grid-cols-3 gap-4">
-      
+
       {/* Left Column: Form */}
       {!isFullTable && (
-      <div className="xl:col-span-1 bg-white border border-[#E6E9ED] shadow-sm rounded-sm flex flex-col h-full overflow-hidden">
-        <div className="bg-[#EBF5FF] border-b border-[#3B82F6] px-4 py-2 flex items-center gap-2 rounded-t-sm shrink-0">
-          <Users size={16} className="text-[#1E3A8A]" />
-          <h2 className="font-bold text-[14px] text-[#1E3A8A]">CUSTOMER MASTER FORM</h2>
-        </div>
-        
-        <form onSubmit={handleSubmit(onSubmit as any, onFormError)} className="p-3 flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
-          
-          <div>
-            <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Customer Name *</label>
-            <input 
-              {...register('name')}
-              type="text" 
-              placeholder="Enter customer name"
-              className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
-            />
-            {errors.name && <span className="text-red-500 text-xs mt-1 block">{errors.name.message}</span>}
+        <div className="xl:col-span-1 bg-white border border-[#E6E9ED] shadow-sm rounded-sm flex flex-col h-full overflow-hidden">
+          <div className="bg-[#EBF5FF] border-b border-[#3B82F6] px-4 py-2 flex items-center gap-2 rounded-t-sm shrink-0">
+            <Users size={16} className="text-[#1E3A8A]" />
+            <h2 className="font-bold text-[14px] text-[#1E3A8A]">CUSTOMER MASTER FORM</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <form onSubmit={handleSubmit(onSubmit as any, onFormError)} className="p-3 flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
+
             <div>
-              <label className="block text-[12px] text-[#1F2937] mb-1">Contact Person</label>
-              <input 
-                {...register('contactPerson')}
-                type="text" 
+              <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Customer Name *</label>
+              <input
+                {...register('name')}
+                type="text"
+                placeholder="Enter customer name"
                 className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
               />
+              {errors.name && <span className="text-red-500 text-xs mt-1 block">{errors.name.message}</span>}
             </div>
-            <div>
-              <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Mobile Number *</label>
-              <input 
-                {...register('phone')}
-                type="text" 
-                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
-              />
-              {errors.phone && <span className="text-red-500 text-xs mt-1 block">{errors.phone.message}</span>}
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-[12px] text-[#1F2937] mb-1">Email Address</label>
-            <input 
-              {...register('email')}
-              type="email" 
-              className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[12px] text-[#1F2937] mb-1">Billing Address</label>
-              <textarea 
-                {...register('address')}
-                rows={3}
-                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] resize-none"
-              ></textarea>
-            </div>
-            <div>
-              <label className="block text-[12px] text-[#1F2937] mb-1">Shipping Address</label>
-              <textarea 
-                {...register('shippingAddress')}
-                rows={3}
-                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] resize-none"
-              ></textarea>
-            </div>
-          </div>
-
-          <div className="z-50 relative">
-            <label className="block text-[12px] font-bold text-[#2563EB] mb-1">State (Searchable) *</label>
-            <Controller
-              name="state"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  options={[
-                    { value: '', label: 'Type state name / code...' },
-                    ...indianStates.map((s) => ({ value: s, label: s }))
-                  ]}
-                  value={field.value ? { value: field.value, label: field.value } : null}
-                  onChange={(val: any) => field.onChange(val?.value || '')}
-                  className="text-[13px] font-medium"
-                  placeholder="Select..."
-                  styles={{
-                    control: (base: any) => ({
-                      ...base,
-                      minHeight: '38px',
-                      borderColor: '#CBD5E1',
-                      borderRadius: '0.25rem',
-                    }),
-                    singleValue: (base: any) => ({
-                      ...base,
-                      color: '#000000',
-                      fontWeight: 'bold',
-                    }),
-                    input: (base: any) => ({
-                      ...base,
-                      color: '#000000',
-                    }),
-                    option: (base: any, state: any) => ({
-                      ...base,
-                      color: state.isSelected ? '#ffffff' : '#000000',
-                      backgroundColor: state.isSelected ? '#3B82F6' : base.backgroundColor,
-                    })
-                  }}
-                />
-              )}
-            />
-            {errors.state && <span className="text-red-500 text-xs mt-1 block">{errors.state.message}</span>}
-          </div>
-
-          <div className="bg-[#F9FAFB] border border-[#E5E7EB] p-3 rounded-md">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="block text-[12px] text-[#1F2937] mb-1">Opening Bal</label>
-                <input 
-                  {...register('openingBalance')}
-                  type="number" 
-                  placeholder="0"
-                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] text-right"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] text-[#1F2937] mb-1">Balance Type</label>
-                <select 
-                  {...register('openingBalanceType')}
-                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] bg-white"
-                >
-                  <option value="Dr">Debit (Receivable)</option>
-                  <option value="Cr">Credit (Payable)</option>
-                </select>
-              </div>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[12px] text-[#1F2937] mb-1">Credit Limit</label>
-                <input 
-                  {...register('creditLimit')}
-                  type="number" 
-                  placeholder="0"
-                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] text-right"
+                <label className="block text-[12px] text-[#1F2937] mb-1">Contact Person</label>
+                <input
+                  {...register('contactPerson')}
+                  type="text"
+                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-[12px] text-[#1F2937] mb-1">Credit Days</label>
-                <input 
-                  {...register('creditDays')}
-                  type="number" 
-                  placeholder="30"
-                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] text-right"
+                <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Mobile Number *</label>
+                <input
+                  {...register('phone')}
+                  type="text"
+                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
                 />
+                {errors.phone && <span className="text-red-500 text-xs mt-1 block">{errors.phone.message}</span>}
               </div>
             </div>
-          </div>
 
-          <button 
-            type="submit" 
-            disabled={mutation.isPending}
-            className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white font-bold py-2.5 rounded flex justify-center items-center gap-2 mt-2 transition-colors"
-          >
-            <CheckCircle size={16} />
-            {editingId ? 'UPDATE CUSTOMER' : 'SAVE CUSTOMER (F10)'}
-          </button>
-          
-          {editingId && (
-            <button 
-              type="button" 
-              onClick={() => { reset(); setEditingId(null); }}
-              className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded flex justify-center items-center gap-2 transition-colors"
+            <div>
+              <label className="block text-[12px] text-[#1F2937] mb-1">Email Address</label>
+              <input
+                {...register('email')}
+                type="email"
+                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[12px] text-[#1F2937] mb-1">Billing Address</label>
+                <textarea
+                  {...register('address')}
+                  rows={3}
+                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] resize-none"
+                ></textarea>
+              </div>
+              <div>
+                <label className="block text-[12px] text-[#1F2937] mb-1">Shipping Address</label>
+                <textarea
+                  {...register('shippingAddress')}
+                  rows={3}
+                  className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] resize-none"
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="z-50 relative">
+              <label className="block text-[12px] font-bold text-[#2563EB] mb-1">State (Searchable) *</label>
+              <Controller
+                name="state"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    options={[
+                      { value: '', label: 'Type state name / code...' },
+                      ...indianStates.map((s) => ({ value: s, label: s }))
+                    ]}
+                    value={field.value ? { value: field.value, label: field.value } : null}
+                    onChange={(val: any) => field.onChange(val?.value || '')}
+                    className="text-[13px] font-medium"
+                    placeholder="Select..."
+                    styles={{
+                      control: (base: any) => ({
+                        ...base,
+                        minHeight: '38px',
+                        borderColor: '#CBD5E1',
+                        borderRadius: '0.25rem',
+                      }),
+                      singleValue: (base: any) => ({
+                        ...base,
+                        color: '#000000',
+                        fontWeight: 'bold',
+                      }),
+                      input: (base: any) => ({
+                        ...base,
+                        color: '#000000',
+                      }),
+                      option: (base: any, state: any) => ({
+                        ...base,
+                        color: state.isSelected ? '#ffffff' : '#000000',
+                        backgroundColor: state.isSelected ? '#3B82F6' : base.backgroundColor,
+                      })
+                    }}
+                  />
+                )}
+              />
+              {errors.state && <span className="text-red-500 text-xs mt-1 block">{errors.state.message}</span>}
+            </div>
+
+            <div className="bg-[#F9FAFB] border border-[#E5E7EB] p-3 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-[12px] text-[#1F2937] mb-1">Opening Bal</label>
+                  <input
+                    {...register('openingBalance')}
+                    type="number"
+                    placeholder="0"
+                    className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] text-right"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] text-[#1F2937] mb-1">Balance Type</label>
+                  <select
+                    {...register('openingBalanceType')}
+                    className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] bg-white"
+                  >
+                    <option value="Dr">Debit (Receivable)</option>
+                    <option value="Cr">Credit (Payable)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] text-[#1F2937] mb-1">Credit Limit</label>
+                  <input
+                    {...register('creditLimit')}
+                    type="number"
+                    placeholder="0"
+                    className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] text-right"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] text-[#1F2937] mb-1">Credit Days</label>
+                  <input
+                    {...register('creditDays')}
+                    type="number"
+                    placeholder="30"
+                    className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px] text-right"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {settings?.enableCustomerWiseRate && (
+              <div className="bg-[#EFF6FF] border border-[#BFDBFE] p-3 rounded-md flex flex-col gap-2">
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[12px] font-bold text-[#1E3A8A]">Custom Product Rates</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddRateModalOpen(true)}
+                    className="bg-[#3B82F6] hover:bg-[#2563EB] text-white text-[11px] px-2 py-1 rounded"
+                  >
+                    + Add Rate
+                  </button>
+                </div>
+                {rateFields.length === 0 ? (
+                  <p className="text-[11px] text-[#64748B] italic text-center py-2">No custom rates added. Standard retail rates will apply.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {rateFields.map((field, index) => (
+                      <div key={field.id} className="flex gap-2 items-center">
+                        <div className="flex-1">
+                          <Controller
+                            name={`productRates.${index}.productId`}
+                            control={control}
+                            render={({ field }) => (
+                              <Select
+                                {...field}
+                                options={products.map((p: any) => ({ value: p.id, label: `${p.code} - ${p.name}` }))}
+                                value={field.value ? { value: field.value, label: products.find((p: any) => p.id === field.value)?.name || 'Select Product' } : null}
+                                onChange={(val: any) => field.onChange(val?.value || 0)}
+                                className="text-[12px]"
+                                placeholder="Select Product"
+                                styles={{
+                                  control: (base: any) => ({ ...base, minHeight: '32px', borderColor: '#CBD5E1' })
+                                }}
+                              />
+                            )}
+                          />
+                        </div>
+                        <div className="w-24">
+                          <input
+                            {...register(`productRates.${index}.rate`)}
+                            type="number"
+                            placeholder="Rate"
+                            step="0.01"
+                            className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[12px] outline-none text-right"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeRate(index)}
+                          className="text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white font-bold py-2.5 rounded flex justify-center items-center gap-2 mt-2 transition-colors"
             >
-              CANCEL EDIT
+              <CheckCircle size={16} />
+              {editingId ? 'UPDATE CUSTOMER' : 'SAVE CUSTOMER (F10)'}
             </button>
-          )}
-        </form>
-      </div>
+
+            {editingId && (
+              <button
+                type="button"
+                onClick={() => { reset(); setEditingId(null); }}
+                className="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded flex justify-center items-center gap-2 transition-colors"
+              >
+                CANCEL EDIT
+              </button>
+            )}
+          </form>
+        </div>
       )}
 
       {/* Right Column: List */}
@@ -339,15 +445,15 @@ const Customers = () => {
             <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
               <Search size={14} className="text-gray-400" />
             </div>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search customer by name or phone number..."
               className="w-full sm:w-80 pl-7 pr-3 py-1.5 border border-[#ccc] rounded text-[13px] outline-none focus:border-[#3B82F6]"
             />
           </div>
-          <button type="button" 
+          <button type="button"
             onClick={() => setIsFullTable(!isFullTable)}
             className="w-full sm:w-auto justify-center text-[#3B82F6] hover:bg-[#EFF6FF] px-3 py-1.5 rounded text-[12px] font-bold flex items-center gap-2 transition-colors border border-[#3B82F6]"
           >
@@ -385,13 +491,19 @@ const Customers = () => {
                     </td>
                     <td data-label="Actions" className="px-3 py-3 text-center">
                       <div className="flex justify-center gap-2">
-                        <button type="button" 
+                        <button type="button"
+                          onClick={() => setItemToView(customer)}
+                          className="text-[#10B981] border border-[#10B981] rounded p-1 hover:bg-[#10B981] hover:text-white transition-colors"
+                        >
+                          <Eye size={12} />
+                        </button>
+                        <button type="button"
                           onClick={() => handleEdit(customer)}
                           className="text-[#3B82F6] border border-[#3B82F6] rounded p-1 hover:bg-[#3B82F6] hover:text-white transition-colors"
                         >
                           <Edit size={12} />
                         </button>
-                        <button type="button" 
+                        <button type="button"
                           onClick={() => {
                             setItemToDelete(customer);
                           }}
@@ -409,7 +521,7 @@ const Customers = () => {
         </div>
       </div>
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal 
+      <DeleteConfirmationModal
         isOpen={!!itemToDelete}
         itemName={itemToDelete?.name}
         isDeleting={deleteMutation.isPending}
@@ -419,6 +531,25 @@ const Customers = () => {
           }
         }}
         onCancel={() => setItemToDelete(null)}
+      />
+
+      <LeaveConfirmModal
+        isOpen={isLeaveModalOpen}
+        onClose={() => setIsLeaveModalOpen(false)}
+        onConfirm={() => navigate('/dashboard')}
+      />
+
+      <CustomerViewModal
+        isOpen={!!itemToView}
+        onClose={() => setItemToView(null)}
+        customer={itemToView}
+      />
+
+      <AddCustomRateModal
+        isOpen={isAddRateModalOpen}
+        onClose={() => setIsAddRateModalOpen(false)}
+        onAdd={(productId, rate) => appendRate({ productId, rate })}
+        products={products}
       />
     </div>
   );

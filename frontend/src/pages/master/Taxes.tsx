@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import api from '../../services/api';
+import LeaveConfirmModal from '../../components/LeaveConfirmModal';
+import { useNavigate } from 'react-router-dom';
 
 const taxSchema = z.object({
   name: z.string().min(1, 'Tax Name is required'),
@@ -15,6 +17,9 @@ const taxSchema = z.object({
 type TaxFormValues = z.infer<typeof taxSchema>;
 
 const Taxes = () => {
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const navigate = useNavigate();
+
   const queryClient = useQueryClient();
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -74,10 +79,28 @@ const Taxes = () => {
   }, [handleSubmit, onSubmit]);
 
   const handleEdit = (tax: any) => {
+    setIsFullTable(false);
     setEditingId(tax.id);
     setValue('name', tax.name);
     setValue('rate', tax.rate);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+      if (e.key === 'Escape' && !isInput) {
+        if (typeof itemToDelete !== 'undefined' && itemToDelete) {
+          setItemToDelete(null);
+        } else if (isLeaveModalOpen) {
+          setIsLeaveModalOpen(false);
+        } else {
+          setIsLeaveModalOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [typeof itemToDelete !== 'undefined' ? itemToDelete : null, isLeaveModalOpen, navigate]);
 
   return (
     <div className="bg-[#F7F7F7] min-h-[calc(100vh-100px)] grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
@@ -230,7 +253,13 @@ const Taxes = () => {
         }}
         onCancel={() => setItemToDelete(null)}
       />
-    </div>
+    
+      <LeaveConfirmModal 
+        isOpen={isLeaveModalOpen} 
+        onClose={() => setIsLeaveModalOpen(false)} 
+        onConfirm={() => navigate('/dashboard')} 
+      />
+</div>
   );
 };
 export default Taxes;
