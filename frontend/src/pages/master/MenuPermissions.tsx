@@ -10,6 +10,7 @@ const MODULES = [
     icon: <Settings2 size={18} />,
     permissions: [
       { id: 'master_products', name: 'Products' },
+      { id: 'mfg_product_master', name: 'Product (Mfg)' },
       { id: 'master_brands', name: 'Brands' },
       { id: 'master_categories', name: 'Categories' },
       { id: 'master_units', name: 'Units' },

@@ -297,10 +297,11 @@ const MainLayout = () => {
               <nav className="hidden lg:flex h-full items-center">
                 <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" />
               
-              {hasAnyPerm(['master_products', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
+              {hasAnyPerm(['master_products', 'mfg_product_master', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
               <NavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Inventory</div>
                 {hasPerm('master_products') && <DropdownItem to="/master/products" icon="fa-cubes" title="Products" />}
+                {hasPerm('mfg_product_master') && <DropdownItem to="/production/products" icon="fa-industry" title="Products" />}
                 {hasPerm('master_brands') && <DropdownItem to="/master/brands" icon="fa-tags" title="Brands" />}
                 {hasPerm('master_categories') && <DropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" />}
                 {hasPerm('master_units') && <DropdownItem to="/master/units" icon="fa-balance-scale" title="Units" />}
@@ -330,9 +331,8 @@ const MainLayout = () => {
               </NavDropdown>
               )}
 
-              {hasAnyPerm(['master_products', 'mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
+              {hasAnyPerm(['mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
               <NavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
-                {hasPerm('master_products') && <DropdownItem to="/production/products" icon="fa-cubes" title="Product Master" />}
                 {hasPerm('mfg_rm_master') && <DropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />}
                 {hasPerm('mfg_rm_purchase') && <DropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />}
                 {hasPerm('mfg_production') && <DropdownItem to="/production" icon="fa-cogs" title="Production Entry" />}
@@ -476,9 +476,10 @@ const MainLayout = () => {
             <nav className="flex-1 py-2 overflow-y-auto custom-scrollbar">
               <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" onClick={closeMobileMenu} />
               
-              {hasAnyPerm(['master_products', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
+              {hasAnyPerm(['master_products', 'mfg_product_master', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
               <MobileNavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
                 {hasPerm('master_products') && <MobileDropdownItem to="/master/products" icon="fa-cubes" title="Products" onClick={closeMobileMenu} />}
+                {hasPerm('mfg_product_master') && <MobileDropdownItem to="/production/products" icon="fa-industry" title="Products" onClick={closeMobileMenu} />}
                 {hasPerm('master_brands') && <MobileDropdownItem to="/master/brands" icon="fa-tags" title="Brands" onClick={closeMobileMenu} />}
                 {hasPerm('master_categories') && <MobileDropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" onClick={closeMobileMenu} />}
                 {hasPerm('master_units') && <MobileDropdownItem to="/master/units" icon="fa-balance-scale" title="Units" onClick={closeMobileMenu} />}
@@ -500,9 +501,8 @@ const MainLayout = () => {
               </MobileNavDropdown>
               )}
 
-              {hasAnyPerm(['master_products', 'mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
+              {hasAnyPerm(['mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
               <MobileNavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
-                {hasPerm('master_products') && <MobileDropdownItem to="/production/products" icon="fa-cubes" title="Product Master" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_rm_master') && <MobileDropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_rm_purchase') && <MobileDropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_production') && <MobileDropdownItem to="/production" icon="fa-cogs" title="Production Entry" onClick={closeMobileMenu} />}
