@@ -16,6 +16,7 @@ const RawMaterialPurchaseEntry = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [supplierId, setSupplierId] = useState(0);
   const [invoiceNo, setInvoiceNo] = useState('');
+  const [paymentModeId, setPaymentModeId] = useState(0);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   
   const [items, setItems] = useState<any[]>([{ rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
@@ -28,6 +29,11 @@ const RawMaterialPurchaseEntry = () => {
   const { data: rawMaterials = [] } = useQuery({ 
     queryKey: ['rawMaterials'], 
     queryFn: async () => (await api.get('/raw-materials')).data 
+  });
+
+  const { data: paymentModes = [] } = useQuery({ 
+    queryKey: ['paymentModes'], 
+    queryFn: async () => (await api.get('/payment-modes')).data 
   });
 
   const generateNextCode = () => {
@@ -106,7 +112,8 @@ const RawMaterialPurchaseEntry = () => {
         supplierId: supplierId,
         subtotal,
         tax,
-        grandTotal,
+        grandTotal: parseFloat(totalAmount.toFixed(2)),
+        paymentModeId: paymentModeId,
         items: validItems.map(item => ({
           rawMaterialId: parseInt(item.rawMaterialId),
           widthMm: parseFloat(item.widthMm || '0'),
@@ -131,8 +138,8 @@ const RawMaterialPurchaseEntry = () => {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!invoiceNo || !supplierId) {
-      toast.error('Please fill required fields (Invoice No & Supplier)');
+    if (!invoiceNo || !supplierId || !paymentModeId) {
+      toast.error('Please fill required fields (Invoice No, Supplier & Payment Mode)');
       return;
     }
     const validItems = items.filter(i => i.rawMaterialId > 0);
@@ -230,7 +237,7 @@ const RawMaterialPurchaseEntry = () => {
               </div>
             </div>
 
-            <div className="w-full lg:max-w-[250px]">
+            <div className="w-full lg:max-w-[200px]">
               <label className="block text-[12px] font-bold text-[#374151] mb-1.5 uppercase tracking-wide">Purchase Date *</label>
               <input
                 type="date"
@@ -238,6 +245,20 @@ const RawMaterialPurchaseEntry = () => {
                 onChange={e => setDate(e.target.value)}
                 className="w-full px-3 py-2 border border-[#D1D5DB] rounded bg-[#F9FAFB] focus:bg-white text-[13px] outline-none focus:border-[#475569] focus:ring-1 focus:ring-[#475569] transition-all"
               />
+            </div>
+
+            <div className="w-full lg:max-w-[200px]">
+              <label className="block text-[12px] font-bold text-[#374151] mb-1.5 uppercase tracking-wide">Payment Mode *</label>
+              <select
+                value={paymentModeId}
+                onChange={e => setPaymentModeId(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-[#D1D5DB] rounded bg-[#F9FAFB] focus:bg-white text-[13px] outline-none focus:border-[#475569] focus:ring-1 focus:ring-[#475569] transition-all"
+              >
+                <option value={0}>Select Mode</option>
+                {paymentModes.map((mode: any) => (
+                  <option key={mode.id} value={mode.id}>{mode.name}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

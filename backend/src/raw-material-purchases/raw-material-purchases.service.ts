@@ -7,7 +7,7 @@ export class RawMaterialPurchasesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createRawMaterialPurchaseDto: CreateRawMaterialPurchaseDto) {
-    const { invoiceNo, date, supplierId, subtotal, tax, grandTotal, items } = createRawMaterialPurchaseDto;
+    const { invoiceNo, date, supplierId, subtotal, tax, grandTotal, paymentModeId, items } = createRawMaterialPurchaseDto;
 
     // Check if invoice already exists
     const existing = await this.prisma.rawMaterialPurchase.findUnique({
@@ -27,6 +27,7 @@ export class RawMaterialPurchasesService {
           subtotal,
           tax,
           grandTotal,
+          paymentModeId,
           items: {
             create: items.map(item => ({
               rawMaterialId: item.rawMaterialId,

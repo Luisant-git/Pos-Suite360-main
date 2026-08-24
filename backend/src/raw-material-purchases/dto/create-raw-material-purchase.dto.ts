@@ -43,6 +43,10 @@ export class CreateRawMaterialPurchaseDto {
   @IsNumber()
   grandTotal: number;
 
+  @IsInt()
+  @IsNotEmpty()
+  paymentModeId: number;
+
   @IsArray()
   items: RawMaterialPurchaseItemDto[];
 }
