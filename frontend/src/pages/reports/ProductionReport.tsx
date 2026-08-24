@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, FileText, Download, Calendar, RotateCcw, Plus, Box, Eye } from 'lucide-react';
+import { Search, FileText, Download, Calendar, RotateCcw, Plus, Box, Eye, PieChart as PieChartIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import ReportTabs from '../../components/ReportTabs';
 import { exportToExcel } from '../../utils/exportExcel';
 import PaginationControls from '../../components/PaginationControls';
 import ProductionModal from '../production/ProductionModal';
-
+import Select from 'react-select';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 const ProductionReport = () => {
   const navigate = useNavigate();
   const [fromDate, setFromDate] = useState(() => new Date(new Date().setDate(1)).toISOString().split('T')[0]);
@@ -53,7 +54,18 @@ const ProductionReport = () => {
     queryFn: async () => (await api.get('/products')).data,
   });
 
+  const { data: uniqueWorkNames = [] } = useQuery({
+    queryKey: ['uniqueWorkNames'],
+    queryFn: async () => {
+      const { data } = await api.get('/production');
+      return Array.from(new Set(data.map((p: any) => p.workName).filter(Boolean)));
+    },
+  });
+
   const filteredProductions = productions.filter((p: any) => {
+    if (fromDate && p.date < fromDate) return false;
+    if (toDate && p.date > toDate) return false;
+    if (workName && p.workName !== workName) return false;
     if (filterRmId && p.rawMaterialId?.toString() !== filterRmId) return false;
     if (filterProductId && p.finishedProductId?.toString() !== filterProductId) return false;
 
@@ -71,6 +83,68 @@ const ProductionReport = () => {
 
   const totalPages = Math.ceil(filteredProductions.length / entriesPerPage);
   const paginatedProductions = filteredProductions.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+
+  let totalProduced = 0;
+  let totalWastage = 0;
+  
+  const processedBatches = new Set();
+  
+  filteredProductions.forEach((p: any) => {
+    if (processedBatches.has(p.workName)) return;
+    
+    const batchRows = productions.filter((bp: any) => bp.workName === p.workName && bp.finishedProductId === p.finishedProductId);
+    
+    const totalBatchRawSqM = batchRows.reduce((sum: number, bp: any) => {
+      const rm = rawMaterials.find((r: any) => r.id === bp.rawMaterialId);
+      const sqMPerRoll = Number(rm?.rawMaterialPurchaseItems?.[0]?.sqM || 0);
+      return sum + (bp.intakeQuantity * sqMPerRoll);
+    }, 0);
+
+    const prod = products.find((prod: any) => prod.id === p.finishedProductId);
+    const productSqM = Number(prod?.sqM || 0);
+    
+    const batchOutcome = batchRows.find((bp: any) => bp.outcomeQuantity > 0)?.outcomeQuantity || p.outcomeQuantity;
+
+    const totalTheoreticalYield = productSqM > 0 ? (totalBatchRawSqM / productSqM) : 0;
+    
+    if (batchOutcome && batchOutcome > 0) {
+      totalProduced += batchOutcome;
+      totalWastage += Math.max(0, totalTheoreticalYield - batchOutcome);
+      processedBatches.add(p.workName);
+    }
+  });
+
+  const pieData = [
+    { name: 'Produced', value: parseFloat(totalProduced.toFixed(2)) },
+    { name: 'Wastage', value: parseFloat(totalWastage.toFixed(2)) }
+  ];
+  
+  const COLORS = ['#10B981', '#EF4444'];
+
+  const selectStyles = {
+    control: (base: any, state: any) => ({
+      ...base,
+      minHeight: '34px',
+      height: '34px',
+      borderColor: state.isFocused ? '#3B82F6' : '#CBD5E1',
+      boxShadow: state.isFocused ? '0 0 0 1px #3B82F6' : 'none',
+      '&:hover': { borderColor: state.isFocused ? '#3B82F6' : '#94A3B8' },
+      fontSize: '13px',
+      color: '#000000'
+    }),
+    valueContainer: (base: any) => ({ ...base, padding: '0 8px' }),
+    input: (base: any) => ({ ...base, margin: 0, padding: 0, color: '#000000' }),
+    dropdownIndicator: (base: any) => ({ ...base, padding: 4 }),
+    clearIndicator: (base: any) => ({ ...base, padding: 4 }),
+    option: (base: any, state: any) => ({ 
+      ...base, 
+      fontSize: '13px', 
+      color: state.isSelected ? '#ffffff' : '#000000',
+      backgroundColor: state.isSelected ? '#3B82F6' : state.isFocused ? '#EFF6FF' : '#ffffff'
+    }),
+    singleValue: (base: any) => ({ ...base, fontSize: '13px', color: '#000000' }),
+    menuPortal: (base: any) => ({ ...base, zIndex: 9999 })
+  };
 
   return (
     <div className="absolute inset-0 bg-[#F8FAFC] flex flex-col font-sans overflow-hidden z-10 p-4">
@@ -103,44 +177,41 @@ const ProductionReport = () => {
 
           <div>
             <label className="flex items-center gap-1 text-[12px] text-[#3B82F6] mb-1 font-bold"><Box size={12} /> Batch / Work Name</label>
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
-              <input 
-                type="text" 
-                value={workName}
-                onChange={(e) => setWorkName(e.target.value)}
-                placeholder="Search batch name..."
-                className="w-full pl-8 pr-3 py-1.5 border border-[#CBD5E1] rounded outline-none text-[13px] text-[#334155] focus:border-[#3B82F6]"
-              />
-            </div>
+            <Select
+              value={workName ? { value: workName, label: workName } : null}
+              onChange={(selected: any) => setWorkName(selected ? selected.value : '')}
+              options={uniqueWorkNames.map((name: any) => ({ value: name, label: name }))}
+              isClearable
+              placeholder="All Batches"
+              styles={selectStyles}
+              menuPortalTarget={document.body}
+            />
           </div>
 
           <div>
             <label className="flex items-center gap-1 text-[12px] text-[#3B82F6] mb-1 font-bold"><Box size={12} /> Raw Material</label>
-            <select
-              value={filterRmId}
-              onChange={(e) => setFilterRmId(e.target.value)}
-              className="w-full px-3 py-1.5 border border-[#CBD5E1] rounded outline-none text-[13px] text-[#334155] bg-white focus:border-[#3B82F6]"
-            >
-              <option value="">All Raw Materials</option>
-              {rawMaterials.map((rm: any) => (
-                <option key={rm.id} value={rm.id}>{rm.name}</option>
-              ))}
-            </select>
+            <Select
+              value={filterRmId ? { value: filterRmId, label: rawMaterials.find((rm: any) => rm.id.toString() === filterRmId)?.name || 'Unknown' } : null}
+              onChange={(selected: any) => setFilterRmId(selected ? selected.value : '')}
+              options={rawMaterials.map((rm: any) => ({ value: rm.id.toString(), label: rm.name }))}
+              isClearable
+              placeholder="All Raw Materials"
+              styles={selectStyles}
+              menuPortalTarget={document.body}
+            />
           </div>
 
           <div>
             <label className="flex items-center gap-1 text-[12px] text-[#3B82F6] mb-1 font-bold"><Box size={12} /> Finished Product</label>
-            <select
-              value={filterProductId}
-              onChange={(e) => setFilterProductId(e.target.value)}
-              className="w-full px-3 py-1.5 border border-[#CBD5E1] rounded outline-none text-[13px] text-[#334155] bg-white focus:border-[#3B82F6]"
-            >
-              <option value="">All Products</option>
-              {products.map((p: any) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <Select
+              value={filterProductId ? { value: filterProductId, label: products.find((p: any) => p.id.toString() === filterProductId)?.name || 'Unknown' } : null}
+              onChange={(selected: any) => setFilterProductId(selected ? selected.value : '')}
+              options={products.map((p: any) => ({ value: p.id.toString(), label: p.name }))}
+              isClearable
+              placeholder="All Products"
+              styles={selectStyles}
+              menuPortalTarget={document.body}
+            />
           </div>
 
         </div>
@@ -164,8 +235,11 @@ const ProductionReport = () => {
         </div>
       </div>
 
+      {/* Report Layout Wrapper */}
+      <div className="flex flex-col xl:flex-row gap-4 flex-1 overflow-hidden min-h-0">
+
       {/* Report Table Section */}
-      <div className="bg-white border border-[#E2E8F0] shadow-sm rounded-md overflow-hidden flex flex-col flex-1">
+      <div className="bg-white border border-[#E2E8F0] shadow-sm rounded-md overflow-hidden flex flex-col flex-1 xl:w-3/4">
         <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-4 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0 shrink-0">
           <div className="flex items-center gap-2 text-[#64748B]">
             <FileText size={16} />
@@ -207,7 +281,7 @@ const ProductionReport = () => {
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Intake Qty</th>
                 <th className="px-4 py-3 border-r border-[#1E293B]">Finished Product Output</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Produced Qty</th>
-                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Wastage Qty</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Wastage Qty (%)</th>
                 <th className="px-4 py-3 border-[#1E293B] text-center">Action</th>
               </tr>
             </thead>
@@ -218,24 +292,33 @@ const ProductionReport = () => {
                 <tr><td colSpan={7} className="text-center p-6 text-gray-500">No production records found.</td></tr>
               ) : (
                 paginatedProductions.map((p: any, index: number) => {
-                  const rawMat = rawMaterials.find((rm: any) => rm.id === p.rawMaterialId);
-                  const sqMPerRoll = Number(rawMat?.rawMaterialPurchaseItems?.[0]?.sqM || 0);
-                  const rawSqM = p.intakeQuantity * sqMPerRoll;
+                  // Find all rows in this batch
+                  const batchRows = productions.filter((bp: any) => bp.workName === p.workName && bp.finishedProductId === p.finishedProductId);
+                  
+                  // Calculate total raw SqM for the entire batch
+                  const totalBatchRawSqM = batchRows.reduce((sum: number, bp: any) => {
+                    const rm = rawMaterials.find((r: any) => r.id === bp.rawMaterialId);
+                    const sqMPerRoll = Number(rm?.rawMaterialPurchaseItems?.[0]?.sqM || 0);
+                    return sum + (bp.intakeQuantity * sqMPerRoll);
+                  }, 0);
 
                   const prod = products.find((prod: any) => prod.id === p.finishedProductId);
                   const productSqM = Number(prod?.sqM || 0);
 
-                  // Find the total outcome quantity for this batch (since it's only stored on the last item of a group to prevent double counting stock)
-                  const batchOutcome = productions.find(
-                    (bp: any) => bp.workName === p.workName && bp.finishedProductId === p.finishedProductId && bp.outcomeQuantity > 0
-                  )?.outcomeQuantity || p.outcomeQuantity;
+                  // Find the total outcome quantity for this batch
+                  const batchOutcome = batchRows.find((bp: any) => bp.outcomeQuantity > 0)?.outcomeQuantity || p.outcomeQuantity;
 
-                  const theoreticalYield = productSqM > 0 ? (rawSqM / productSqM) : 0;
+                  const totalTheoreticalYield = productSqM > 0 ? (totalBatchRawSqM / productSqM) : 0;
                   
                   let displayWastage = '-';
+                  let wastagePercentage = '-';
                   if (batchOutcome && batchOutcome > 0) {
-                    const wastage = theoreticalYield > 0 ? (theoreticalYield - batchOutcome) : 0;
-                    displayWastage = Math.max(0, wastage).toFixed(2);
+                    const wastage = totalTheoreticalYield > 0 ? (totalTheoreticalYield - batchOutcome) : 0;
+                    const maxWastage = Math.max(0, wastage);
+                    displayWastage = maxWastage.toFixed(2);
+                    if (totalTheoreticalYield > 0) {
+                      wastagePercentage = ((maxWastage / totalTheoreticalYield) * 100).toFixed(2) + '%';
+                    }
                   }
 
                   return (
@@ -246,7 +329,9 @@ const ProductionReport = () => {
                       <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#B91C1C]">{p.intakeQuantity}</td>
                       <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#15803D]">{p.finishedProduct}</td>
                       <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#15803D]">{batchOutcome > 0 ? batchOutcome : '-'}</td>
-                      <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-orange-600">{displayWastage}</td>
+                      <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-orange-600">
+                        {displayWastage} {displayWastage !== '-' && wastagePercentage !== '-' ? `(${wastagePercentage})` : ''}
+                      </td>
                       <td className="px-4 py-3 text-center">
                         <button 
                           onClick={() => setViewId(p.id)}
@@ -273,6 +358,50 @@ const ProductionReport = () => {
           />
         )}
       </div>
+
+      {/* Chart Section */}
+      <div className="bg-white border border-[#E2E8F0] shadow-sm rounded-md flex flex-col xl:w-1/4 shrink-0 overflow-hidden">
+        <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-4 py-3 shrink-0">
+          <h2 className="font-bold text-[13px] text-[#64748B] tracking-wide flex items-center gap-2">
+            <PieChartIcon size={16} /> WASTAGE OVERVIEW
+          </h2>
+        </div>
+        <div className="flex-1 p-4 flex flex-col items-center justify-center min-h-[300px]">
+          {totalProduced === 0 && totalWastage === 0 ? (
+            <div className="text-gray-400 text-[12px] font-bold text-center bg-gray-50 w-full py-10 rounded border border-gray-100">No completed productions<br/>to chart.</div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => value.toLocaleString()} />
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 text-center w-full bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                <div className="text-[11px] font-bold text-emerald-800 uppercase">Total Efficiency</div>
+                <div className="text-[20px] font-black text-emerald-600">
+                  {(((totalProduced) / (totalProduced + totalWastage)) * 100).toFixed(1)}%
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      
+      </div> {/* End Report Layout Wrapper */}
 
       {viewId && (
         <ProductionModal productionId={viewId} onClose={() => setViewId(null)} />
