@@ -112,7 +112,7 @@ const RawMaterialPurchaseEntry = () => {
         supplierId: supplierId,
         subtotal,
         tax,
-        grandTotal: parseFloat(totalAmount.toFixed(2)),
+        grandTotal,
         paymentModeId: paymentModeId,
         items: validItems.map(item => ({
           rawMaterialId: parseInt(item.rawMaterialId),
