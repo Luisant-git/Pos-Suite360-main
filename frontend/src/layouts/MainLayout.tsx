@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronDown, LogOut, Settings as SettingsIcon, Zap, ArrowLeft, Menu, X, Shield } from 'lucide-react';
+import { ChevronDown, LogOut, Settings as SettingsIcon, Zap, ArrowLeft, Menu, X, Shield, Users as UsersIcon } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import api from '../services/api';
 const NavItem = ({ title, icon, to, onClick }: { title: string, icon: string, to: string, onClick?: () => void }) => (
@@ -86,26 +86,50 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();
-  const [user, setUser] = useState({ name: 'Pro X Admin' });
-  const [permissions, setPermissions] = useState<string[]>([]);
+  const [user, setUser] = useState<any>(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (e) {}
+    }
+    return { name: 'Pro X Admin' };
+  });
+  
+  const [permissions, setPermissions] = useState<string[]>(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed?.role?.permissions) {
+          return parsed.role.permissions;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
 
   useEffect(() => {
-    // Fetch permissions for the demo admin role
-    api.get('/roles').then(res => {
-      if (res.data.length > 0) {
-        setPermissions(res.data[0].permissions || []);
-      }
-    }).catch(err => console.error(err));
-  }, []);
+    if (!user?.roleId && permissions.length === 0) {
+      // Fallback for demo before setup
+      api.get('/roles').then(res => {
+        if (res.data.length > 0) {
+          setPermissions(res.data[0].permissions || []);
+        }
+      }).catch(err => console.error(err));
+    }
+  }, [user?.roleId, permissions.length]);
 
   const hasPerm = (perm: string) => {
-    // If no permissions are set, default to showing everything so the app remains usable before setup
-    if (permissions.length === 0) return true;
+    if (permissions.includes('ALL')) return true;
+    // If no permissions are set and it's a demo user, default to showing everything
+    if (permissions.length === 0 && !user?.roleId) return true;
     return permissions.includes(perm);
   };
 
   const hasAnyPerm = (perms: string[]) => {
-    if (permissions.length === 0) return true;
+    if (permissions.includes('ALL')) return true;
+    if (permissions.length === 0 && !user?.roleId) return true;
     return perms.some(p => permissions.includes(p));
   };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -124,16 +148,6 @@ const MainLayout = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {}
-    }
-
   }, []);
 
   useEffect(() => {
@@ -166,7 +180,8 @@ const MainLayout = () => {
   }, [navigate]);
 
 
-  const isMasterActive = location.pathname.startsWith('/master');
+  const isMasterActive = location.pathname.startsWith('/master') && location.pathname !== '/master/users' && location.pathname !== '/master/permissions';
+  const isUserMgmtActive = location.pathname === '/master/users' || location.pathname === '/master/permissions';
   const isPurchaseActive = location.pathname.startsWith('/purchase');
   const isManufacturingActive = location.pathname.startsWith('/raw-materials') || location.pathname.startsWith('/production');
   const isSalesActive = location.pathname.startsWith('/sales');
@@ -193,15 +208,17 @@ const MainLayout = () => {
             <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" />
             
             <MobileNavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
-              <MobileDropdownItem to="/master/products" icon="fa-cubes" title="Products" />
-              <MobileDropdownItem to="/master/brands" icon="fa-tags" title="Brands" />
-              <MobileDropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" />
-              <MobileDropdownItem to="/master/units" icon="fa-balance-scale" title="Units" />
+              {hasPerm('master_users') && <MobileDropdownItem to="/master/users" icon="fa-users" title="Users & Roles" />}
+              {hasPerm('master_permissions') && <MobileDropdownItem to="/master/permissions" icon="fa-shield" title="Menu Permissions" />}
+              {hasPerm('master_products') && <MobileDropdownItem to="/master/products" icon="fa-cubes" title="Products" />}
+              {hasPerm('master_brands') && <MobileDropdownItem to="/master/brands" icon="fa-tags" title="Brands" />}
+              {hasPerm('master_categories') && <MobileDropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" />}
+              {hasPerm('master_units') && <MobileDropdownItem to="/master/units" icon="fa-balance-scale" title="Units" />}
               <div className="my-1 border-t border-[#2A3F54]/30"></div>
-              <MobileDropdownItem to="/master/suppliers" icon="fa-building-o" title="Suppliers" />
-              <MobileDropdownItem to="/master/customers" icon="fa-users" title="Customers" />
+              {hasPerm('master_suppliers') && <MobileDropdownItem to="/master/suppliers" icon="fa-building-o" title="Suppliers" />}
+              {hasPerm('master_customers') && <MobileDropdownItem to="/master/customers" icon="fa-users" title="Customers" />}
               <div className="my-1 border-t border-[#2A3F54]/30"></div>
-              <MobileDropdownItem to="/master/payment-modes" icon="fa-credit-card-alt" title="Payment Modes" />
+              {hasPerm('master_payment_modes') && <MobileDropdownItem to="/master/payment-modes" icon="fa-credit-card-alt" title="Payment Modes" />}
               <MobileDropdownItem to="/master/payment-types" icon="fa-money" title="Payment Types" />
               <MobileDropdownItem to="/master/expense-categories" icon="fa-list-alt" title="Expense Categories" />
               {settings?.enableTax && (
@@ -423,12 +440,22 @@ const MainLayout = () => {
                     </div>
                     Settings
                   </Link>
+                  {hasPerm('master_users') && (
+                  <Link to="/master/users" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-colors font-bold mt-1">
+                    <div className="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-600">
+                      <UsersIcon size={16} />
+                    </div>
+                    Users & Roles
+                  </Link>
+                  )}
+                  {hasPerm('master_permissions') && (
                   <Link to="/master/permissions" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors font-bold mt-1">
                     <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600">
                       <Shield size={16} />
                     </div>
                     Menu Permissions
                   </Link>
+                  )}
                   {/* 
                   <button 
                     onClick={toggleDesktopLayout}
@@ -475,9 +502,11 @@ const MainLayout = () => {
             
             <nav className="flex-1 py-2 overflow-y-auto custom-scrollbar">
               <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" onClick={closeMobileMenu} />
-              
-              {hasAnyPerm(['master_products', 'mfg_product_master', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
+
+              {hasAnyPerm(['master_users', 'master_permissions', 'master_products', 'mfg_product_master', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
               <MobileNavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
+                {hasPerm('master_users') && <MobileDropdownItem to="/master/users" icon="fa-user-circle" title="Users & Roles" onClick={closeMobileMenu} />}
+                {hasPerm('master_permissions') && <MobileDropdownItem to="/master/permissions" icon="fa-shield" title="Menu Permissions" onClick={closeMobileMenu} />}
                 {hasPerm('master_products') && <MobileDropdownItem to="/master/products" icon="fa-cubes" title="Products" onClick={closeMobileMenu} />}
                 {hasPerm('mfg_product_master') && <MobileDropdownItem to="/production/products" icon="fa-industry" title="Products" onClick={closeMobileMenu} />}
                 {hasPerm('master_brands') && <MobileDropdownItem to="/master/brands" icon="fa-tags" title="Brands" onClick={closeMobileMenu} />}

@@ -27,6 +27,8 @@ export class AuthService {
         id: user.id,
         username: user.username,
         name: user.name,
+        roleId: user.roleId,
+        role: user.role, // from include: { role: true }
       }
     };
   }

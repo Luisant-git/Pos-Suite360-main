@@ -27,4 +27,26 @@ export class RolesService {
       data: { permissions },
     });
   }
+
+  async create(name: string) {
+    return this.prisma.role.create({
+      data: {
+        name,
+        permissions: [] // start with empty permissions
+      },
+    });
+  }
+
+  async remove(id: number) {
+    // Check if users exist for this role
+    const usersWithRole = await this.prisma.user.findFirst({
+      where: { roleId: id }
+    });
+    if (usersWithRole) {
+      throw new Error("Cannot delete role because it is assigned to one or more users");
+    }
+    return this.prisma.role.delete({
+      where: { id },
+    });
+  }
 }

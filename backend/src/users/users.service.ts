@@ -9,12 +9,20 @@ export class UsersService {
   async findOne(username: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { username },
+      include: { role: true },
     });
   }
 
   async findById(id: number): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { id },
+      include: { role: true },
+    });
+  }
+
+  async findAll() {
+    return this.prisma.user.findMany({
+      include: { role: true },
     });
   }
 
@@ -41,10 +49,43 @@ export class UsersService {
     });
   }
 
+  async createUser(data: any) {
+    const { username, password, name, roleId } = data;
+    return this.prisma.user.create({
+      data: {
+        username,
+        password,
+        name,
+        roleId,
+      },
+    });
+  }
+
   async updatePassword(userId: number, hash: string): Promise<User> {
     return this.prisma.user.update({
       where: { id: userId },
       data: { password: hash },
+    });
+  }
+
+  async updateUser(id: number, data: any) {
+    const updateData: any = { ...data };
+    if (updateData.password) {
+      // Password hashing should ideally be in a service that calls this, but we'll let controller handle it or do it here
+      // For safety, remove it if it's empty
+      if (updateData.password.trim() === '') {
+        delete updateData.password;
+      }
+    }
+    return this.prisma.user.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  async deleteUser(id: number) {
+    return this.prisma.user.delete({
+      where: { id },
     });
   }
 }

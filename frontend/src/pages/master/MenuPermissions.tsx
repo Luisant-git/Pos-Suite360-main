@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Check, Save, Shield, Settings2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -69,6 +70,15 @@ const MODULES = [
       { id: 'reports_manufacturing', name: 'Manufacturing Reports' },
       { id: 'reports_financial', name: 'Financial & Stock Reports' },
     ]
+  },
+  {
+    id: 'user_management',
+    name: 'User Management',
+    icon: <Users size={18} />,
+    permissions: [
+      { id: 'master_users', name: 'Users & Roles' },
+      { id: 'master_permissions', name: 'Menu Permissions' },
+    ]
   }
 ];
 
@@ -77,6 +87,12 @@ const MenuPermissions = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [activePermissions, setActivePermissions] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [isCreatingRole, setIsCreatingRole] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+  
+  const location = useLocation();
 
   useEffect(() => {
     fetchRoles();
@@ -87,8 +103,13 @@ const MenuPermissions = () => {
       const { data } = await api.get('/roles');
       setRoles(data);
       if (data.length > 0) {
-        setSelectedRoleId(data[0].id);
-        setActivePermissions(data[0].permissions || []);
+        const passedRoleId = location.state?.roleId;
+        const initialRoleId = passedRoleId || data[0].id;
+        
+        setSelectedRoleId(initialRoleId);
+        
+        const targetRole = data.find((r: any) => r.id === initialRoleId) || data[0];
+        setActivePermissions(targetRole.permissions || []);
       }
     } catch (error) {
       console.error(error);
@@ -145,6 +166,38 @@ const MenuPermissions = () => {
     setActivePermissions([]);
   };
 
+  const handleCreateRole = async () => {
+    if (!newRoleName.trim()) return;
+    try {
+      const { data } = await api.post('/roles', { name: newRoleName });
+      toast.success('Role created successfully!');
+      setNewRoleName('');
+      setIsCreatingRole(false);
+      await fetchRoles();
+      setSelectedRoleId(data.id);
+    } catch (error) {
+      toast.error('Failed to create role');
+    }
+  };
+
+  const handleDeleteRole = () => {
+    if (!selectedRoleId) return;
+    setDeleteConfirmationText('');
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteRole = async () => {
+    if (!selectedRoleId || deleteConfirmationText !== 'DELETE') return;
+    try {
+      await api.delete(`/roles/${selectedRoleId}`);
+      toast.success('Role deleted successfully!');
+      setIsDeleteModalOpen(false);
+      fetchRoles();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete role');
+    }
+  };
+
   return (
     <div className="absolute inset-0 bg-[#F3F4F6] flex flex-col font-sans overflow-hidden">
       {/* Header */}
@@ -156,7 +209,13 @@ const MenuPermissions = () => {
           </h1>
           <p className="text-slate-400 text-xs">Control module access</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <Link
+            to="/master/users"
+            className="bg-indigo-50/10 text-indigo-200 hover:text-white px-3 py-1.5 rounded font-bold text-xs flex items-center gap-1.5 transition-colors border border-indigo-400/30 hover:bg-indigo-500/30 mr-2"
+          >
+            <Users size={14} /> Users & Roles
+          </Link>
           <button onClick={deselectAll} className="text-[#94A3B8] hover:text-white px-3 py-1.5 rounded font-bold text-xs transition-colors border border-[#334155] hover:bg-[#1E293B]">
             Uncheck All
           </button>
@@ -177,21 +236,55 @@ const MenuPermissions = () => {
         <div className="max-w-6xl mx-auto space-y-6">
           
           {/* Role Selector */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-              <Users size={24} />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1 w-full">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                <Users size={24} />
+              </div>
+              <div className="flex-1 w-full max-w-md">
+                <label className="text-sm font-bold text-gray-500 block mb-1">Select Role to Modify</label>
+                <select 
+                  value={selectedRoleId || ''}
+                  onChange={(e) => handleRoleChange(Number(e.target.value))}
+                  className="w-full border-0 bg-gray-50 px-4 py-2.5 rounded-lg font-bold text-gray-800 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all"
+                >
+                  {roles.map(r => (
+                    <option key={r.id} value={r.id}>{r.name.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex-1">
-              <label className="text-sm font-bold text-gray-500 block mb-1">Select Role to Modify</label>
-              <select 
-                value={selectedRoleId || ''}
-                onChange={(e) => handleRoleChange(Number(e.target.value))}
-                className="w-full max-w-md border-0 bg-gray-50 px-4 py-2.5 rounded-lg font-bold text-gray-800 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all"
-              >
-                {roles.map(r => (
-                  <option key={r.id} value={r.id}>{r.name.toUpperCase()}</option>
-                ))}
-              </select>
+            
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+              {isCreatingRole ? (
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <input
+                    type="text"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    placeholder="Role Name..."
+                    className="border-0 bg-gray-50 px-3 py-2 rounded-lg text-sm font-medium outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 w-full md:w-40"
+                    autoFocus
+                  />
+                  <button onClick={handleCreateRole} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-bold">Save</button>
+                  <button onClick={() => setIsCreatingRole(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold">Cancel</button>
+                </div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setIsCreatingRole(true)}
+                    className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                  >
+                    + New Role
+                  </button>
+                  <button 
+                    onClick={handleDeleteRole}
+                    className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                  >
+                    Delete Role
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -251,6 +344,50 @@ const MenuPermissions = () => {
 
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-red-50/50">
+              <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
+                <Shield size={24} />
+                Delete Role
+              </h2>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 text-sm mb-4 font-medium">
+                Are you sure you want to delete this role? This action cannot be undone and may affect users assigned to this role.
+              </p>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Type <span className="text-red-600 font-mono bg-red-50 px-1 rounded border border-red-100">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmationText}
+                onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 font-mono uppercase"
+              />
+              <div className="mt-8 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteRole}
+                  disabled={deleteConfirmationText !== 'DELETE'}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-200"
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
