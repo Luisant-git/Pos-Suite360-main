@@ -19,7 +19,7 @@ export default function Users() {
     username: '',
     password: '',
     name: '',
-    roleId: ''
+    roleId: '' as string | number
   });
 
   useEffect(() => {

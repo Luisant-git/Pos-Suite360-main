@@ -86,7 +86,7 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useSettings();
-  const [user, setUser] = useState<any>(() => {
+  const [user] = useState<any>(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
@@ -181,7 +181,6 @@ const MainLayout = () => {
 
 
   const isMasterActive = location.pathname.startsWith('/master') && location.pathname !== '/master/users' && location.pathname !== '/master/permissions';
-  const isUserMgmtActive = location.pathname === '/master/users' || location.pathname === '/master/permissions';
   const isPurchaseActive = location.pathname.startsWith('/purchase');
   const isManufacturingActive = location.pathname.startsWith('/raw-materials') || location.pathname.startsWith('/production');
   const isSalesActive = location.pathname.startsWith('/sales');
