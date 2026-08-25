@@ -151,10 +151,12 @@ const MenuPermissions = () => {
       await api.put(`/roles/${selectedRoleId}/permissions`, { permissions: activePermissions });
       
       const storedUser = localStorage.getItem('user');
+      let isCurrentUserRole = false;
       if (storedUser) {
         try {
           const parsed = JSON.parse(storedUser);
           if (parsed.roleId === selectedRoleId) {
+            isCurrentUserRole = true;
             parsed.role = parsed.role || {};
             parsed.role.permissions = activePermissions;
             localStorage.setItem('user', JSON.stringify(parsed));
@@ -162,7 +164,13 @@ const MenuPermissions = () => {
         } catch (e) {}
       }
 
-      toast.success('Permissions saved successfully! Please reload the page to apply changes.');
+      toast.success('Permissions saved successfully!');
+      
+      if (isCurrentUserRole) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
     } catch (error) {
       toast.error('Failed to save permissions');
     } finally {
