@@ -152,7 +152,7 @@ export default function Users() {
               <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
                 <th className="px-6 py-4 font-semibold w-[300px]">User</th>
                 <th className="px-6 py-4 font-semibold w-[250px]">Username</th>
-                <th className="px-6 py-4 font-semibold w-[200px]">Role</th>
+                <th className="px-6 py-4 font-semibold">Role</th>
                 <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -174,8 +174,8 @@ export default function Users() {
                     </td>
                     <td className="px-6 py-3 text-gray-600 font-medium">{user.username}</td>
                     <td className="px-6 py-3">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
-                        <Shield size={12} />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 whitespace-nowrap">
+                        <Shield size={16} />
                         {user.role?.name || 'No Role'}
                       </span>
                     </td>
