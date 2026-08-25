@@ -46,6 +46,7 @@ export class UsersService {
         name: username,
         roleId: role.id,
       },
+      include: { role: true },
     });
   }
 
