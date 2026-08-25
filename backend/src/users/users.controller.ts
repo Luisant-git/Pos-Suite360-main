@@ -18,10 +18,7 @@ export class UsersController {
     const { username, password, name, roleId } = body;
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    // Use the existing create method, but we need to modify it or create a new one that accepts full payload.
-    // Wait, usersService.create does not accept name and roleId right now.
-    // Let's call Prisma directly or update usersService.create.
-    // Since we didn't change usersService.create, let's just add a method or call prisma here.
+    body.password = hashedPassword;
     return this.usersService.createUser(body);
   }
 
