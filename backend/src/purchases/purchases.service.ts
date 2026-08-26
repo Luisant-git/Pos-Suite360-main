@@ -14,6 +14,7 @@ export class PurchasesService {
       const purchase = await tx.purchase.create({
         data: {
           invoiceNo: createPurchaseDto.invoiceNo,
+          supplierInvoiceNo: createPurchaseDto.supplierInvoiceNo,
           date: new Date(createPurchaseDto.date),
           supplierId: createPurchaseDto.supplierId,
           paymentModeId: createPurchaseDto.paymentModeId,
@@ -100,7 +101,10 @@ export class PurchasesService {
       where.supplierId = Number(query.supplierId);
     }
     if (query?.invoiceNo) {
-      where.invoiceNo = { contains: query.invoiceNo, mode: 'insensitive' };
+      where.OR = [
+        { invoiceNo: { contains: query.invoiceNo, mode: 'insensitive' } },
+        { supplierInvoiceNo: { contains: query.invoiceNo, mode: 'insensitive' } }
+      ];
     }
     if (query?.paymentModeId) {
       where.paymentModeId = Number(query.paymentModeId);
