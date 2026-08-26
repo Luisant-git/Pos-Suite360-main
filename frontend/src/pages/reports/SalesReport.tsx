@@ -13,8 +13,8 @@ import PaginationControls from '../../components/PaginationControls';
 const SalesReport = () => {
   const navigate = useNavigate();
   const { formatCurrency } = useSettings();
-  const [fromDate, setFromDate] = useState(() => new Date(new Date().setDate(1)).toISOString().split('T')[0]); // First of month
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]); // Today
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [paymentMode, setPaymentMode] = useState('');
@@ -75,6 +75,13 @@ const SalesReport = () => {
 
   const totalPages = Math.ceil(filteredSales.length / entriesPerPage);
   const paginatedSales = filteredSales.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const startOfMonthStr = new Date(new Date().setDate(1)).toISOString().split('T')[0];
+  
+  const isToday = fromDate === todayStr && toDate === todayStr;
+  const isMonth = fromDate === startOfMonthStr && toDate === todayStr;
+  const isReset = !fromDate && !toDate && !customerId && !invoiceNo && !paymentMode && !quickSearch;
 
   return (
     <div className="absolute inset-0 bg-[#F8FAFC] flex flex-col font-sans overflow-hidden z-10">
@@ -175,26 +182,25 @@ const SalesReport = () => {
               <Search size={14} /> Apply Filter
             </button>
             <button type="button" onClick={() => {
-              setFromDate(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-              setToDate(new Date().toISOString().split('T')[0]);
+              setFromDate('');
+              setToDate('');
               setCustomerId('');
               setInvoiceNo('');
               setPaymentMode('');
               setQuickSearch('');
-            }} className="text-[#64748B] hover:text-[#334155] flex items-center gap-1 text-[13px] font-bold transition-colors">
+            }} className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-bold transition-colors shadow-sm border ${!isReset ? 'bg-white text-red-600 border-red-200 hover:bg-red-50' : 'bg-white text-[#1F2937] border-gray-200 hover:bg-gray-50'}`}>
               <RotateCcw size={14} /> Reset Filters
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <button type="button" onClick={() => {
-              const today = new Date().toISOString().split('T')[0];
-              setFromDate(today);
-              setToDate(today);
-            }} className="text-[#3B82F6] hover:bg-[#EFF6FF] px-3 py-1 rounded text-[12px] font-bold transition-colors">Today</button>
+              setFromDate(todayStr);
+              setToDate(todayStr);
+            }} className={`px-3 py-1.5 rounded-md text-[12px] font-bold transition-colors shadow-sm border ${isToday ? 'bg-[#3B82F6] text-white border-[#2563EB]' : 'bg-[#EFF6FF] text-[#3B82F6] border-[#BFDBFE] hover:bg-[#DBEAFE]'}`}>Today</button>
             <button type="button" onClick={() => {
-              setFromDate(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-              setToDate(new Date().toISOString().split('T')[0]);
-            }} className="text-[#3B82F6] hover:bg-[#EFF6FF] px-3 py-1 rounded text-[12px] font-bold transition-colors">This Month</button>
+              setFromDate(startOfMonthStr);
+              setToDate(todayStr);
+            }} className={`px-3 py-1.5 rounded-md text-[12px] font-bold transition-colors shadow-sm border ${isMonth ? 'bg-[#3B82F6] text-white border-[#2563EB]' : 'bg-[#EFF6FF] text-[#3B82F6] border-[#BFDBFE] hover:bg-[#DBEAFE]'}`}>This Month</button>
           </div>
         </div>
       </div>
@@ -218,7 +224,17 @@ const SalesReport = () => {
               />
             </div>
             <button type="button" 
-              onClick={() => exportToExcel(filteredSales, `Sales_Report_${fromDate}_to_${toDate}`)}
+              onClick={() => {
+                const exportData = filteredSales.map((s: any) => ({
+                  'Invoice No': s.invoiceNo,
+                  'Date': s.date,
+                  'Customer Name': s.customerName,
+                  'Payment Mode': s.paymentMode,
+                  'Total Birds': s.totalBirds,
+                  'Total Amount': s.netPayable
+                }));
+                exportToExcel(exportData, `Sales_Report_${fromDate}_to_${toDate}`);
+              }}
               className="bg-[#10B981] hover:bg-[#059669] text-white px-3 py-1.5 rounded flex items-center gap-1.5 text-[12px] font-bold transition-colors"
             >
               <Download size={14} /> Export Excel

@@ -12,8 +12,8 @@ import PaginationControls from '../../components/PaginationControls';
 const PurchaseReport = () => {
   const navigate = useNavigate();
   const { formatCurrency, settings } = useSettings();
-  const [fromDate, setFromDate] = useState(() => new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]); // Today
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [paymentMode, setPaymentMode] = useState('');
@@ -47,7 +47,7 @@ const PurchaseReport = () => {
       return data.map((p: any) => ({
         id: p.id,
         entryNo: `PUR-${p.id.toString().padStart(6, '0')}`,
-        invoiceNo: p.invoiceNo || '-',
+        invoiceNo: p.supplierInvoiceNo || '-',
         date: new Date(p.date).toISOString().split('T')[0],
         supplierName: p.supplier?.name || '-',
         mode: p.paymentMode?.name || '-',
@@ -76,6 +76,13 @@ const PurchaseReport = () => {
 
   const totalPages = Math.ceil(filteredPurchases.length / entriesPerPage);
   const paginatedPurchases = filteredPurchases.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const startOfMonthStr = new Date(new Date().setDate(1)).toISOString().split('T')[0];
+  
+  const isToday = fromDate === todayStr && toDate === todayStr;
+  const isMonth = fromDate === startOfMonthStr && toDate === todayStr;
+  const isReset = !fromDate && !toDate && !supplierId && !invoiceNo && !paymentMode && !quickSearch;
 
   return (
     <div className="absolute inset-0 bg-[#F8FAFC] flex flex-col font-sans overflow-hidden z-10 p-4">
@@ -107,14 +114,14 @@ const PurchaseReport = () => {
           </div>
 
           <div>
-            <label className="flex items-center gap-1 text-[12px] text-[#3B82F6] mb-1 font-bold"><FileDigit size={12} /> Entry / Invoice No</label>
+            <label className="flex items-center gap-1 text-[12px] text-[#3B82F6] mb-1 font-bold"><FileDigit size={12} /> Entry / Supp. Inv. No</label>
             <div className="relative">
               <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
               <input 
                 type="text" 
                 value={invoiceNo}
                 onChange={(e) => setInvoiceNo(e.target.value)}
-                placeholder="Type or select invoice..."
+                placeholder="Search Entry or Supp Inv No..."
                 className="w-full pl-8 pr-3 py-1.5 border border-[#CBD5E1] rounded outline-none text-[13px] text-[#334155] focus:border-[#3B82F6]"
               />
             </div>
@@ -176,26 +183,25 @@ const PurchaseReport = () => {
               <Search size={14} /> Apply Filter
             </button>
             <button type="button" onClick={() => {
-              setFromDate(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-              setToDate(new Date().toISOString().split('T')[0]);
+              setFromDate('');
+              setToDate('');
               setSupplierId('');
               setInvoiceNo('');
               setPaymentMode('');
               setQuickSearch('');
-            }} className="text-[#64748B] hover:text-[#334155] flex items-center gap-1 text-[13px] font-bold transition-colors">
+            }} className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-bold transition-colors shadow-sm border ${!isReset ? 'bg-white text-red-600 border-red-200 hover:bg-red-50' : 'bg-white text-[#1F2937] border-gray-200 hover:bg-gray-50'}`}>
               <RotateCcw size={14} /> Reset Filters
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
             <button type="button" onClick={() => {
-              const today = new Date().toISOString().split('T')[0];
-              setFromDate(today);
-              setToDate(today);
-            }} className="text-[#3B82F6] hover:bg-[#EFF6FF] px-3 py-1 rounded text-[12px] font-bold transition-colors">Today</button>
+              setFromDate(todayStr);
+              setToDate(todayStr);
+            }} className={`px-3 py-1.5 rounded-md text-[12px] font-bold transition-colors shadow-sm border ${isToday ? 'bg-[#3B82F6] text-white border-[#2563EB]' : 'bg-[#EFF6FF] text-[#3B82F6] border-[#BFDBFE] hover:bg-[#DBEAFE]'}`}>Today</button>
             <button type="button" onClick={() => {
-              setFromDate(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-              setToDate(new Date().toISOString().split('T')[0]);
-            }} className="text-[#3B82F6] hover:bg-[#EFF6FF] px-3 py-1 rounded text-[12px] font-bold transition-colors">This Month</button>
+              setFromDate(startOfMonthStr);
+              setToDate(todayStr);
+            }} className={`px-3 py-1.5 rounded-md text-[12px] font-bold transition-colors shadow-sm border ${isMonth ? 'bg-[#3B82F6] text-white border-[#2563EB]' : 'bg-[#EFF6FF] text-[#3B82F6] border-[#BFDBFE] hover:bg-[#DBEAFE]'}`}>This Month</button>
           </div>
         </div>
       </div>
@@ -219,7 +225,19 @@ const PurchaseReport = () => {
               />
             </div>
             <button type="button" 
-              onClick={() => exportToExcel(purchases, `Purchase_Report_${fromDate}_to_${toDate}`)}
+              onClick={() => {
+                const exportData = purchases.map((p: any) => ({
+                  'Entry No': p.entryNo,
+                  'Supplier Invoice No': p.invoiceNo,
+                  'Date': p.date,
+                  'Supplier Name': p.supplierName,
+                  'Payment Mode': p.mode,
+                  'Total Amount': p.totalAmount,
+                  'Tax Amount': p.taxAmount,
+                  'Net Amount': p.netAmount
+                }));
+                exportToExcel(exportData, `Purchase_Report_${fromDate}_to_${toDate}`);
+              }}
               className="bg-[#10B981] hover:bg-[#059669] text-white px-3 py-1.5 rounded flex items-center gap-1.5 text-[12px] font-bold transition-colors"
             >
               <Download size={14} /> Export Excel
@@ -238,7 +256,7 @@ const PurchaseReport = () => {
             <thead>
               <tr className="bg-[#0F172A] text-white font-bold">
                 <th className="px-4 py-3 border-r border-[#1E293B]">Entry No</th>
-                <th className="px-4 py-3 border-r border-[#1E293B]">Invoice No</th>
+                <th className="px-4 py-3 border-r border-[#1E293B]">Supp. Inv. No.</th>
                 <th className="px-4 py-3 border-r border-[#1E293B]">Date</th>
                 <th className="px-4 py-3 border-r border-[#1E293B]">Supplier Name</th>
                 <th className="px-4 py-3 border-r border-[#1E293B]">Mode</th>
@@ -256,8 +274,8 @@ const PurchaseReport = () => {
               ) : (
                 paginatedPurchases.map((p: any, index: number) => (
                   <tr key={p.id} className={`border-b border-[#E2E8F0] ${index % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'} hover:bg-[#EFF6FF]`}>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-[#1E293B]">{p.entryNo}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#64748B]">{p.invoiceNo}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#64748B]">{p.entryNo}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-[#1E293B]">{p.invoiceNo}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#475569]">{p.date}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#334155]">{p.supplierName}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0]">

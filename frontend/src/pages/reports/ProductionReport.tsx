@@ -11,8 +11,8 @@ import Select from 'react-select';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 const ProductionReport = () => {
   const navigate = useNavigate();
-  const [fromDate, setFromDate] = useState(() => new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]); 
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState(''); 
   const [workName, setWorkName] = useState('');
   const [quickSearch, setQuickSearch] = useState('');
   const [viewId, setViewId] = useState<number | null>(null);

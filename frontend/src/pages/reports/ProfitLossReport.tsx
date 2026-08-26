@@ -9,8 +9,8 @@ import ReportTabs from '../../components/ReportTabs';
 
 const ProfitLossReport = () => {
   const { formatCurrency } = useSettings();
-  const [fromDate, setFromDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [toDate, setToDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [activePreset, setActivePreset] = useState<string>('month');
 
   const { data: pnl, isLoading, refetch } = useQuery({
