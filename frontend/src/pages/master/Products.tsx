@@ -324,7 +324,7 @@ const Products = () => {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-bold text-[#16A34A] mb-1">Wholesale Rate *</label>
+              <label className="block text-[12px] font-bold text-[#16A34A] mb-1">Wholesale Rate</label>
               <input 
                 {...register('wholesaleRate')}
                 type="number" 
@@ -333,7 +333,7 @@ const Products = () => {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-bold text-[#3B82F6] mb-1">Sale Rate (Retail) *</label>
+              <label className="block text-[12px] font-bold text-[#3B82F6] mb-1">Sale Rate (Retail)</label>
               <input 
                 {...register('sellingRate')}
                 type="number" 

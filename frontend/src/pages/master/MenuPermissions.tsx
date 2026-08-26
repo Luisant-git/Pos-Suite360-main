@@ -20,6 +20,7 @@ const MODULES = [
       { id: 'master_payment_modes', name: 'Payment Modes' },
       { id: 'master_payment_types', name: 'Payment Types' },
       { id: 'master_expense_categories', name: 'Expense Categories' },
+      { id: 'master_store_settings', name: 'My Account & Store Settings' },
     ]
   },
   {
