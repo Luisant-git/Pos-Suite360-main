@@ -158,7 +158,7 @@ const MainLayout = () => {
         // If we are not on the dashboard/home, navigate back
         const path = window.location.pathname;
         const isDataEntryPath = 
-          ['/purchase/new', '/sales/pos', '/purchase/return', '/sales/return', '/production', '/raw-materials/purchase'].includes(path) ||
+          ['/purchase/new', '/sales/pos', '/sales/estimation', '/purchase/return', '/sales/return', '/production', '/raw-materials/purchase'].includes(path) ||
           path.startsWith('/master') ||
           path.startsWith('/expenses') ||
           path.startsWith('/raw-materials/master');
@@ -240,6 +240,7 @@ const MainLayout = () => {
 
             <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
               <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />
+              <MobileDropdownItem to="/sales/estimation" icon="fa-file-invoice" title="Estimation" />
               <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />
               <MobileDropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />
             </MobileNavDropdown>
@@ -291,7 +292,7 @@ const MainLayout = () => {
                 onClick={() => {
                   const currentPath = location.pathname;
                   const isDataEntryPath = 
-                    ['/purchase/new', '/sales/pos', '/purchase/return', '/sales/return', '/production', '/raw-materials/purchase'].includes(currentPath) ||
+                    ['/purchase/new', '/sales/pos', '/sales/estimation', '/purchase/return', '/sales/return', '/production', '/raw-materials/purchase'].includes(currentPath) ||
                     currentPath.startsWith('/master') ||
                     currentPath.startsWith('/expenses') ||
                     currentPath.startsWith('/raw-materials/master');
@@ -317,7 +318,7 @@ const MainLayout = () => {
               <NavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Inventory</div>
                 {hasPerm('master_products') && <DropdownItem to="/master/products" icon="fa-cubes" title="Products" />}
-                {hasPerm('mfg_product_master') && <DropdownItem to="/production/products" icon="fa-industry" title="Products" />}
+                {hasPerm('mfg_product_master') && <DropdownItem to="/production/products" icon="fa-industry" title="Product (Mfg)" />}
                 {hasPerm('master_brands') && <DropdownItem to="/master/brands" icon="fa-tags" title="Brands" />}
                 {hasPerm('master_categories') && <DropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" />}
                 {hasPerm('master_units') && <DropdownItem to="/master/units" icon="fa-balance-scale" title="Units" />}
@@ -358,6 +359,7 @@ const MainLayout = () => {
               {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
               <NavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
                 {hasPerm('sales_pos') && <DropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />}
+                {hasPerm('sales_pos') && <DropdownItem to="/sales/estimation" icon="fa-file-invoice" title="Estimation" />}
                 {hasPerm('sales_return') && <DropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />}
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 {hasPerm('sales_receipts') && <DropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />}
@@ -368,11 +370,11 @@ const MainLayout = () => {
 
               {hasAnyPerm(['reports_sales', 'reports_purchase', 'reports_manufacturing', 'reports_financial']) && (
               <NavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive}>
-                <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sales & Purchase</div>
-                {hasPerm('reports_sales') && <DropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
-                {hasPerm('reports_sales') && <DropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
+                <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Purchase & Sales</div>
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
+                {hasPerm('reports_sales') && <DropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
+                {hasPerm('reports_sales') && <DropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
                 
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Manufacturing</div>
@@ -433,12 +435,14 @@ const MainLayout = () => {
                   <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mt-1">Administrator</p>
                 </div>
                 <div className="py-2 px-2">
-                  <Link to="/settings" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-bold">
-                    <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-gray-500">
-                      <SettingsIcon size={16} />
-                    </div>
-                    Settings
-                  </Link>
+                  {hasPerm('master_store_settings') && (
+                    <Link to="/settings" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors font-bold">
+                      <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-gray-500">
+                        <SettingsIcon size={16} />
+                      </div>
+                      Settings
+                    </Link>
+                  )}
                   {hasPerm('master_users') && (
                   <Link to="/master/users" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-colors font-bold mt-1">
                     <div className="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-600">
@@ -507,7 +511,7 @@ const MainLayout = () => {
                 {hasPerm('master_users') && <MobileDropdownItem to="/master/users" icon="fa-user-circle" title="Users & Roles" onClick={closeMobileMenu} />}
                 {hasPerm('master_permissions') && <MobileDropdownItem to="/master/permissions" icon="fa-shield" title="Menu Permissions" onClick={closeMobileMenu} />}
                 {hasPerm('master_products') && <MobileDropdownItem to="/master/products" icon="fa-cubes" title="Products" onClick={closeMobileMenu} />}
-                {hasPerm('mfg_product_master') && <MobileDropdownItem to="/production/products" icon="fa-industry" title="Products" onClick={closeMobileMenu} />}
+                {hasPerm('mfg_product_master') && <MobileDropdownItem to="/production/products" icon="fa-industry" title="Product (Mfg)" onClick={closeMobileMenu} />}
                 {hasPerm('master_brands') && <MobileDropdownItem to="/master/brands" icon="fa-tags" title="Brands" onClick={closeMobileMenu} />}
                 {hasPerm('master_categories') && <MobileDropdownItem to="/master/categories" icon="fa-sitemap" title="Categories" onClick={closeMobileMenu} />}
                 {hasPerm('master_units') && <MobileDropdownItem to="/master/units" icon="fa-balance-scale" title="Units" onClick={closeMobileMenu} />}
@@ -540,6 +544,7 @@ const MainLayout = () => {
               {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
               <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
                 {hasPerm('sales_pos') && <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" onClick={closeMobileMenu} />}
+                {hasPerm('sales_pos') && <MobileDropdownItem to="/sales/estimation" icon="fa-file-invoice" title="Estimation" onClick={closeMobileMenu} />}
                 {hasPerm('sales_return') && <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger onClick={closeMobileMenu} />}
                 {hasPerm('sales_receipts') && <MobileDropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" onClick={closeMobileMenu} />}
               </MobileNavDropdown>
