@@ -45,6 +45,9 @@ export default function ViewPurchaseModal({ purchaseId, onClose }: Props) {
             <div className="text-right">
               <p className="text-[12px] text-gray-500 uppercase tracking-wider font-bold mb-1">Invoice Info</p>
               <p className="font-bold text-[#333] text-[14px]">Date: <span className="font-normal">{new Date(purchase.date).toLocaleDateString()}</span></p>
+              {purchase.supplierInvoiceNo && (
+                <p className="font-bold text-[#333] text-[14px] mt-1">Supp. Inv. No: <span className="font-normal">{purchase.supplierInvoiceNo}</span></p>
+              )}
               <p className="text-[12px] text-gray-500 uppercase tracking-wider font-bold mt-3 mb-1">Payment</p>
               <p className="font-bold text-[#10B981] text-[14px] bg-[#D1FAE5] inline-block px-2 py-0.5 rounded">{purchase.paymentMode?.name}</p>
             </div>

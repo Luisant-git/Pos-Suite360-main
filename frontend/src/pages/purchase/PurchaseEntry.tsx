@@ -866,7 +866,7 @@ const PurchaseEntry = () => {
             <div className="p-6 text-center">
               <div className="bg-blue-50 text-blue-800 p-4 rounded-lg mb-6 shadow-sm border border-blue-100">
                 <p className="font-bold text-[15px]">Net Amount: {formatCurrency(pendingSavePayload?.grandTotal || 0)}</p>
-                <p className="text-[13px] mt-1 text-blue-600">Entry No: {pendingSavePayload?.invoiceNo}</p>
+                <p className="text-[13px] mt-1 text-blue-600">Supplier Invoice No: {pendingSavePayload?.supplierInvoiceNo}</p>
               </div>
               <p className="text-[#334155] font-medium mb-2">How would you like to proceed?</p>
             </div>

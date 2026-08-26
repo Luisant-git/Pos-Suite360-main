@@ -101,7 +101,8 @@ const PurchaseList = () => {
             <thead>
               <tr className="bg-[#2A2A2A] text-white font-bold">
                 <th className="px-3 py-2.5 border-r border-[#444] relative">Date</th>
-                <th className="px-3 py-2.5 border-r border-[#444] relative">Invoice No</th>
+                <th className="px-3 py-2.5 border-r border-[#444] relative">Entry No</th>
+                <th className="px-3 py-2.5 border-r border-[#444] relative">Supp. Inv. No.</th>
                 <th className="px-3 py-2.5 border-r border-[#444] relative">Supplier</th>
                 <th className="px-3 py-2.5 border-r border-[#444] relative text-right">Total Amount (₹)</th>
                 <th className="px-3 py-2.5 border-r border-[#444] relative text-center">Payment Mode</th>
@@ -121,7 +122,8 @@ const PurchaseList = () => {
                 paginatedPurchases.map((purchase: any, index: number) => (
                   <tr key={purchase.id} className={`border-b border-[#E5E7EB] ${index % 2 === 0 ? 'bg-[#F9F9F9]' : 'bg-white'} hover:bg-blue-50`}>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-medium">{purchase.date ? new Date(purchase.date).toISOString().split('T')[0] : '-'}</td>
-                    <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#3B82F6] font-bold cursor-pointer hover:underline">{purchase.invoiceNo}</td>
+                    <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#64748B] font-medium">{purchase.invoiceNo}</td>
+                    <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#3B82F6] font-bold cursor-pointer hover:underline">{purchase.supplierInvoiceNo || '-'}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-medium">{purchase.supplier?.name || 'Unknown Supplier'}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-bold text-right">{formatCurrency(purchase.grandTotal)}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-center">
