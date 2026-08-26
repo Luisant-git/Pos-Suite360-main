@@ -870,9 +870,9 @@ const POS = () => {
           
           <div className="p-3 sm:p-4 bg-white border-b border-[#E5E7EB]">
             {activeTab === 'Amount Details' && (
-              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center md:justify-start gap-4 md:gap-6">
                 
-                <div className="w-full md:flex-1 flex flex-col gap-1">
+                <div className="w-full md:w-56 flex flex-col gap-1">
                   <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Total Quantity:</label>
                   <input
                     value={watch('items').reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)}
@@ -881,17 +881,7 @@ const POS = () => {
                   />
                 </div>
 
-                <div className="w-full md:flex-1 flex flex-col gap-1">
-                  <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Gross Amount:</label>
-                  <input
-                    {...register('grossAmount')}
-                    type="number"
-                    readOnly
-                    className="w-full px-3 py-2 border-2 border-[#D1D5DB] bg-[#F3F4F6] rounded text-[18px] outline-none text-right font-bold text-gray-800"
-                  />
-                </div>
-
-                <div className="w-full md:flex-1 flex flex-col gap-1">
+                <div className="w-full md:w-56 flex flex-col gap-1">
                   <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Total Discount:</label>
                   <div className="flex gap-2 w-full">
                     <div className="relative w-1/2">
@@ -934,7 +924,27 @@ const POS = () => {
                   </div>
                 </div>
 
-                <div className="w-full md:flex-1 flex flex-col gap-1">
+                <div className="w-full md:w-56 flex flex-col gap-1">
+                  <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Gross Amount:</label>
+                  <input
+                    {...register('grossAmount')}
+                    type="number"
+                    readOnly
+                    className="w-full px-3 py-2 border-2 border-[#D1D5DB] bg-[#F3F4F6] rounded text-[18px] outline-none text-right font-bold text-gray-800"
+                  />
+                </div>
+
+                <div className="w-full md:w-56 flex flex-col gap-1">
+                  <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Total Tax:</label>
+                  <input
+                    {...register('tax')}
+                    type="number"
+                    readOnly
+                    className="w-full px-3 py-2 border-2 border-[#D1D5DB] bg-[#F3F4F6] rounded text-[18px] outline-none text-right font-bold text-gray-800"
+                  />
+                </div>
+
+                <div className="w-full md:w-72 flex flex-col gap-1 ml-auto">
                   <label className="text-[14px] font-black text-[#1E3A8A] uppercase">NET AMOUNT:</label>
                   <input
                     {...register('netAmount')}
