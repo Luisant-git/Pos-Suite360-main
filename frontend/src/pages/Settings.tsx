@@ -427,6 +427,8 @@ const Settings = () => {
             </div>
           </div>
           
+          {/* Password Management temporarily disabled as requested */}
+          {/*
           <form onSubmit={handleSubmitPassword(onPasswordSubmit as any)} className="bg-white border border-[#E2E8F0] shadow-sm rounded-lg overflow-hidden">
             <div className="bg-[#1E293B] text-white px-3 py-2 flex items-center gap-2 text-[14px] font-bold">
               <span className="text-[#38BDF8]"><Shield size={16} /></span>
@@ -482,6 +484,7 @@ const Settings = () => {
               </button>
             </div>
           </form>
+          */}
 
           <div className="bg-white border border-[#E2E8F0] shadow-sm rounded-lg p-5">
             <h2 className="text-[14px] font-bold text-[#E11D48] flex items-center gap-2 mb-4">
