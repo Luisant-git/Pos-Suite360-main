@@ -44,8 +44,21 @@ export class SettingsController {
     };
   }
 
+  @Post('verify-dev-password')
+  async verifyDevPassword(@Body('password') password: string) {
+    const devPassword = process.env.DEV_PASSWORD || 'developer123';
+    if (password !== devPassword) {
+      throw new BadRequestException('Invalid Developer Password');
+    }
+    return { success: true };
+  }
+
   @Post('reset-database')
-  async resetDatabase() {
-    return this.settingsService.resetDatabase();
+  async resetDatabase(@Body() data: { type: string; password?: string }) {
+    const devPassword = process.env.DEV_PASSWORD || 'developer123';
+    if (data.password !== devPassword) {
+      throw new BadRequestException('Invalid Developer Password');
+    }
+    return this.settingsService.resetDatabase(data.type);
   }
 }
