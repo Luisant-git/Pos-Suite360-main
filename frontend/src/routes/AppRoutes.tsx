@@ -30,6 +30,7 @@ import PurchaseReturn from '../pages/purchase/PurchaseReturn';
 // Sales
 import SalesList from '../pages/sales/SalesList';
 import POS from '../pages/sales/POS';
+import Estimation from '../pages/sales/Estimation';
 import SalesHistory from '../pages/sales/SalesHistory';
 import SalesView from '../pages/sales/SalesView';
 import CustomerReceipts from '../pages/sales/CustomerReceipts';
@@ -105,6 +106,7 @@ const AppRoutes = () => {
         {/* Sales Routes */}
         <Route element={<ProtectedRoute requiredPerms={['sales_pos', 'sales_return', 'sales_receipts']} />}><Route path="/sales" element={<SalesList />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="sales_pos" />}><Route path="/sales/pos" element={<POS />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="sales_pos" />}><Route path="/sales/estimation" element={<Estimation />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="sales_receipts" />}><Route path="/sales/receipts" element={<CustomerReceipts />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="sales_return" />}><Route path="/sales/return" element={<SalesReturn />} /></Route>
         <Route element={<ProtectedRoute requiredPerms={['sales_pos', 'sales_return', 'sales_receipts']} />}><Route path="/sales/history" element={<SalesHistory />} /></Route>
@@ -140,7 +142,7 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute requiredPerms="mfg_product_master" />}><Route path="/production/products" element={<ManufacturingProducts />} /></Route>
 
         {/* Settings */}
-        <Route path="/settings" element={<Settings />} />
+        <Route element={<ProtectedRoute requiredPerms="master_store_settings" />}><Route path="/settings" element={<Settings />} /></Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
