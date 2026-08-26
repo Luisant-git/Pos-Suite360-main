@@ -73,7 +73,8 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
       </Route>
       
-      <Route element={<MainLayout />}>
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/quick-start" element={<QuickStart />} />
@@ -140,8 +141,8 @@ const AppRoutes = () => {
 
         {/* Settings */}
         <Route path="/settings" element={<Settings />} />
+        </Route>
       </Route>
-      
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

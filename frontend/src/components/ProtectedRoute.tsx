@@ -30,7 +30,9 @@ const ProtectedRoute = ({ requiredPerms }: ProtectedRouteProps) => {
     return perms.some(p => permissions.includes(p));
   };
 
-  if (!user) {
+  const token = localStorage.getItem('token');
+
+  if (!user || !token) {
     return <Navigate to="/login" replace />;
   }
 
