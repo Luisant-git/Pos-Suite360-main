@@ -32,6 +32,7 @@ import { RolesModule } from './roles/roles.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
+import { EstimationsModule } from './estimations/estimations.module';
 
 @Module({
   imports: [
@@ -69,7 +70,8 @@ import { join } from 'path';
     ProductionModule,
     RawMaterialPurchasesModule,
     RawMaterialsModule,
-    RolesModule
+    RolesModule,
+    EstimationsModule
   ],
   controllers: [AppController],
   providers: [AppService],
