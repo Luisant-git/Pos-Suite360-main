@@ -26,8 +26,9 @@ const productSchema = z.object({
   taxPercent: z.coerce.number().min(0).default(0),  // GST %
   minStock: z.coerce.number().min(0).default(0),    // Min Qty (Alert)
   reorderLevel: z.coerce.number().min(0).default(0),
-  sqM: z.coerce.number().min(0).optional(),
-  noOfLabels: z.coerce.number().min(0).optional(),
+  sqM: z.coerce.number({ invalid_type_error: 'Required' }).min(0.001, 'Required'),
+  noOfLabels: z.coerce.number({ invalid_type_error: 'Required' }).min(1, 'Required'),
+  noOfUps: z.coerce.number({ invalid_type_error: 'Required' }).min(1, 'Required'),
   rawMaterials: z.array(z.number()).optional(),
 });
 
@@ -64,6 +65,7 @@ const Products = () => {
       reorderLevel: '' as any,
       sqM: '' as any,
       noOfLabels: '' as any,
+      noOfUps: '' as any,
       rawMaterials: [],
     }
   });
@@ -186,14 +188,24 @@ const Products = () => {
     setValue('supplierId', product.supplierId ? product.supplierId.toString() : '');
     setValue('currentStock', Number(product.currentStock));
     setValue('purchaseRate', Number(product.purchaseRate));
+    setEditingId(product.id);
+    setValue('code', product.code);
+    setValue('name', product.name);
+    setValue('categoryId', product.categoryId ? product.categoryId.toString() : '');
+    setValue('brandId', product.brandId ? product.brandId.toString() : '');
+    setValue('unitId', product.unitId ? product.unitId.toString() : '');
+    setValue('supplierId', product.supplierId ? product.supplierId.toString() : '');
+    setValue('currentStock', Number(product.currentStock));
+    setValue('purchaseRate', Number(product.purchaseRate));
     setValue('wholesaleRate', Number(product.wholesaleRate));
     setValue('sellingRate', Number(product.sellingRate));
     setValue('taxPercent', Number(product.taxPercent || 0));
     setValue('minStock', Number(product.minStock));
     setValue('reorderLevel', Number(product.reorderLevel));
-    setValue('sqM', product.sqM ? Number(product.sqM) : ('' as any));
-    setValue('noOfLabels', product.noOfLabels ? Number(product.noOfLabels) : ('' as any));
-    setValue('rawMaterials', product.rawMaterials ? product.rawMaterials.map((rm: any) => rm.rawMaterialId) : []);
+    setValue('sqM', product.sqM || ('' as any));
+    setValue('noOfLabels', product.noOfLabels || ('' as any));
+    setValue('noOfUps', product.noOfUps || ('' as any));
+    setValue('rawMaterials', product.rawMaterials?.map((rm: any) => rm.rawMaterialId) || []);
   };
 
   useEffect(() => {
@@ -277,6 +289,16 @@ const Products = () => {
                 className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
               />
               {errors.sqM && <span className="text-red-500 text-xs mt-1 block">{errors.sqM.message}</span>}
+            </div>
+            <div>
+              <label className="block text-[12px] font-bold text-[#1F2937] mb-1">No of UPS *</label>
+              <input 
+                {...register('noOfUps')}
+                type="number"
+                placeholder="0"
+                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
+              />
+              {errors.noOfUps && <span className="text-red-500 text-xs mt-1 block">{errors.noOfUps.message}</span>}
             </div>
             <div>
               <label className="block text-[12px] font-bold text-[#1F2937] mb-1">No of Labels *</label>
