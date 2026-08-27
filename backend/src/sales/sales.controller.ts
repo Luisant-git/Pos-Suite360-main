@@ -10,7 +10,7 @@ export class SalesController {
 
   @Post()
   create(@Body() createSaleDto: CreateSaleDto, @Request() req: any) {
-    const userId = req.user?.userId || 1;
+    const userId = (req.user?.userId && req.user.userId > 0) ? req.user.userId : 1;
     return this.salesService.create(createSaleDto, userId);
   }
 

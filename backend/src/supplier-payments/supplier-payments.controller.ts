@@ -25,7 +25,7 @@ export class SupplierPaymentsController {
   @Post()
   async create(@Body() createSupplierPaymentDto: any, @Request() req: any) {
     // req.user from JwtAuthGuard contains the user payload
-    const userId = req.user?.userId || 1; // fallback if needed
+    const userId = (req.user?.userId && req.user.userId > 0) ? req.user.userId : 1; // fallback if needed
     return this.supplierPaymentsService.create(createSupplierPaymentDto, userId);
   }
 

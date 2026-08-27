@@ -58,14 +58,15 @@ export class SupplierPaymentsService {
     }
 
     const creditMode = await this.prisma.paymentMode.findFirst({
-      where: { name: { equals: 'credit', mode: 'insensitive' } }
+      where: { name: { equals: 'Credit', mode: 'insensitive' } }
     });
+    const creditModeId = creditMode?.id || -1;
 
     // Sum of all CREDIT purchases
     const purchases = await this.prisma.purchase.aggregate({
       where: { 
         supplierId,
-        paymentModeId: creditMode?.id || -1
+        paymentModeId: creditModeId
       },
       _sum: { grandTotal: true },
     });
@@ -173,13 +174,14 @@ export class SupplierPaymentsService {
     }
 
     const creditMode = await this.prisma.paymentMode.findFirst({
-      where: { name: { equals: 'credit', mode: 'insensitive' } }
+      where: { name: { equals: 'Credit', mode: 'insensitive' } }
     });
+    const creditModeId = creditMode?.id || -1;
 
     const purchases = await this.prisma.purchase.findMany({
       where: { 
         supplierId,
-        paymentModeId: creditMode?.id || -1
+        paymentModeId: creditModeId
       },
       orderBy: { date: 'asc' },
     });

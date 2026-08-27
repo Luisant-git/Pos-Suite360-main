@@ -57,14 +57,15 @@ export class CustomerReceiptsService {
     }
 
     const creditMode = await this.prisma.paymentMode.findFirst({
-      where: { name: { equals: 'credit', mode: 'insensitive' } }
+      where: { name: { equals: 'Credit', mode: 'insensitive' } }
     });
+    const creditModeId = creditMode?.id || -1;
 
     // Sum of all CREDIT sales
     const sales = await this.prisma.sale.aggregate({
       where: { 
         customerId,
-        paymentModeId: creditMode?.id || -1
+        paymentModeId: creditModeId
       },
       _sum: { grandTotal: true },
     });
@@ -172,13 +173,14 @@ export class CustomerReceiptsService {
     }
 
     const creditMode = await this.prisma.paymentMode.findFirst({
-      where: { name: { equals: 'credit', mode: 'insensitive' } }
+      where: { name: { equals: 'Credit', mode: 'insensitive' } }
     });
+    const creditModeId = creditMode?.id || -1;
 
     const sales = await this.prisma.sale.findMany({
       where: { 
         customerId,
-        paymentModeId: creditMode?.id || -1
+        paymentModeId: creditModeId
       },
       orderBy: { date: 'asc' },
     });
