@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Eye, Printer, Trash2, ArrowRightLeft } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Plus, Eye, Printer, ArrowRightLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InvoicePrintModal from '../../components/InvoicePrintModal';
 import { useSettings } from '../../contexts/SettingsContext';
 import PaginationControls from '../../components/PaginationControls';
-import toast from 'react-hot-toast';
 import ViewEstimationModal from './ViewEstimationModal';
 
 const EstimationList = () => {
   const { formatCurrency } = useSettings();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstimation, setSelectedEstimation] = useState<any>(null);
@@ -26,15 +24,6 @@ const EstimationList = () => {
       const { data } = await api.get('/estimations');
       return data;
     },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/estimations/${id}`),
-    onSuccess: () => {
-      toast.success('Estimation deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['estimations'] });
-    },
-    onError: () => toast.error('Failed to delete estimation')
   });
 
   // Pagination & Filtering Logic

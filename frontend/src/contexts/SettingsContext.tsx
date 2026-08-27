@@ -14,6 +14,8 @@ interface Settings {
   invoiceTitle?: string;
   invoiceHeader?: string;
   invoiceNotes?: string;
+  estimationNotes?: string;
+  gstin?: string;
   signatureImage?: string;
   enableTax: boolean;
   taxType: string;

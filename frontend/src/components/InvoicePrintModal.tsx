@@ -79,11 +79,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const customerName = sale?.customer?.name || 'CASH A/C';
   const items = sale?.items || [];
   const grandTotal = sale?.grandTotal || 0;
-  const currency = settings?.currencySymbol || '₹';
-
-  const handlePrint = () => {
-    window.print();
-  };
+  const currency = settings?.currencySymbol || 'RM';
 
   const handleWhatsApp = () => {
     let text = `*${settings?.shopName || 'INVOICE'}*\n`;

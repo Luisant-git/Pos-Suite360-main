@@ -26,9 +26,9 @@ const productSchema = z.object({
   taxPercent: z.coerce.number().min(0).default(0),  // GST %
   minStock: z.coerce.number().min(0).default(0),    // Min Qty (Alert)
   reorderLevel: z.coerce.number().min(0).default(0),
-  sqM: z.coerce.number({ invalid_type_error: 'Required' }).min(0.001, 'Required'),
-  noOfLabels: z.coerce.number({ invalid_type_error: 'Required' }).min(1, 'Required'),
-  noOfUps: z.coerce.number({ invalid_type_error: 'Required' }).min(1, 'Required'),
+  sqM: z.coerce.number({ message: 'Required' }).min(0.001, 'Required'),
+  noOfLabels: z.coerce.number({ message: 'Required' }).min(1, 'Required'),
+  noOfUps: z.coerce.number({ message: 'Required' }).min(1, 'Required'),
   rawMaterials: z.array(z.number()).optional(),
 });
 

@@ -319,7 +319,7 @@ const Estimation = () => {
     }
   });
 
-  const onSubmit = (data: SaleFormValues) => {
+  const onSubmit = (data: any) => {
     if (!data.customerId) {
       toast.error('Please select a Customer before saving.');
       return;
@@ -329,7 +329,7 @@ const Estimation = () => {
       return;
     }
     
-    const validItems = data.items.filter(item => item.productId > 0);
+    const validItems = data.items.filter((item: any) => item.productId > 0);
     if (validItems.length === 0) {
       toast.error('Please add at least one product before saving.');
       return;
@@ -342,7 +342,7 @@ const Estimation = () => {
       subtotal: Number(data.grossAmount),
       discount: Number(data.totalDiscount),
       grandTotal: Number(data.netAmount),
-      items: validItems.map(item => ({
+      items: validItems.map((item: any) => ({
         productId: Number(item.productId),
         quantity: Number(item.quantity),
         rate: Number(item.rate),
@@ -351,7 +351,7 @@ const Estimation = () => {
       }))
     };
 
-    const hasLowRate = validItems.some(item => {
+    const hasLowRate = validItems.some((item: any) => {
       const p = products.find((prod: any) => prod.id === Number(item.productId));
       return p && Number(item.rate) > 0 && Number(item.rate) <= Number(p.purchaseRate);
     });
