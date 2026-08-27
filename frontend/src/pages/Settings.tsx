@@ -16,6 +16,7 @@ const storeSettingsSchema = z.object({
   state: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  gstin: z.string().optional(),
   currencySymbol: z.string().min(1, 'Currency symbol is required'),
   currencyPosition: z.string(),
   invoicePrefix: z.string().min(1, 'Prefix is required'),
@@ -72,6 +73,7 @@ const Settings = () => {
         state: settings.state || '',
         phone: settings.phone || '',
         email: settings.email || '',
+        gstin: settings.gstin || '',
         currencySymbol: settings.currencySymbol || 'RM',
         currencyPosition: settings.currencyPosition || 'before',
         invoicePrefix: settings.invoicePrefix || 'INV-',
@@ -248,6 +250,14 @@ const Settings = () => {
                   <input
                     {...registerStore('email')}
                     className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-bold text-[#334155] mb-1">GSTIN / Tax ID</label>
+                  <input
+                    {...registerStore('gstin')}
+                    className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
+                    placeholder="E.g., 33ABCDE1234F1Z5"
                   />
                 </div>
               </div>
