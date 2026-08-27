@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X, Printer, Loader2 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
@@ -33,9 +34,10 @@ interface InvoicePrintModalProps {
   sale: any;
   hiddenRenderer?: boolean;
   isEstimation?: boolean;
+  autoPrint?: boolean;
 }
 
-const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer = false, isEstimation = false }: InvoicePrintModalProps) => {
+const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer = false, isEstimation = false, autoPrint = false }: InvoicePrintModalProps) => {
   const { settings } = useSettings();
 
   // Always fetch full sale data to ensure unit, paymentMode, customer are fully populated
@@ -48,6 +50,16 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   });
 
   const sale = fullSale || initialSale;
+
+  useEffect(() => {
+    if (autoPrint && !isLoading && sale) {
+      const timer = setTimeout(() => {
+        window.print();
+        onClose();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint, isLoading, sale, onClose]);
 
   if (!isOpen) return null;
 
@@ -277,19 +289,21 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 print:absolute print:inset-0 print:block print:bg-transparent print:m-0 print:p-0">
-      <div className="bg-white w-full max-w-[210mm] max-h-[95vh] h-full flex flex-col rounded-md shadow-2xl relative print:w-full print:max-w-none print:shadow-none print:h-auto print:min-h-0">
+    <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 print:absolute print:inset-0 print:block print:bg-transparent print:m-0 print:p-0 ${autoPrint ? 'opacity-0 pointer-events-none print:opacity-100' : 'bg-black/60'}`}>
+      <div className={`bg-white w-full max-w-[210mm] max-h-[95vh] h-full flex flex-col rounded-md relative print:w-full print:max-w-none print:shadow-none print:h-auto print:min-h-0 ${!autoPrint && 'shadow-2xl'}`}>
         
         {/* Header - Screen Only */}
-        <div className="flex justify-between items-center bg-[#111827] text-white p-3 rounded-t-md print:hidden shrink-0">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <Printer size={16} />
-            <span>Print {isEstimation ? 'Estimation' : 'Invoice'} - {invoiceNo}</span>
+        {!autoPrint && (
+          <div className="flex justify-between items-center bg-[#111827] text-white p-3 rounded-t-md print:hidden shrink-0">
+            <div className="flex items-center gap-2 font-bold text-sm">
+              <Printer size={16} />
+              <span>Print {isEstimation ? 'Estimation' : 'Invoice'} - {invoiceNo}</span>
+            </div>
+            <button type="button" onClick={onClose} className="hover:text-red-400 transition-colors">
+              <X size={20} />
+            </button>
           </div>
-          <button type="button" onClick={onClose} className="hover:text-red-400 transition-colors">
-            <X size={20} />
-          </button>
-        </div>
+        )}
 
         {/* Printable Area */}
         <div id="printable-invoice" className="flex-1 min-h-0 overflow-auto bg-gray-200 p-8 print:p-0 print:bg-white flex justify-center print:overflow-visible">
@@ -300,34 +314,29 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         </div>
 
         {/* Footer Actions - Screen Only */}
-        <div className="flex justify-between items-center p-4 bg-gray-50 border-t border-gray-200 rounded-b-md print:hidden shrink-0">
-          <button 
-            type="button"
-            onClick={handleWhatsApp}
-            className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2 px-4 rounded transition-colors shadow-sm"
-          >
-            <i className="fa fa-whatsapp text-lg"></i>
-            WhatsApp
-          </button>
-          
-          <div className="flex gap-2">
+        {!autoPrint && (
+          <div className="flex justify-between items-center p-4 bg-gray-50 border-t border-gray-200 rounded-b-md print:hidden shrink-0">
             <button 
               type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-2 bg-[#1E3A8A] hover:bg-[#1E40AF] text-white font-bold py-2 px-4 rounded transition-colors shadow-sm"
+              onClick={handleWhatsApp}
+              className="bg-[#25D366] hover:bg-[#128C7E] text-white px-4 py-2 rounded flex items-center gap-2 font-bold"
             >
-              <Printer size={16} />
-              Print / Save PDF
+              WhatsApp
             </button>
-            <button 
-              type="button"
-              onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors shadow-sm"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                type="button"
+                onClick={() => window.print()}
+                className="bg-[#04325E] hover:bg-[#032341] text-white px-5 py-2 rounded font-bold flex items-center gap-2"
+              >
+                <Printer size={18} /> Print / Save PDF
+              </button>
+              <button onClick={onClose} className="px-4 py-2 bg-gray-500 text-white font-bold hover:bg-gray-600 rounded">
+                Close
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </div>

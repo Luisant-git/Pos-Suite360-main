@@ -1354,6 +1354,7 @@ const POS = () => {
           isOpen={showPrintModal}
           sale={printData}
           isEstimation={false}
+          autoPrint={true}
           onClose={() => {
             setShowPrintModal(false);
             setPrintData(null);
