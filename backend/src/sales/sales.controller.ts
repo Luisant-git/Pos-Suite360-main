@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, Delete, BadRequestException } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -26,6 +26,7 @@ export class SalesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    if (isNaN(+id)) throw new BadRequestException('Invalid ID');
     return this.salesService.findOne(+id);
   }
 

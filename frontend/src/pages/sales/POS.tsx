@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
+import InvoicePrintModal from '../../components/InvoicePrintModal';
 import Select from 'react-select';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
@@ -71,6 +72,7 @@ const saleItemSchema = z.object({
   discAmt: z.coerce.number().min(0),
   tax: z.coerce.number().optional(),
   total: z.coerce.number(),
+  isEstimationItem: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   if (data.productId > 0) {
     if (data.quantity <= 0) {
@@ -119,6 +121,8 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 const POS = () => {
   const { settings, formatCurrency } = useSettings();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const estimationId = searchParams.get('estimationId');
   const queryClient = useQueryClient();
   
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -130,6 +134,8 @@ const POS = () => {
   
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
   const printAfterSaveRef = useRef(false);
 
@@ -161,12 +167,42 @@ const POS = () => {
   const { data: paymentModes = [] } = useQuery({ queryKey: ['paymentModes'], queryFn: async () => (await api.get('/payment-modes')).data });
   const { data: nextInvoiceData } = useQuery({ queryKey: ['nextInvoiceNo'], queryFn: async () => (await api.get('/sales/next-invoice-no')).data });
 
+  const { data: estimationData } = useQuery({
+    queryKey: ['estimation', estimationId],
+    queryFn: async () => (await api.get(`/estimations/${estimationId}`)).data,
+    enabled: !!estimationId,
+  });
+
   // Update default invoice no
   useEffect(() => {
     if (nextInvoiceData?.invoiceNo) {
       setValue('invoiceNo', nextInvoiceData.invoiceNo);
     }
   }, [nextInvoiceData, setValue]);
+
+  // Pre-fill from estimation
+  useEffect(() => {
+    if (estimationData && estimationData.items) {
+      setValue('customerId', estimationData.customerId);
+      setValue('grossAmount', Number(estimationData.subtotal));
+      setValue('totalDiscount', Number(estimationData.discount));
+      setValue('netAmount', Number(estimationData.grandTotal));
+      
+      const posItems = estimationData.items.map((item: any) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        stock: item.product?.currentStock || 0,
+        rate: Number(item.rate),
+        unit: item.product?.unit?.shortCode || 'Nos',
+        discPercent: 0,
+        discAmt: Number(item.discount),
+        tax: Number(item.tax) || 0,
+        total: Number(item.amount),
+        isEstimationItem: true
+      }));
+      setValue('items', posItems);
+    }
+  }, [estimationData, setValue]);
 
 
   // Watch values
@@ -257,6 +293,8 @@ const POS = () => {
   useEffect(() => {
     const currentItems = getValues('items');
     currentItems.forEach((item, index) => {
+      if (item.isEstimationItem) return; // Preserve original estimation rates
+
       const product = products.find((p: any) => p.id === Number(item.productId));
       if (product) {
         let rate = Number(product.sellingRate) || 0;
@@ -279,20 +317,34 @@ const POS = () => {
 
   const createMutation = useMutation({
     mutationFn: (data: SaleFormValues) => api.post('/sales', data),
-    onSuccess: () => {
+    onSuccess: async (res) => {
       toast.success('Sale recorded successfully!');
+
+      if (estimationId) {
+        try {
+          await api.patch(`/estimations/${estimationId}/status`, { status: 'Converted' });
+        } catch (e) {
+          console.error("Failed to update estimation status", e);
+        }
+      }
       
       // Conditionally print the bill
       setTimeout(async () => {
         if (printAfterSaveRef.current) {
-          window.print();
+          try {
+            const saleRes = await api.get(`/sales/${res.data.id}`);
+            setPrintData(saleRes.data);
+            setShowPrintModal(true);
+          } catch (err) {
+            console.error("Failed to fetch sale for printing", err);
+          }
         }
         reset();
         
         // Manually fetch and inject the new invoice number for the next sale
-        const res = await api.get('/sales/next-invoice-no');
-        if (res.data?.invoiceNo) {
-           setValue('invoiceNo', res.data.invoiceNo);
+        const nextInvoiceRes = await api.get('/sales/next-invoice-no');
+        if (nextInvoiceRes.data?.invoiceNo) {
+           setValue('invoiceNo', nextInvoiceRes.data.invoiceNo);
         }
         
         queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -550,13 +602,6 @@ const POS = () => {
             className="bg-[#10B981] hover:bg-[#059669] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
           >
             <Printer size={16} /> SAVE & PRINT (F10)
-          </button>
-          <button 
-            type="button"
-            onClick={handleWhatsApp}
-            className="bg-[#25D366] hover:bg-[#128C7E] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
-          >
-            <WhatsAppIcon size={16} /> WhatsApp
           </button>
         </div>
         <button 
@@ -1303,6 +1348,18 @@ const POS = () => {
         onClose={() => setIsLeaveModalOpen(false)} 
         onConfirm={() => navigate('/dashboard')} 
       />
+
+      {showPrintModal && printData && (
+        <InvoicePrintModal
+          isOpen={showPrintModal}
+          sale={printData}
+          isEstimation={false}
+          onClose={() => {
+            setShowPrintModal(false);
+            setPrintData(null);
+          }}
+        />
+      )}
 
     </div>
   );
