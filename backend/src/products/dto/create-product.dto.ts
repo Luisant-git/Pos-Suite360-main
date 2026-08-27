@@ -78,6 +78,10 @@ export class CreateProductDto {
   @IsOptional()
   noOfLabels?: number;
 
+  @IsInt()
+  @IsOptional()
+  noOfUps?: number;
+
   @IsArray()
   @IsNumber({}, { each: true })
   @IsOptional()

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -117,6 +117,8 @@ type EstimationFormValues = z.infer<typeof estimationSchema>;
 const Estimation = () => {
   const { settings, formatCurrency } = useSettings();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('editId');
   const queryClient = useQueryClient();
   
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -159,12 +161,43 @@ const Estimation = () => {
   const { data: paymentModes = [] } = useQuery({ queryKey: ['paymentModes'], queryFn: async () => (await api.get('/payment-modes')).data });
   const { data: nextEstimationData } = useQuery({ queryKey: ['nextEstimationNo'], queryFn: async () => (await api.get('/estimations/next-estimation-no')).data });
 
+  const { data: editEstimationData } = useQuery({
+    queryKey: ['estimation', editId],
+    queryFn: async () => (await api.get(`/estimations/${editId}`)).data,
+    enabled: !!editId,
+  });
+
+  // Pre-fill from edit
+  useEffect(() => {
+    if (editEstimationData && editEstimationData.items) {
+      setValue('customerId', editEstimationData.customerId);
+      setValue('estimationNo', editEstimationData.estimationNo);
+      setValue('date', editEstimationData.date ? new Date(editEstimationData.date).toISOString().split('T')[0] : '');
+      setValue('grossAmount', Number(editEstimationData.subtotal));
+      setValue('totalDiscount', Number(editEstimationData.discount));
+      setValue('netAmount', Number(editEstimationData.grandTotal));
+      
+      const posItems = editEstimationData.items.map((item: any) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        stock: item.product?.currentStock || 0,
+        rate: Number(item.rate),
+        unit: item.product?.unit?.shortCode || 'Nos',
+        discPercent: 0,
+        discAmt: Number(item.discount),
+        tax: 0,
+        total: Number(item.amount)
+      }));
+      setValue('items', posItems);
+    }
+  }, [editEstimationData, setValue]);
+
   // Update default estimation no
   useEffect(() => {
-    if (nextEstimationData?.estimationNo) {
+    if (nextEstimationData?.estimationNo && !editId) {
       setValue('estimationNo', nextEstimationData.estimationNo);
     }
-  }, [nextEstimationData, setValue]);
+  }, [nextEstimationData, setValue, editId]);
 
 
   // Watch values
@@ -259,9 +292,9 @@ const Estimation = () => {
   }, [watchRateType, selectedCustomerId, settings?.enableCustomerWiseRate, selectedCustomer]);
 
   const createMutation = useMutation({
-    mutationFn: (data: SaleFormValues) => api.post('/estimations', data),
+    mutationFn: (data: any) => editId ? api.put(`/estimations/${editId}`, data) : api.post('/estimations', data),
     onSuccess: () => {
-      toast.success('Estimation recorded successfully!');
+      toast.success(editId ? 'Estimation updated successfully!' : 'Estimation recorded successfully!');
       
       // Conditionally print the bill
       setTimeout(async () => {
@@ -1125,24 +1158,6 @@ const Estimation = () => {
                   <span className="min-w-[100px] text-right">-{Number(watch('totalDiscount')).toFixed(2)}</span>
                 </div>
               )}
-              </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>SGST :</span>
-                          <span className="min-w-[100px] text-right">{splitTax.toFixed(2)}</span>
-                        </div>
-                      </>
-                    );
-                  } else {
-                    return (
-                      <div className="flex justify-between">
-                        <span>IGST :</span>
-                        <span className="min-w-[100px] text-right">{Number(watch('tax')).toFixed(2)}</span>
-                      </div>
-                    );
-                  }
-                })()
-              )}
               <div className="flex justify-between border-t border-black pt-1 mt-1">
                 <span>TOTAL : RM</span>
                 <span className="border-b-2 border-black border-double min-w-[100px] text-right">{Number(watch('netAmount') || 0).toFixed(2)}</span>
@@ -1248,4 +1263,4 @@ const Estimation = () => {
   );
 };
 
-export default POS;
+export default Estimation;

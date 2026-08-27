@@ -187,4 +187,56 @@ export class EstimationsService {
       });
     });
   }
+  async updateStatus(id: number, status: string) {
+    return this.prisma.estimation.update({
+      where: { id },
+      data: { status },
+    });
+  }
+
+  async update(id: number, updateEstimationDto: any) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.estimation.findUnique({ where: { id }, include: { items: true } });
+      if (!existing) throw new BadRequestException('Estimation not found');
+
+      const settings = await tx.settings.findUnique({ where: { id: 1 } });
+
+      if (settings?.estimationStockMaintain) {
+        for (const item of existing.items) {
+           await tx.product.update({ where: { id: item.productId }, data: { currentStock: { increment: item.quantity } } });
+        }
+      }
+
+      await tx.estimationItem.deleteMany({ where: { estimationId: id } });
+
+      const updated = await tx.estimation.update({
+        where: { id },
+        data: {
+          customerId: updateEstimationDto.customerId,
+          date: new Date(updateEstimationDto.date),
+          subtotal: updateEstimationDto.subtotal,
+          discount: updateEstimationDto.discount || 0,
+          grandTotal: updateEstimationDto.grandTotal,
+          items: {
+            create: updateEstimationDto.items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              rate: item.rate,
+              discount: item.discount || 0,
+              amount: item.amount,
+            }))
+          }
+        },
+        include: { items: true }
+      });
+
+      if (settings?.estimationStockMaintain) {
+        for (const item of updateEstimationDto.items) {
+           await tx.product.update({ where: { id: item.productId }, data: { currentStock: { decrement: item.quantity } } });
+        }
+      }
+
+      return updated;
+    });
+  }
 }

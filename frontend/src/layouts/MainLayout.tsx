@@ -7,22 +7,22 @@ const NavItem = ({ title, icon, to, onClick }: { title: string, icon: string, to
   <NavLink 
     to={to} 
     onClick={onClick}
-    className={({ isActive }) => `flex items-center gap-2 px-4 py-3 text-sm font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 lg:border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 lg:border-transparent'}`}
+    className={({ isActive }) => `flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-4 py-3 text-[13px] xl:text-sm font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 lg:border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 lg:border-transparent'}`}
   >
     <i className={`fa ${icon}`}></i>
-    <span>{title}</span>
+    <span className="whitespace-nowrap">{title}</span>
   </NavLink>
 );
 
-const NavDropdown = ({ title, icon, children, isActive }: { title: string, icon: string, children: React.ReactNode, isActive?: boolean }) => {
+const NavDropdown = ({ title, icon, children, isActive, rightAligned }: { title: string, icon: string, children: React.ReactNode, isActive?: boolean, rightAligned?: boolean }) => {
   return (
     <div className="relative group h-full flex items-center">
-      <button className={`flex items-center gap-2 px-4 py-3 h-full text-sm font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 border-transparent'}`}>
+      <button className={`flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-4 py-3 h-full text-[13px] xl:text-sm font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 border-transparent'}`}>
         <i className={`fa ${icon}`}></i>
-        <span>{title}</span>
-        <ChevronDown size={14} className="ml-1 opacity-70" />
+        <span className="whitespace-nowrap">{title}</span>
+        <ChevronDown size={14} className="ml-0.5 opacity-70" />
       </button>
-      <div className="absolute left-0 top-full mt-0 w-64 bg-white border border-gray-200 shadow-2xl rounded-b-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top group-hover:scale-100 scale-95">
+      <div className={`absolute ${rightAligned ? 'right-0' : 'left-0'} top-full mt-0 w-64 bg-white border border-gray-200 shadow-2xl rounded-b-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top group-hover:scale-100 scale-95`}>
         <div className="py-2">
           {children}
         </div>
@@ -238,12 +238,18 @@ const MainLayout = () => {
               {hasPerm('mfg_production') && <MobileDropdownItem to="/production" icon="fa-cogs" title="Production Entry" />}
             </MobileNavDropdown>
 
-            <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
+            <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive && location.pathname !== '/sales/estimation'}>
               <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />
-              <MobileDropdownItem to="/sales/estimation" icon="fa-file-invoice" title="Estimation" />
               <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />
               <MobileDropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />
             </MobileNavDropdown>
+
+            {hasPerm('sales_estimation') && (
+              <MobileNavDropdown title="Estimation" icon="fa-file-invoice" isActive={location.pathname.startsWith('/sales/estimation')}>
+                <MobileDropdownItem to="/sales/estimation" icon="fa-plus-circle" title="Estimation Entry" />
+                <MobileDropdownItem to="/sales/estimation-list" icon="fa-list-ul" title="Estimation List" />
+              </MobileNavDropdown>
+            )}
 
             <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" />
 
@@ -357,19 +363,25 @@ const MainLayout = () => {
               )}
 
               {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
-              <NavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
+              <NavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive && location.pathname !== '/sales/estimation'}>
                 {hasPerm('sales_pos') && <DropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />}
-                {hasPerm('sales_pos') && <DropdownItem to="/sales/estimation" icon="fa-file-invoice" title="Estimation" />}
                 {hasPerm('sales_return') && <DropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />}
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 {hasPerm('sales_receipts') && <DropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />}
               </NavDropdown>
               )}
 
+              {hasPerm('sales_estimation') && (
+              <NavDropdown title="Estimation" icon="fa-file-invoice" isActive={location.pathname.startsWith('/sales/estimation')}>
+                <DropdownItem to="/sales/estimation" icon="fa-plus-circle" title="Estimation Entry" />
+                <DropdownItem to="/sales/estimation-list" icon="fa-list-ul" title="Estimation List" />
+              </NavDropdown>
+              )}
+
               {hasPerm('expenses_entry') && <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" />}
 
               {hasAnyPerm(['reports_sales', 'reports_purchase', 'reports_manufacturing', 'reports_financial']) && (
-              <NavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive}>
+              <NavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive} rightAligned>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Purchase & Sales</div>
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
@@ -392,14 +404,14 @@ const MainLayout = () => {
           </div>
 
           {/* Right side Tools */}
-          <div className="flex items-center gap-2 sm:gap-4 h-full">
+          <div className="flex items-center gap-2 sm:gap-4 h-full shrink-0">
             <Link 
               to="/quick-start"
-              className={`hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-1.5 sm:py-2 rounded-md font-bold transition-all shadow-lg shadow-orange-500/40 text-[12px] sm:text-[13px] transform hover:-translate-y-0.5 shrink-0 ${showBackButton ? 'px-3 sm:px-3 w-8 sm:w-10' : 'px-4 sm:px-5'}`}
+              className={`hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-1.5 sm:py-2 rounded-md font-bold transition-all shadow-lg shadow-orange-500/40 text-[12px] sm:text-[13px] transform hover:-translate-y-0.5 shrink-0 ${showBackButton ? 'px-2 sm:px-3' : 'px-4 sm:px-5'}`}
               title="Quick Start"
             >
               <Zap size={14} fill="currentColor" className="shrink-0" /> 
-              {!showBackButton && <span className="hidden sm:inline whitespace-nowrap">Quick Start</span>}
+              {!showBackButton && <span className="hidden xl:inline whitespace-nowrap">Quick Start</span>}
             </Link>
             
             {/* {!showBackButton && (
@@ -417,22 +429,18 @@ const MainLayout = () => {
             >
               <button 
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 sm:gap-3 hover:bg-[#1E3A8A] px-2 sm:px-3 py-2 rounded-xl transition-all duration-200"
+                className="flex items-center gap-2 sm:gap-3 hover:bg-[#1E3A8A] px-2 sm:px-3 py-2 rounded-xl transition-all duration-200 shrink-0"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-[#2563EB] rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-md ring-2 ring-blue-400/50">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-[#2563EB] rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-md ring-2 ring-blue-400/50 shrink-0">
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <div className="hidden sm:flex flex-col items-start text-left">
-                  <span className="font-bold text-sm leading-tight">{user?.name || 'User'}</span>
-                  <span className="text-[10px] text-blue-200 font-medium">Admin</span>
-                </div>
-                <ChevronDown size={14} className={`opacity-70 transition-transform duration-300 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`opacity-70 transition-transform duration-300 shrink-0 ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
               
               <div className={`absolute right-0 top-[90%] mt-2 w-56 bg-white border border-gray-100 shadow-2xl rounded-2xl transition-all duration-300 z-50 overflow-hidden transform origin-top-right ${isProfileOpen ? 'opacity-100 visible scale-100' : 'opacity-0 invisible scale-95'}`}>
                 <div className="p-4 bg-gray-50 border-b border-gray-100">
                   <p className="text-base font-bold text-gray-800">{user?.name || 'User'}</p>
-                  <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mt-1">Administrator</p>
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mt-1">{user?.role?.name || 'Administrator'}</p>
                 </div>
                 <div className="py-2 px-2">
                   {hasPerm('master_store_settings') && (

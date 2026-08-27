@@ -10,6 +10,7 @@ import Select from 'react-select';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
+import ReceiptPrintModal from '../../components/ReceiptPrintModal';
 
 const receiptSchema = z.object({
   receiptNo: z.string(),
@@ -37,6 +38,12 @@ const CustomerReceipts = () => {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [isTableExpanded, setIsTableExpanded] = useState(false);
   const [billFilter, setBillFilter] = useState<'Unpaid' | 'Cleared' | 'All'>('Unpaid');
+
+  // Print Modal State
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
+  const [printParty, setPrintParty] = useState<any>(null);
+  const [printBills, setPrintBills] = useState<any[]>([]);
 
   const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ReceiptFormValues>({
     resolver: zodResolver(receiptSchema) as any,
@@ -97,12 +104,23 @@ const CustomerReceipts = () => {
 
   const createMutation = useMutation({
     mutationFn: (data: ReceiptFormValues) => api.post('/customer-receipts', data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.success('Receipt recorded successfully!');
+      
+      // Setup print data from the response and current state
+      setPrintData({
+        ...res.data,
+        paymentType: paymentTypes.find((p: any) => p.id === res.data.paymentTypeId)
+      });
+      setPrintParty(customers.find((c: any) => c.id === selectedCustomerId));
+      setPrintBills([...unpaidBills]);
+      setShowPrintModal(true);
+
       queryClient.invalidateQueries({ queryKey: ['customerReceipts'] });
       queryClient.invalidateQueries({ queryKey: ['nextReceiptNo'] });
       reset();
       setCurrentBalance(0);
+      setUnpaidBills([]);
     },
     onError: (error) => {
       console.error(error);
@@ -157,8 +175,9 @@ const CustomerReceipts = () => {
 
   return (
     <div className="bg-[#F8FAFC] min-h-[calc(100vh-64px)] p-4">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-4 print:hidden">
+      <div className={showPrintModal ? 'print:hidden' : ''}>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-4 print:hidden">
         <div>
           <h1 className="text-[16px] md:text-xl font-bold text-[#059669] flex items-center gap-2">
             <span className="bg-[#059669] text-white p-1 rounded"><FileText size={16} /></span>
@@ -309,7 +328,18 @@ const CustomerReceipts = () => {
                         </span>
                         <button 
                           type="button" 
-                          onClick={() => window.print()}
+                          onClick={() => {
+                            setPrintData({
+                              receiptNo: watch('receiptNo') || 'DRAFT',
+                              date: watch('date'),
+                              amount: watch('amount') || 0,
+                              paymentMode: { name: 'DRAFT' },
+                              reference: watch('reference')
+                            });
+                            setPrintParty(customers.find((c: any) => c.id === selectedCustomerId));
+                            setPrintBills([...unpaidBills]);
+                            setShowPrintModal(true);
+                          }}
                           className="bg-white text-[#10B981] hover:bg-gray-100 p-1 rounded transition-colors"
                           title="Print Breakdown"
                         >
@@ -509,6 +539,7 @@ const CustomerReceipts = () => {
                   <th className="px-3 py-2 border-r border-[#334155]">Customer</th>
                   <th className="px-3 py-2 border-r border-[#444]">Payment Type</th>
                   <th className="px-3 py-2 text-right">Amount Paid</th>
+                  <th className="px-3 py-2 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -524,6 +555,20 @@ const CustomerReceipts = () => {
                       <td className="px-3 py-2 border-r border-[#E2E8F0] font-medium text-[#334155]">{r.customer?.name}</td>
                       <td className="px-3 py-3 border-r border-[#E5E7EB] text-[#475569]">{r.paymentType?.name || r.paymentMode?.name || '-'}</td>
                       <td className="px-3 py-2 text-right font-bold text-[#059669]">{formatCurrency(r.amount)}</td>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => {
+                            setPrintData(r);
+                            setPrintParty(r.customer);
+                            setPrintBills([]); // Historical bills not tracked, will show as advance
+                            setShowPrintModal(true);
+                          }}
+                          className="text-[#3B82F6] hover:text-[#2563EB] transition-colors"
+                          title="Print Receipt"
+                        >
+                          <Printer size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -532,6 +577,16 @@ const CustomerReceipts = () => {
           </div>
         </div>
       </div>
+      </div>
+
+      <ReceiptPrintModal 
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        type="customer"
+        data={printData}
+        party={printParty}
+        unpaidBills={printBills}
+      />
     </div>
   );
 };

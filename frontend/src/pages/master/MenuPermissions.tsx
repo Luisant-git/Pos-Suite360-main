@@ -54,6 +54,14 @@ const MODULES = [
     ]
   },
   {
+    id: 'estimation',
+    name: 'Estimation',
+    icon: <Shield size={18} />,
+    permissions: [
+      { id: 'sales_estimation', name: 'Estimation' },
+    ]
+  },
+  {
     id: 'expenses',
     name: 'Expenses',
     icon: <Shield size={18} />,

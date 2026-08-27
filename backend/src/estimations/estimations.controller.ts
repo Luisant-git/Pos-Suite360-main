@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Body, Param, UseGuards, Request, Query, Delete, BadRequestException } from '@nestjs/common';
 import { EstimationsService } from './estimations.service';
 import { CreateEstimationDto } from './dto/create-estimation.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -10,7 +10,7 @@ export class EstimationsController {
 
   @Post()
   create(@Body() createEstimationDto: CreateEstimationDto, @Request() req: any) {
-    const userId = req.user?.userId || 1;
+    const userId = (req.user?.userId && req.user.userId > 0) ? req.user.userId : 1;
     return this.estimationsService.create(createEstimationDto, userId);
   }
 
@@ -26,11 +26,22 @@ export class EstimationsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    if (isNaN(+id)) throw new BadRequestException('Invalid ID');
     return this.estimationsService.findOne(+id);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.estimationsService.remove(+id);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() updateEstimationDto: any) {
+    return this.estimationsService.update(+id, updateEstimationDto);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.estimationsService.updateStatus(+id, status);
   }
 }
