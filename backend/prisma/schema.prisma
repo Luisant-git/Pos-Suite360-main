@@ -110,6 +110,7 @@ model Customer {
   email              String?
   address            String? // Billing Address
   state              String?
+  gstNumber          String?
   shippingAddress    String?
   openingBalance     Decimal               @default(0)
   openingBalanceType String                @default("Dr")
@@ -217,6 +218,7 @@ model Product {
   isManufacturingProduct Boolean              @default(false)
   sqM                    Decimal?
   noOfLabels             Int?
+  noOfUps                Int?
   rawMaterials           ProductRawMaterial[]
   estimationItems        EstimationItem[]
 }
@@ -497,6 +499,7 @@ model Settings {
   shopAddress             String?
   phone                   String?
   email                   String?
+  gstin                   String?
   currencySymbol          String  @default("RM")
   currencyPosition        String  @default("before")
   invoicePrefix           String  @default("INV-")
@@ -632,6 +635,8 @@ model Estimation {
   subtotal   Decimal @default(0)
   discount   Decimal @default(0)
   grandTotal Decimal @default(0)
+
+  status     String  @default("Pending")
 
   items EstimationItem[]
 

@@ -34,6 +34,10 @@ export class CreateCustomerDto {
 
   @IsString()
   @IsOptional()
+  gstNumber?: string;
+
+  @IsString()
+  @IsOptional()
   shippingAddress?: string;
 
   @IsNumber()

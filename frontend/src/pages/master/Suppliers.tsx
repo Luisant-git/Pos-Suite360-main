@@ -31,6 +31,7 @@ const supplierSchema = z.object({
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   address: z.string().optional(),
   state: z.string().min(1, 'State is required'),
+  gstNumber: z.string().optional(),
   openingBalance: z.coerce.number().default(0),
   openingBalanceType: z.string().default('Cr'),
   accountNo: z.string().optional(),
@@ -61,6 +62,7 @@ const Suppliers = () => {
       email: '',
       address: '',
       state: '',
+      gstNumber: '',
       openingBalance: '' as any,
       openingBalanceType: 'Cr',
       accountNo: '',
@@ -141,6 +143,7 @@ const Suppliers = () => {
     setValue('email', supplier.email || '');
     setValue('address', supplier.address || '');
     setValue('state', supplier.state || '');
+    setValue('gstNumber', supplier.gstNumber || '');
     setValue('openingBalance', Number(supplier.openingBalance));
     setValue('openingBalanceType', supplier.openingBalanceType || 'Cr');
     setValue('accountNo', supplier.accountNo || '');
@@ -210,13 +213,24 @@ const Suppliers = () => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-[12px] text-[#1F2937] mb-1">Email Address</label>
-            <input 
-              {...register('email')}
-              type="email" 
-              className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] text-[#1F2937] mb-1">Email Address</label>
+              <input 
+                {...register('email')}
+                type="email" 
+                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] text-[#1F2937] mb-1">GST Number</label>
+              <input 
+                {...register('gstNumber')}
+                type="text" 
+                placeholder="e.g. 33AABCG1234K1Z8"
+                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
+              />
+            </div>
           </div>
 
           <div>
