@@ -65,6 +65,7 @@ export class RawMaterialPurchasesService {
     return this.prisma.rawMaterialPurchase.findMany({
       include: {
         supplier: true,
+        paymentMode: true,
         items: {
           include: { rawMaterial: true }
         }
@@ -78,6 +79,7 @@ export class RawMaterialPurchasesService {
       where: { id },
       include: {
         supplier: true,
+        paymentMode: true,
         items: {
           include: { rawMaterial: true }
         }

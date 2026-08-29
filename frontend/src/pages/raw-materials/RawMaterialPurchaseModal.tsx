@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Printer, Download, Receipt, Calendar, FileText, Building2, X, Truck } from 'lucide-react';
+import { Printer, Download, Receipt, Calendar, FileText, Building2, X, Truck, CreditCard } from 'lucide-react';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useRef } from 'react';
@@ -46,6 +46,7 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
       doc.setFontSize(10);
       doc.text(`Invoice No: ${purchase.invoiceNo}`, 14, 60);
       doc.text(`Date: ${new Date(purchase.date).toLocaleDateString()}`, 14, 66);
+      doc.text(`Payment Mode: ${purchase.paymentMode?.name || 'Cash'}`, 14, 72);
       
       doc.text(`Supplier: ${purchase.supplier?.name}`, 120, 60);
       if (purchase.supplier?.phone) doc.text(`Phone: ${purchase.supplier.phone}`, 120, 66);
@@ -66,7 +67,7 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
-        startY: 75,
+        startY: 80,
         theme: 'striped',
         headStyles: { fillColor: [30, 58, 138] }
       });
@@ -162,6 +163,15 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
                   <div>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Date</p>
                     <p className="font-bold text-gray-800">{new Date(purchase.date).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded bg-teal-100 text-teal-600 flex items-center justify-center shrink-0">
+                    <CreditCard size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Payment Mode</p>
+                    <p className="font-bold text-gray-800">{purchase.paymentMode?.name || 'Cash'}</p>
                   </div>
                 </div>
               </div>
@@ -270,6 +280,7 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
                 <div className="text-right">
                   <p className="mb-1"><strong>Invoice No:</strong> {purchase.invoiceNo}</p>
                   <p className="mb-1"><strong>Date:</strong> {new Date(purchase.date).toLocaleDateString()}</p>
+                  <p className="mb-1"><strong>Payment Mode:</strong> {purchase.paymentMode?.name || 'Cash'}</p>
                 </div>
               </div>
 

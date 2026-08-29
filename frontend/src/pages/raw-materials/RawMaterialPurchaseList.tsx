@@ -103,6 +103,7 @@ const RawMaterialPurchaseList = () => {
                 <th className="px-3 py-2.5 border-r border-[#334155] relative">Date</th>
                 <th className="px-3 py-2.5 border-r border-[#334155] relative">Invoice No</th>
                 <th className="px-3 py-2.5 border-r border-[#334155] relative">Supplier</th>
+                <th className="px-3 py-2.5 border-r border-[#334155] relative">Payment Mode</th>
                 <th className="px-3 py-2.5 border-r border-[#334155] relative text-right">Total Amount (₹)</th>
                 <th className="px-3 py-2.5 border-[#334155] relative text-center">Action</th>
               </tr>
@@ -110,11 +111,11 @@ const RawMaterialPurchaseList = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-4 text-center text-[#73879C]">Loading...</td>
+                  <td colSpan={6} className="px-3 py-4 text-center text-[#73879C]">Loading...</td>
                 </tr>
               ) : filteredPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-center text-[#73879C]">No purchase invoices found matching your criteria.</td>
+                  <td colSpan={6} className="px-3 py-4 text-center text-[#73879C]">No purchase invoices found matching your criteria.</td>
                 </tr>
               ) : (
                 paginatedPurchases.map((purchase: any, index: number) => (
@@ -122,6 +123,11 @@ const RawMaterialPurchaseList = () => {
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-medium">{purchase.date ? new Date(purchase.date).toISOString().split('T')[0] : '-'}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#3B82F6] font-bold">{purchase.invoiceNo}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-medium">{purchase.supplier?.name || 'Unknown Supplier'}</td>
+                    <td className="px-3 py-2.5 border-r border-[#E5E7EB]">
+                      <span className="inline-block px-2 py-1 bg-[#EBF5FF] text-[#2563EB] rounded text-[10px] font-black uppercase tracking-wider">
+                        {purchase.paymentMode?.name || 'Cash'}
+                      </span>
+                    </td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#059669] font-bold text-right">{formatCurrency(purchase.grandTotal)}</td>
                     <td className="px-3 py-2.5 text-center">
                       <button 

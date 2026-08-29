@@ -2,15 +2,27 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CheckCircle, ArrowLeft, PlusCircle, RotateCcw, List, FileText, Plus, Trash2, Package } from 'lucide-react';
+import { CheckCircle, ArrowLeft, PlusCircle, RotateCcw, List, FileText, Plus, Trash2, Package, X, Save, UserPlus } from 'lucide-react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 import { useSettings } from '../../contexts/SettingsContext';
+import Select from 'react-select';
+
+const indianStates = [
+  "01 - Jammu & Kashmir", "02 - Himachal Pradesh", "03 - Punjab", "04 - Chandigarh",
+  "05 - Uttarakhand", "06 - Haryana", "07 - Delhi", "08 - Rajasthan", "09 - Uttar Pradesh",
+  "10 - Bihar", "11 - Sikkim", "12 - Arunachal Pradesh", "13 - Nagaland", "14 - Manipur",
+  "15 - Mizoram", "16 - Tripura", "17 - Meghalaya", "18 - Assam", "19 - West Bengal",
+  "20 - Jharkhand", "21 - Odisha", "22 - Chhattisgarh", "23 - Madhya Pradesh", "24 - Gujarat",
+  "25 - Daman & Diu", "26 - Dadra & Nagar Haveli", "27 - Maharashtra", "29 - Karnataka",
+  "30 - Goa", "31 - Lakshadweep", "32 - Kerala", "33 - Tamil Nadu", "34 - Puducherry",
+  "35 - Andaman & Nicobar Islands", "36 - Telangana", "37 - Andhra Pradesh", "38 - Ladakh"
+];
 
 const RawMaterialPurchaseEntry = () => {
   const navigate = useNavigate();
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, settings } = useSettings();
   const queryClient = useQueryClient();
   
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -18,6 +30,9 @@ const RawMaterialPurchaseEntry = () => {
   const [invoiceNo, setInvoiceNo] = useState('');
   const [paymentModeId, setPaymentModeId] = useState(0);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [newSupplier, setNewSupplier] = useState({ name: '', phone: '', address: '', state: '' });
+
   
   const [items, setItems] = useState<any[]>([{ rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
 
@@ -179,6 +194,31 @@ const RawMaterialPurchaseEntry = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSubmit, handleClear, isLeaveModalOpen, navigate]);
 
+  const addSupplierMutation = useMutation({
+    mutationFn: (data: any) => api.post('/suppliers', data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      setIsSupplierModalOpen(false);
+      setNewSupplier({ name: '', phone: '', address: '', state: '' });
+      if (res.data && res.data.id) {
+        setSupplierId(res.data.id);
+      }
+    },
+    onError: () => {
+      toast.error('Failed to add supplier.');
+    }
+  });
+
+  const handleQuickAddSupplier = () => {
+    if (!newSupplier.name) return;
+    if (settings?.enableTax && !newSupplier.state) {
+      toast.error('State is mandatory when Tax is enabled.');
+      return;
+    }
+    addSupplierMutation.mutate(newSupplier);
+  };
+  
+  const selectedSupplier = suppliers.find((s: any) => s.id === Number(supplierId));
 
   return (
     <div className="absolute inset-0 bg-[#F3F4F6] flex flex-col font-sans overflow-hidden z-10">
@@ -225,15 +265,26 @@ const RawMaterialPurchaseEntry = () => {
 
             <div className="w-full lg:flex-[2]">
               <label className="block text-[12px] font-bold text-[#374151] mb-1.5 uppercase tracking-wide">Select Supplier *</label>
-              <div className="w-full">
-                <SearchableSelect
-                  value={supplierId}
-                  onChange={(val) => setSupplierId(Number(val))}
-                  options={[
-                    { label: 'Click or type supplier name / phone...', value: 0 },
-                    ...suppliers.map((s: any) => ({ label: `${s.name} - ${s.phone || ''}`, value: s.id }))
-                  ]}
-                />
+              <div className="flex flex-col gap-1">
+                <div className="w-full">
+                  <SearchableSelect
+                    value={supplierId}
+                    onChange={(val) => setSupplierId(Number(val))}
+                    options={[
+                      { label: 'Click or type supplier name / phone...', value: 0 },
+                      ...suppliers.map((s: any) => ({ label: `${s.name} - ${s.phone || ''}`, value: s.id }))
+                    ]}
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <button type="button" onClick={() => setIsSupplierModalOpen(true)} className="bg-[#059669] hover:bg-[#047857] text-white px-2 py-1 rounded transition-colors flex items-center gap-1 text-[11px] font-bold">
+                    <Plus size={12} /> Add Supplier
+                  </button>
+                  <span className="text-[11px] text-[#6B7280] text-right flex-1 ml-2 flex flex-col items-end">
+                    <span>{selectedSupplier ? `${selectedSupplier.address || 'Standard Vendor'}` : 'Standard Vendor'}</span>
+                    {selectedSupplier?.state && <span className="font-bold text-[#1F2937]">{selectedSupplier.state}</span>}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -444,6 +495,83 @@ const RawMaterialPurchaseEntry = () => {
         </div>
 
       </form>
+
+      {/* Quick Add Supplier Modal */}
+      {isSupplierModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded shadow-lg w-full max-w-md overflow-hidden flex flex-col">
+            <div className="bg-[#059669] text-white px-4 py-3 flex justify-between items-center">
+              <div className="flex items-center gap-2 font-bold text-[15px]">
+                <UserPlus size={18} /> Quick Add New Supplier
+              </div>
+              <button type="button" onClick={() => setIsSupplierModalOpen(false)} className="hover:text-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 flex flex-col gap-4">
+              <div>
+                <label className="block text-[13px] font-bold text-[#1F2937] mb-1">Supplier Name *</label>
+                <input 
+                  type="text" 
+                  value={newSupplier.name}
+                  onChange={(e) => setNewSupplier({...newSupplier, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6]" 
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#4B5563] mb-1">Mobile Number</label>
+                <input 
+                  type="text" 
+                  value={newSupplier.phone}
+                  onChange={(e) => setNewSupplier({...newSupplier, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6]" 
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#4B5563] mb-1">State {settings?.enableTax && <span className="text-red-500">*</span>}</label>
+                <Select 
+                  value={newSupplier.state ? { value: newSupplier.state, label: newSupplier.state } : null}
+                  onChange={(val: any) => setNewSupplier({...newSupplier, state: val?.value || ''})}
+                  options={[
+                    { value: '', label: '-- Select State --' },
+                    ...indianStates.map(s => ({ value: s, label: s }))
+                  ]}
+                  className="text-[13px] font-medium"
+                  placeholder="-- Select State --"
+                  styles={{
+                    control: (base: any) => ({
+                      ...base,
+                      minHeight: '38px',
+                      borderColor: '#D1D5DB',
+                      borderRadius: '0.25rem',
+                    }),
+                    menuPortal: (base: any) => ({ ...base, zIndex: 9999 })
+                  }}
+                  menuPortalTarget={document.body}
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#4B5563] mb-1">Billing Address</label>
+                <textarea 
+                  value={newSupplier.address}
+                  onChange={(e) => setNewSupplier({...newSupplier, address: e.target.value})}
+                  className="w-full px-3 py-2 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] min-h-[80px]" 
+                />
+              </div>
+            </div>
+            <div className="p-4 bg-white pt-2 border-none pb-5">
+              <button 
+                type="button"
+                onClick={handleQuickAddSupplier}
+                disabled={!newSupplier.name || addSupplierMutation.isPending}
+                className="w-full bg-[#059669] hover:bg-[#047857] text-white py-2.5 rounded font-bold text-[14px] flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                <Save size={16} /> Save Supplier & Select
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <LeaveConfirmModal 
         isOpen={isLeaveModalOpen} 
