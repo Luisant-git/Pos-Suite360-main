@@ -44,6 +44,26 @@ export class SettingsController {
     };
   }
 
+  @Post('upload-logo')
+  @UseInterceptors(FileInterceptor('image', {
+    storage: diskStorage({
+      destination: './uploads/logos',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
+      }
+    })
+  }))
+  async uploadLogo(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    const baseUrl = this.configService.get<string>('UPLOAD_URL') || 'http://localhost:3000/uploads';
+    return {
+      url: `${baseUrl}/logos/${file.filename}`
+    };
+  }
+
   @Post('verify-dev-password')
   async verifyDevPassword(@Body('password') password: string) {
     const devPassword = process.env.DEV_PASSWORD || 'developer123';

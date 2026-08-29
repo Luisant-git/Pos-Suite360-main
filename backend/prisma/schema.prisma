@@ -507,7 +507,10 @@ model Settings {
   invoiceHeader           String?
   invoiceNotes            String?
   signatureImage          String?
+  logoImage               String?
+  city                    String?
   state                   String?
+  country                 String?
   enableTax               Boolean @default(false)
   taxType                 String? @default("exclusive")
   enableCustomerWiseRate  Boolean @default(false)

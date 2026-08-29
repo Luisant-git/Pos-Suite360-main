@@ -13,7 +13,9 @@ import Select from 'react-select';
 const storeSettingsSchema = z.object({
   shopName: z.string().min(1, 'Shop name is required'),
   shopAddress: z.string().optional(),
+  city: z.string().optional(),
   state: z.string().optional(),
+  country: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
   gstin: z.string().optional(),
@@ -24,6 +26,7 @@ const storeSettingsSchema = z.object({
   invoiceHeader: z.string().optional(),
   invoiceNotes: z.string().optional(),
   signatureImage: z.string().optional(),
+  logoImage: z.string().optional(),
   enableTax: z.boolean().optional().default(false),
   taxType: z.string().optional().default('exclusive'),
   enableCustomerWiseRate: z.boolean().optional().default(false),
@@ -41,6 +44,11 @@ const indianStates = [
   "25 - Daman & Diu", "26 - Dadra & Nagar Haveli", "27 - Maharashtra", "29 - Karnataka",
   "30 - Goa", "31 - Lakshadweep", "32 - Kerala", "33 - Tamil Nadu", "34 - Puducherry",
   "35 - Andaman & Nicobar Islands", "36 - Telangana", "37 - Andhra Pradesh", "38 - Ladakh"
+];
+
+const commonCountries = [
+  "India", "Malaysia", "Singapore", "United Arab Emirates", 
+  "United Kingdom", "United States", "Australia", "Canada"
 ];
 
 const Settings = () => {
@@ -70,7 +78,9 @@ const Settings = () => {
       resetStoreForm({
         shopName: settings.shopName || '',
         shopAddress: settings.shopAddress || '',
+        city: settings.city || '',
         state: settings.state || '',
+        country: settings.country || '',
         phone: settings.phone || '',
         email: settings.email || '',
         gstin: settings.gstin || '',
@@ -81,6 +91,7 @@ const Settings = () => {
         invoiceHeader: settings.invoiceHeader || '',
         invoiceNotes: settings.invoiceNotes || '',
         signatureImage: settings.signatureImage || '',
+        logoImage: settings.logoImage || '',
         enableTax: settings.enableTax || false,
         taxType: settings.taxType || 'exclusive',
         enableCustomerWiseRate: settings.enableCustomerWiseRate || false,
@@ -191,50 +202,104 @@ const Settings = () => {
                 />
               </div>
 
-              <div className="z-50 relative">
-                <label className="block text-[12px] font-bold text-[#2563EB] mb-1">State (Searchable) *</label>
-                <Controller
-                  name="state"
-                  control={controlStore}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      options={[
-                        { value: '', label: 'Type state name / code...' },
-                        ...indianStates.map((state) => ({
-                          value: state,
-                          label: state
-                        }))
-                      ]}
-                      value={field.value ? { value: field.value, label: field.value } : null}
-                      onChange={(val: any) => field.onChange(val?.value || '')}
-                      className="text-[13px] font-medium"
-                      placeholder="Select..."
-                      styles={{
-                        control: (base: any) => ({
-                          ...base,
-                          minHeight: '38px',
-                          borderColor: '#CBD5E1',
-                          borderRadius: '0.25rem',
-                        }),
-                        singleValue: (base: any) => ({
-                          ...base,
-                          color: '#000000',
-                          fontWeight: 'bold',
-                        }),
-                        input: (base: any) => ({
-                          ...base,
-                          color: '#000000',
-                        }),
-                        option: (base: any, state: any) => ({
-                          ...base,
-                          color: state.isSelected ? '#ffffff' : '#000000',
-                          backgroundColor: state.isSelected ? '#3B82F6' : base.backgroundColor,
-                        })
-                      }}
-                    />
-                  )}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 z-50 relative">
+                <div>
+                  <label className="block text-[12px] font-bold text-[#334155] mb-1">City</label>
+                  <input
+                    {...registerStore('city')}
+                    className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-bold text-[#2563EB] mb-1">State (Searchable) *</label>
+                  <Controller
+                    name="state"
+                    control={controlStore}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={[
+                          { value: '', label: 'Type state name / code...' },
+                          ...indianStates.map((state) => ({
+                            value: state,
+                            label: state
+                          }))
+                        ]}
+                        value={field.value ? { value: field.value, label: field.value } : null}
+                        onChange={(val: any) => field.onChange(val?.value || '')}
+                        className="text-[13px] font-medium"
+                        placeholder="Select..."
+                        styles={{
+                          control: (base: any) => ({
+                            ...base,
+                            minHeight: '38px',
+                            borderColor: '#CBD5E1',
+                            borderRadius: '0.25rem',
+                          }),
+                          singleValue: (base: any) => ({
+                            ...base,
+                            color: '#000000',
+                            fontWeight: 'bold',
+                          }),
+                          input: (base: any) => ({
+                            ...base,
+                            color: '#000000',
+                          }),
+                          option: (base: any, state: any) => ({
+                            ...base,
+                            color: state.isSelected ? '#ffffff' : '#000000',
+                            backgroundColor: state.isSelected ? '#3B82F6' : base.backgroundColor,
+                          })
+                        }}
+                      />
+                    )}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-bold text-[#2563EB] mb-1">Country (Searchable)</label>
+                  <Controller
+                    name="country"
+                    control={controlStore}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={[
+                          { value: '', label: 'Select country...' },
+                          ...commonCountries.map((country) => ({
+                            value: country,
+                            label: country
+                          }))
+                        ]}
+                        value={field.value ? { value: field.value, label: field.value } : null}
+                        onChange={(val: any) => field.onChange(val?.value || '')}
+                        className="text-[13px] font-medium"
+                        placeholder="Select..."
+                        styles={{
+                          control: (base: any) => ({
+                            ...base,
+                            minHeight: '38px',
+                            borderColor: '#CBD5E1',
+                            borderRadius: '0.25rem',
+                          }),
+                          singleValue: (base: any) => ({
+                            ...base,
+                            color: '#000000',
+                            fontWeight: 'bold',
+                          }),
+                          input: (base: any) => ({
+                            ...base,
+                            color: '#000000',
+                          }),
+                          option: (base: any, state: any) => ({
+                            ...base,
+                            color: state.isSelected ? '#ffffff' : '#000000',
+                            backgroundColor: state.isSelected ? '#3B82F6' : base.backgroundColor,
+                          })
+                        }}
+                      />
+                    )}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -370,17 +435,7 @@ const Settings = () => {
                   className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
                 />
               </div>
-              <div>
-                <label className="block text-[12px] font-bold text-[#334155] mb-1">Invoice Header (Replaces default Shop Name format)</label>
-                <div className="border border-[#CBD5E1] rounded overflow-hidden">
-                  <Editor
-                    value={watchStore('invoiceHeader') || ''}
-                    onChange={(e: any) => setValueStore('invoiceHeader', e.target.value)}
-                    containerProps={{ style: { height: '120px', fontSize: '13px', color: 'black', fontWeight: '500' } }}
-                  />
-                </div>
-                <p className="text-[11px] text-[#64748B] mt-1">Will be printed at the top of the invoice. Leave blank to use standard Shop Name & Address.</p>
-              </div>
+
               <div>
                 <label className="block text-[12px] font-bold text-[#334155] mb-1">Invoice Footer Notes (Terms & Conditions)</label>
                 <div className="border border-[#CBD5E1] rounded overflow-hidden">
@@ -394,9 +449,55 @@ const Settings = () => {
               </div>
               
               <div className="border-t border-[#E2E8F0] pt-4 mt-2">
+                <label className="block text-[12px] font-bold text-[#334155] mb-1">Company Logo (For Invoices)</label>
+                {watchStore('logoImage') && (
+                  <div className="mb-3 p-2 border border-[#E2E8F0] rounded-lg inline-block bg-[#F8FAFC] relative group">
+                    <button 
+                      type="button" 
+                      onClick={() => setValueStore('logoImage', '', { shouldDirty: true, shouldValidate: true })}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
+                      title="Remove Logo"
+                    >
+                      <X size={14} />
+                    </button>
+                    <img src={watchStore('logoImage') || ''} alt="Company Logo" className="h-16 object-contain" />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append('image', file);
+                      try {
+                        const toastId = toast.loading('Uploading logo...');
+                        const response = await api.post('/settings/upload-logo', formData, {
+                          headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        setValueStore('logoImage', response.data.url, { shouldValidate: true, shouldDirty: true });
+                        toast.success('Logo uploaded successfully', { id: toastId });
+                      } catch (error) {
+                        toast.error('Failed to upload logo');
+                      }
+                    }
+                  }}
+                  className="w-full text-base file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-base file:font-bold file:bg-[#EFF6FF] file:text-[#2563EB] hover:file:bg-[#DBEAFE] cursor-pointer"
+                />
+                <p className="text-[11px] text-[#64748B] mt-1 mb-6">Upload a company logo to display on printed invoices. Best with transparent background (PNG).</p>
+
                 <label className="block text-[12px] font-bold text-[#334155] mb-1">Authorised Signature Image</label>
                 {watchStore('signatureImage') && (
-                  <div className="mb-3 p-2 border border-[#E2E8F0] rounded-lg inline-block bg-[#F8FAFC]">
+                  <div className="mb-3 p-2 border border-[#E2E8F0] rounded-lg inline-block bg-[#F8FAFC] relative group">
+                    <button 
+                      type="button" 
+                      onClick={() => setValueStore('signatureImage', '', { shouldDirty: true, shouldValidate: true })}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
+                      title="Remove Signature"
+                    >
+                      <X size={14} />
+                    </button>
                     <img src={watchStore('signatureImage') || ''} alt="Signature" className="h-20 object-contain" />
                   </div>
                 )}
