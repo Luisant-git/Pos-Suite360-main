@@ -101,20 +101,22 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
-        <div>
-          {settings?.invoiceHeader ? (
-             <div dangerouslySetInnerHTML={{ __html: settings.invoiceHeader }} />
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-[#04325E] uppercase tracking-tight">{settings?.shopName || 'POS Suite 360'}</h1>
-              <p className="text-[#1A63A8] font-bold text-sm mt-1">{settings?.invoiceTitle || 'Cloud Point-of-Sale & Multi-Outlet Management Platform'}</p>
-              <div className="mt-2 text-slate-500 text-xs leading-relaxed">
-                <p>{settings?.shopAddress || 'Salem, Tamil Nadu, India'}</p>
-                {settings?.phone && <p>Tel: {settings.phone}</p>}
-                {settings?.gstin && <p>GSTIN: {settings.gstin}</p>}
-              </div>
-            </>
+        <div className="flex flex-col gap-3">
+          {settings?.logoImage && (
+            <img src={settings.logoImage} alt="Logo" className="max-h-20 max-w-[200px] w-auto h-auto object-contain object-left" />
           )}
+          <div>
+            <h1 className={`${settings?.logoImage ? 'text-xl' : 'text-2xl'} font-bold text-[#04325E] uppercase tracking-tight`}>{settings?.shopName || 'POS Suite 360'}</h1>
+            {settings?.invoiceTitle && <p className="text-[#1A63A8] font-bold text-sm mt-1">{settings.invoiceTitle}</p>}
+          <div className="mt-2 text-slate-800 text-xs leading-relaxed">
+            {settings?.shopAddress && <p>{settings.shopAddress}</p>}
+            <p className="font-bold text-slate-700">
+              {[settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ')}
+            </p>
+            {settings?.phone && <p>Tel: {settings.phone}</p>}
+            {settings?.gstin && <p>GSTIN: {settings.gstin}</p>}
+          </div>
+          </div>
         </div>
         <div className="text-right">
           <h2 className="text-4xl font-black text-[#1A63A8] tracking-wider mb-2">{isEstimation ? 'ESTIMATION' : 'INVOICE'}</h2>
@@ -127,11 +129,12 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
           <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3">Billed To / Customer Details</h3>
           <p className="font-bold text-slate-800 text-sm mb-1">{customerName}</p>
-          <div className="text-slate-500 text-xs space-y-1">
-            {sale?.customer?.id && <p>Customer ID: CUST-{sale.customer.id}</p>}
+          <div className="text-slate-800 text-xs space-y-1">
+
+            {sale?.customer?.address && <p>{sale.customer.address}</p>}
+            {sale?.customer?.state && <p>{sale.customer.state}</p>}
             {sale?.customer?.phone && <p>Phone: {sale.customer.phone}</p>}
             {sale?.customer?.gstNumber && <p>GSTIN: {sale.customer.gstNumber}</p>}
-            {sale?.customer?.address && <p>{sale.customer.address}</p>}
           </div>
         </div>
         <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">

@@ -91,13 +91,21 @@ export default function ReceiptPrintModal({ isOpen, onClose, type, data, party, 
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-6 border-b border-[#1A63A8] pb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#04325E] uppercase tracking-tight">{settings?.shopName || 'POS Suite 360'}</h1>
-          <div className="mt-1 text-slate-600 text-[11px] leading-tight">
-            <p>{settings?.shopAddress || 'Salem, Tamil Nadu, India'}</p>
+        <div className="flex flex-col gap-3">
+          {settings?.logoImage && (
+            <img src={settings.logoImage} alt="Logo" className="max-h-16 max-w-[160px] w-auto h-auto object-contain object-left" />
+          )}
+          <div>
+            <h1 className={`${settings?.logoImage ? 'text-lg' : 'text-2xl'} font-bold text-[#04325E] uppercase tracking-tight`}>{settings?.shopName || 'POS Suite 360'}</h1>
+          <div className="mt-1 text-slate-800 text-[11px] leading-tight">
+            {settings?.shopAddress && <p>{settings.shopAddress}</p>}
+            <p className="font-bold">
+              {[settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ')}
+            </p>
             {settings?.phone && <span className="mr-2">Phone: {settings.phone}</span>}
             {settings?.email && <span>• Email: {settings.email}</span>}
             {settings?.gstin && <p className="mt-0.5">GSTIN: {settings.gstin}</p>}
+          </div>
           </div>
         </div>
         <div className="text-right flex flex-col items-end">

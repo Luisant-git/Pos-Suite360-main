@@ -303,14 +303,14 @@ const Estimation = () => {
         }
         reset();
         
-        // Manually fetch and inject the new invoice number for the next sale
-        const res = await api.get('/sales/next-invoice-no');
+        // Manually fetch and inject the new invoice number for the next estimation
+        const res = await api.get('/estimations/next-estimation-no');
         if (res.data?.estimationNo) {
            setValue('estimationNo', res.data.estimationNo);
         }
         
         queryClient.invalidateQueries({ queryKey: ['products'] });
-        queryClient.invalidateQueries({ queryKey: ['nextInvoiceNo'] });
+        queryClient.invalidateQueries({ queryKey: ['nextEstimationNo'] });
       }, 100);
     },
     onError: (error) => {
@@ -1066,118 +1066,156 @@ const Estimation = () => {
 
       {/* Printable Receipt */}
       <div id="printable-receipt" className="hidden print:flex flex-col bg-white text-black font-sans text-[12px] w-full max-w-[800px] mx-auto p-8 print:h-[257mm] box-border">
-        <div className="text-center mb-4 print:pt-4">
-          <div className="text-xl font-bold uppercase">NASA FRESH MART <span className="text-base font-normal">(001634825-A)</span></div>
-          <p className="mt-1">NO 8G, JLN 3/2 PANDAN JAYA, 55100 KUALA LUMPUR.</p>
-          <p>Tel : 019-300 1451</p>
-        </div>
-        
-        <div className="border-t border-b border-black py-2 mb-4 text-center font-bold text-lg uppercase tracking-wider">
-          INVOICE
-        </div>
-        
-        <div className="flex justify-between mb-6">
-          {/* Left Column */}
-          <div className="w-1/2 pr-4">
-             <div className="flex">
-               <span className="w-16">Bill To:</span>
-               <div>
-                 <p className="font-bold">{selectedCustomer?.id ? `CUST-${selectedCustomer.id}` : ''}</p>
-                 <p className="font-bold">{selectedCustomer?.name || ''}</p>
-                 <p>{selectedCustomer?.address || ''}</p>
-               </div>
-             </div>
-             <div className="mt-4 flex gap-4">
-               <span>TEL: {selectedCustomer?.phone || ''}</span>
-               <span>FAX: </span>
-             </div>
-             <p>Attn:</p>
+    <div 
+      className="flex flex-col flex-1 bg-white text-slate-800 overflow-hidden h-full"
+      style={{ fontFamily: "'Inter', sans-serif" }}
+    >
+      {/* Header */}
+      <div className="flex justify-between items-start mb-8">
+        <div className="flex flex-col gap-3">
+          {settings?.logoImage && (
+            <img src={settings.logoImage} alt="Logo" className="max-h-20 max-w-[200px] w-auto h-auto object-contain object-left" />
+          )}
+          <div>
+            <h1 className={`${settings?.logoImage ? 'text-xl' : 'text-2xl'} font-bold text-[#04325E] uppercase tracking-tight`}>{settings?.shopName || 'POS Suite 360'}</h1>
+          {settings?.invoiceTitle && <p className="text-[#1A63A8] font-bold text-sm mt-1">{settings.invoiceTitle}</p>}
+          <div className="mt-2 text-slate-800 text-xs leading-relaxed">
+            {settings?.shopAddress && <p>{settings.shopAddress}</p>}
+            <p className="font-bold text-slate-700">
+              {[settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ')}
+            </p>
+            {settings?.phone && <p>Tel: {settings.phone}</p>}
+            {settings?.gstin && <p>GSTIN: {settings.gstin}</p>}
           </div>
-          
-          {/* Right Column */}
-          <div className="w-1/2 pl-12">
-             <div className="grid grid-cols-[100px_10px_1fr] gap-y-1">
-               <span className="font-bold">NO.</span><span>:</span><span>{watch('estimationNo')}</span>
-               <span>DATE</span><span>:</span><span>{watch('date')}</span>
-               {/* <span>YOUR P/O NO.</span><span>:</span><span></span> */}
-               <span>SALESMAN</span><span>:</span><span></span>
-               {/* <span>TERMS</span><span>:</span><span>C.O.D.</span> */}
-               <span>PAY TYPE</span><span>:</span><span>{paymentModes.find((p: any) => p.id === Number(watch('paymentModeId')))?.name || ''}</span>
-               <span>PENDING AMT</span><span>:</span><span>{Number(selectedCustomer?.openingBalance || 0).toFixed(2)}</span>
-               <span>PAGE</span><span>:</span><span>1 of 1</span>
-             </div>
           </div>
         </div>
-        
-        <table className="w-full text-left border-y border-black mb-4 whitespace-nowrap">
-          <thead>
-            <tr className="border-b border-black text-xs uppercase">
-              <th className="py-2 w-[15%]">Code</th>
-              <th className="py-2 w-[40%]">Description</th>
-              <th className="py-2 w-[10%] text-right">Qty</th>
-              <th className="py-2 w-[10%] text-center">UOM</th>
-              <th className="py-2 w-[10%] text-right">U.Price</th>
-              <th className="py-2 w-[15%] text-right">Amount</th>
+        <div className="text-right">
+          <h2 className="text-4xl font-black text-[#1A63A8] tracking-wider mb-2">ESTIMATION</h2>
+          <p className="font-bold text-slate-700 text-sm">Est No: #{watch('estimationNo')}</p>
+        </div>
+      </div>
+
+      {/* Info Cards */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
+          <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3">Billed To / Customer Details</h3>
+          <p className="font-bold text-slate-800 text-sm mb-1">{selectedCustomer?.name || 'Counter Sale'}</p>
+          <div className="text-slate-800 text-xs space-y-1">
+
+            {selectedCustomer?.address && <p>{selectedCustomer.address}</p>}
+            {selectedCustomer?.state && <p>{selectedCustomer.state}</p>}
+            {selectedCustomer?.phone && <p>Phone: {selectedCustomer.phone}</p>}
+            {selectedCustomer?.gstNumber && <p>GSTIN: {selectedCustomer.gstNumber}</p>}
+          </div>
+        </div>
+        <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
+          <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3">Estimation Details</h3>
+          <div className="grid grid-cols-[120px_1fr] gap-y-2 text-xs">
+            <span className="font-bold text-slate-600">Date:</span>
+            <span className="text-slate-800">{watch('date')}</span>
+            <span className="font-bold text-slate-600">Payment Mode:</span>
+            <span className="text-slate-800">{paymentModes.find((p: any) => p.id === Number(watch('paymentModeId')))?.name || 'Cash'}</span>
+            <span className="font-bold text-slate-600">Status:</span>
+            <span className="text-slate-800">Pending</span>
+            {Number(selectedCustomer?.openingBalance) > 0 && (
+              <>
+                <span className="font-bold text-slate-600">Pending Amount:</span>
+                <span className="text-slate-800">{settings?.currencySymbol || 'RM'} {Number(selectedCustomer?.openingBalance).toFixed(2)}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="border border-slate-200 mb-6 flex-1 flex flex-col overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-[#2D6AA1] text-white text-[10px] uppercase tracking-wider">
+            <tr>
+              <th className="py-3 px-4 font-bold w-[5%]">#</th>
+              <th className="py-3 px-4 font-bold w-[45%]">Item Description</th>
+              <th className="py-3 px-4 font-bold w-[15%] text-center">Quantity</th>
+              <th className="py-3 px-4 font-bold w-[15%] text-right whitespace-nowrap">Unit Rate ({settings?.currencySymbol || 'RM'})</th>
+              <th className="py-3 px-4 font-bold w-[20%] text-right whitespace-nowrap">Amount ({settings?.currencySymbol || 'RM'})</th>
             </tr>
           </thead>
-          <tbody className="align-top">
-            {watch('items').filter((i: any) => i.productId > 0).map((item: any, idx: number) => {
-              const product = products.find((p: any) => p.id === item.productId);
+          <tbody className="divide-y divide-slate-100 text-xs">
+            {watch('items').filter((i: any) => Number(i.productId) > 0).map((item: any, idx: number) => {
+              const product = products.find((p: any) => p.id === Number(item.productId));
               return (
-                <tr key={idx}>
-                  <td className="py-1">{product?.code || ''}</td>
-                  <td className="py-1">{product?.name || ''}</td>
-                  <td className="py-1 text-right">{item.quantity}</td>
-                  <td className="py-1 text-center">{item.unit || ''}</td>
-                  <td className="py-1 text-right">{Number(item.rate || 0).toFixed(2)}</td>
-                  <td className="py-1 text-right">{(item.total || 0).toFixed(2)}</td>
-                </tr>
+              <tr key={idx} className="bg-white">
+                <td className="py-3 px-4 text-slate-500">{idx + 1}</td>
+                <td className="py-3 px-4">
+                  <span className="font-bold text-slate-800">{product?.name || ''}</span>
+                  {product?.code && <span className="text-slate-500 ml-2">({product.code})</span>}
+                </td>
+                <td className="py-3 px-4 text-center text-slate-600 font-medium">{item.quantity} {item.unit || 'Nos'}</td>
+                <td className="py-3 px-4 text-right text-slate-600">{Number(item.rate || 0).toFixed(2)}</td>
+                <td className="py-3 px-4 text-right font-bold text-slate-800">{Number(item.total || 0).toFixed(2)}</td>
+              </tr>
               );
             })}
           </tbody>
         </table>
-        
-        <div className="flex-1"></div>
+      </div>
 
+      {/* Footer Area */}
+      <div className="mt-auto grid grid-cols-[1fr_350px] gap-8">
         <div>
-          <p className="uppercase mb-4">RINGGIT MALAYSIA {numberToWords(watch('netAmount'))} ONLY</p>
-          
-          <div className="flex justify-between items-start border-t border-black pt-2">
+          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 h-full flex flex-col">
+            <h3 className="text-[10px] font-bold text-[#1A63A8] uppercase tracking-widest mb-2">Terms & Conditions</h3>
             <div 
-              className="w-2/3 text-[10px] text-black pr-4 html-content"
-              dangerouslySetInnerHTML={{ __html: settings?.estimationNotes || '' }}
+              className="text-[11px] text-slate-600 prose prose-sm max-w-none html-content flex-1"
+              dangerouslySetInnerHTML={{ __html: (settings?.estimationNotes !== undefined && settings?.estimationNotes !== null) ? settings.estimationNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.' }}
             />
-            <div className="w-1/3 flex flex-col font-bold text-sm gap-1">
-              <div className="flex justify-between">
-                <span>SUBTOTAL :</span>
-                <span className="min-w-[100px] text-right">{Number(watch('grossAmount') || 0).toFixed(2)}</span>
+          </div>
+        </div>
+        
+        <div className="flex flex-col justify-end">
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg pt-4 pb-2 flex flex-col mb-6">
+            <div className="space-y-3 text-[13px] px-4 mb-4">
+              <div className="flex justify-between text-[#334155]">
+                <span>Subtotal:</span>
+                <span className="font-semibold tracking-wide">{Number(watch('grossAmount') || 0).toFixed(2)}</span>
               </div>
+              
               {Number(watch('totalDiscount')) > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>DISCOUNT :</span>
-                  <span className="min-w-[100px] text-right">-{Number(watch('totalDiscount')).toFixed(2)}</span>
+                <div className="flex justify-between text-[#334155]">
+                  <span>Discount:</span>
+                  <span className="font-semibold tracking-wide">{Number(watch('totalDiscount') || 0).toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-black pt-1 mt-1">
-                <span>TOTAL : RM</span>
-                <span className="border-b-2 border-black border-double min-w-[100px] text-right">{Number(watch('netAmount') || 0).toFixed(2)}</span>
-              </div>
+            </div>
+            
+            <div className="bg-[#F0F5FA] border-y-2 border-[#1A63A8] px-4 py-3 flex justify-between items-center text-[#04325E] mt-1 mb-1">
+              <span className="font-bold text-[14px]">Total Due:</span>
+              <span className="text-[15px] font-black tracking-tight">{settings?.currencySymbol || 'RM'} {Number(watch('netAmount') || 0).toFixed(2)}</span>
+            </div>
+            <div className="text-right px-4 pb-2 text-[9px] text-[#1A63A8] font-bold uppercase tracking-wider">
+              {numberToWords(watch('netAmount'))} ONLY
             </div>
           </div>
-          
-          <div className="flex justify-end mt-8">
-            <div className="text-center w-64 border-t border-black pt-1 relative">
-              {settings?.signatureImage && (
-                <img 
-                  src={settings.signatureImage} 
-                  alt="Authorised Signature" 
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 h-16 object-contain"
-                />
-              )}
-              Authorised Signature
+
+          <div className="text-right mt-4 relative">
+            <p className="text-[10px] font-bold text-slate-800 mb-12">For {settings?.shopName || 'POS Suite 360'}</p>
+            {settings?.signatureImage && (
+              <img 
+                src={settings.signatureImage} 
+                alt="Authorised Signature" 
+                className="absolute bottom-6 right-8 h-12 object-contain opacity-80 mix-blend-multiply"
+              />
+            )}
+            <div className="inline-block border-t border-slate-400 pt-2 px-8 w-48 mt-4">
+              <p className="text-[11px] font-bold text-slate-700 text-center">Authorized Signatory</p>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-8 text-center text-[11px] font-medium text-slate-600 border-t border-slate-200 pt-3">
+        <p>Thank you for partnering with {settings?.shopName || 'POS Suite 360'}! | Page 1 of 1</p>
+      </div>
+    </div>
       </div>
 
       {/* Loss Warning Modal */}
