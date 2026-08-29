@@ -256,6 +256,7 @@ const MainLayout = () => {
             <MobileNavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive}>
               <MobileDropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />
               <MobileDropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />
+              <MobileDropdownItem to="/reports/estimations" icon="fa-file-text-o" title="Estimation Report" />
               <MobileDropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />
               <MobileDropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />
               <div className="my-1 border-t border-[#2A3F54]/30"></div>
@@ -387,6 +388,7 @@ const MainLayout = () => {
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
                 {hasPerm('reports_sales') && <DropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
                 {hasPerm('reports_sales') && <DropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
+                {hasPerm('reports_sales') && <DropdownItem to="/reports/estimations" icon="fa-file-text-o" title="Estimation Report" />}
                 
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Manufacturing</div>
@@ -564,6 +566,7 @@ const MainLayout = () => {
               <MobileNavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive}>
                 {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
                 {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
+                {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/estimations" icon="fa-file-text-o" title="Estimation Report" />}
                 {hasPerm('reports_purchase') && <MobileDropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
                 {hasPerm('reports_purchase') && <MobileDropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
                 <div className="my-1 border-t border-[#2A3F54]/30"></div>

@@ -58,6 +58,7 @@ import SalesReport from '../pages/reports/SalesReport';
 import SalesReturnReport from '../pages/reports/SalesReturnReport';
 import PurchaseReport from '../pages/reports/PurchaseReport';
 import PurchaseReturnReport from '../pages/reports/PurchaseReturnReport';
+import EstimationReport from '../pages/reports/EstimationReport';
 import StockReport from '../pages/reports/StockReport';
 import StockLedgerReport from '../pages/reports/StockLedgerReport';
 import ExpenseReport from '../pages/reports/ExpenseReport';
@@ -127,6 +128,7 @@ const AppRoutes = () => {
         {/* Report Routes */}
         <Route element={<ProtectedRoute requiredPerms="reports_sales" />}><Route path="/reports/sales" element={<SalesReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_sales" />}><Route path="/reports/sales-return" element={<SalesReturnReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_sales" />}><Route path="/reports/estimations" element={<EstimationReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_purchase" />}><Route path="/reports/purchase" element={<PurchaseReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_purchase" />}><Route path="/reports/purchase-return" element={<PurchaseReturnReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_financial" />}><Route path="/reports/stock" element={<StockReport />} /></Route>

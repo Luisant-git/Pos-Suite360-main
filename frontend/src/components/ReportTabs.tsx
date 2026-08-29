@@ -20,6 +20,7 @@ const ReportTabs = () => {
     { name: 'RM Purchase Report', path: '/reports/raw-material-purchase', icon: <Truck size={14} /> },
     { name: 'Production Report', path: '/reports/production', icon: <Box size={14} /> },
     { name: 'Sales Report', path: '/reports/sales', icon: <FileText size={14} /> },
+    { name: 'Estimation Report', path: '/reports/estimations', icon: <FileText size={14} /> },
     { name: 'Sales Return Report', path: '/reports/sales-return', icon: <CornerDownLeft size={14} /> },
     { name: 'Stock as on Date', path: '/reports/stock', icon: <Box size={14} /> },
     { name: 'Monthly Movement', path: '/reports/monthly-movement', icon: <RefreshCw size={14} /> },
