@@ -17,10 +17,13 @@ interface Settings {
   estimationNotes?: string;
   gstin?: string;
   signatureImage?: string;
+  logoImage?: string;
   enableTax: boolean;
   taxType: string;
   enableCustomerWiseRate: boolean;
+  city?: string;
   state?: string;
+  country?: string;
 }
 
 interface SettingsContextType {
