@@ -110,7 +110,10 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       doc.setFontSize(opts.size || 10);
       doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
       doc.setTextColor(opts.color || '#1e293b');
-      doc.text(String(text ?? ''), x, yPos, { maxWidth: opts.maxWidth });
+      const textOpts: any = {};
+      if (opts.maxWidth) textOpts.maxWidth = opts.maxWidth;
+      if (opts.align) textOpts.align = opts.align;
+      doc.text(String(text ?? ''), x, yPos, textOpts);
     };
 
     // Header
@@ -124,7 +127,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     if (settings?.gstin) { addText(`GSTIN: ${settings.gstin}`, col, y, { size: 9, color: '#475569' }); y += 5; }
 
     // Invoice label top-right
-    addText(isEstimation ? 'ESTIMATION' : 'INVOICE', W - margin, margin + 4, { size: 20, bold: true, color: '#1A63A8' });
+    addText(isEstimation ? 'ESTIMATION' : 'INVOICE', W - margin, margin + 4, { size: 20, bold: true, color: '#1A63A8', align: 'right' });
     doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
     doc.text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, W - margin, margin + 11, { align: 'right' });
     doc.text(`Date: ${date}`, W - margin, margin + 17, { align: 'right' });
@@ -142,8 +145,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
     // Payment info right side
     const infoY = y - (5 * (1 + (sale?.customer?.phone ? 1 : 0) + (sale?.customer?.address ? 1 : 0) + (sale?.customer?.gstNumber ? 1 : 0))) - 5;
-    addText('PAYMENT MODE', W - margin - 60, infoY, { size: 8, bold: true, color: '#64748b' });
-    addText(sale?.paymentMode?.name || 'Cash', W - margin - 60, infoY + 5, { size: 10, bold: true });
+    addText('PAYMENT MODE', W - margin, infoY, { size: 8, bold: true, color: '#64748b', align: 'right' });
+    addText(sale?.paymentMode?.name || 'Cash', W - margin, infoY + 5, { size: 10, bold: true, align: 'right' });
 
     y += 4;
     doc.line(col, y, W - margin, y); y += 6;
@@ -156,7 +159,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     doc.text('Item Description', col + 10, y + 1);
     doc.text('Qty', col + 100, y + 1, { align: 'center' });
     doc.text('Rate', col + 130, y + 1, { align: 'right' });
-    doc.text('Amount', W - margin, y + 1, { align: 'right' });
+    doc.text('Amount', W - margin - 2, y + 1, { align: 'right' });
     y += 8;
 
     // Table rows
@@ -170,15 +173,16 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 100, y, { align: 'center' });
       doc.text(Number(item.rate || 0).toFixed(2), col + 130, y, { align: 'right' });
       doc.setFont('helvetica', 'bold');
-      doc.text(Number(item.amount || 0).toFixed(2), W - margin, y, { align: 'right' });
+      doc.text(Number(item.amount || item.total || 0).toFixed(2), W - margin - 2, y, { align: 'right' });
       y += lineH + 2;
     });
 
     doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
 
     // Totals
+    const totalsStartY = y;
     const totalsX = W - margin - 60;
-    const valX = W - margin;
+    const valX = W - margin - 2;
     doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor('#334155');
     doc.text('Subtotal:', totalsX, y); doc.text(Number(sale?.subtotal || 0).toFixed(2), valX, y, { align: 'right' }); y += lineH;
     if (Number(sale?.discount) > 0) { doc.text('Discount:', totalsX, y); doc.text(Number(sale.discount).toFixed(2), valX, y, { align: 'right' }); y += lineH; }
@@ -192,7 +196,29 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
     doc.text('Total Due:', totalsX, y + 3);
     doc.text(`${currency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
-    y += 16;
+    
+    // Draw QR Code on the left side of the totals
+    const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
+    if (settings?.upiId && grandTotal > 0 && qrCanvas) {
+      try {
+        const qrDataUrl = qrCanvas.toDataURL('image/png');
+        doc.addImage(qrDataUrl, 'PNG', col, totalsStartY - 2, 28, 28);
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor('#1e293b');
+        doc.text('Scan to Pay', col + 32, totalsStartY + 6);
+        
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor('#64748b');
+        doc.text(`UPI ID: ${settings.upiId}`, col + 32, totalsStartY + 11);
+      } catch (e) {
+        console.error('Error adding QR to PDF', e);
+      }
+    }
+    
+    y += 18;
 
     // Footer
     doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#94a3b8');
