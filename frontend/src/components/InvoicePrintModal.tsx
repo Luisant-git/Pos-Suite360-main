@@ -106,14 +106,14 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const col = margin;
       const lineH = 6;
 
-    const addText = (text: string, x: number, yPos: number, opts: any = {}) => {
+    const addText = (text: string | string[], x: number, yPos: number, opts: any = {}) => {
       doc.setFontSize(opts.size || 10);
       doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
       doc.setTextColor(opts.color || '#1e293b');
       const textOpts: any = {};
       if (opts.maxWidth) textOpts.maxWidth = opts.maxWidth;
       if (opts.align) textOpts.align = opts.align;
-      doc.text(String(text ?? ''), x, yPos, textOpts);
+      doc.text(text || '', x, yPos, textOpts);
     };
 
     // Header
@@ -140,7 +140,12 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     addText('BILLED TO', col, y, { size: 8, bold: true, color: '#64748b' }); y += 5;
     addText(customerName, col, y, { size: 11, bold: true }); y += 5;
     if (sale?.customer?.phone) { addText(`Phone: ${sale.customer.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
-    if (sale?.customer?.address) { addText(sale.customer.address, col, y, { size: 9, color: '#475569', maxWidth: 80 }); y += 5; }
+    if (sale?.customer?.address) {
+      doc.setFontSize(9);
+      const addressLines = doc.splitTextToSize(sale.customer.address, 80);
+      addText(addressLines, col, y, { size: 9, color: '#475569' });
+      y += (addressLines.length * 4) + 1;
+    }
     if (sale?.customer?.gstNumber) { addText(`GSTIN: ${sale.customer.gstNumber}`, col, y, { size: 9, color: '#475569' }); y += 5; }
 
     // Payment info right side
@@ -185,17 +190,22 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
     // Table rows
     items.forEach((item: any, idx: number) => {
-      if (idx % 2 === 0) { doc.setFillColor('#f8fafc'); doc.rect(col, y - 4, W - margin * 2, lineH + 2, 'F'); }
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      const splitName = doc.splitTextToSize(item.product?.name || '', 80);
+      const rowLines = splitName.length;
+      const currentRowH = Math.max(lineH + 2, (rowLines * 4) + 2);
+
+      if (idx % 2 === 0) { doc.setFillColor('#f8fafc'); doc.rect(col, y - 4, W - margin * 2, currentRowH, 'F'); }
       doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#1e293b');
       doc.text(String(idx + 1), col + 2, y);
       doc.setFont('helvetica', 'bold');
-      doc.text(item.product?.name || '', col + 10, y, { maxWidth: 80 });
+      doc.text(splitName, col + 10, y);
       doc.setFont('helvetica', 'normal');
       doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 100, y, { align: 'center' });
       doc.text(Number(item.rate || 0).toFixed(2), col + 130, y, { align: 'right' });
       doc.setFont('helvetica', 'bold');
       doc.text(Number(item.amount || item.total || 0).toFixed(2), W - margin - 2, y, { align: 'right' });
-      y += lineH + 2;
+      y += currentRowH;
     });
 
     doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
@@ -221,9 +231,10 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     doc.setDrawColor('#1A63A8'); doc.setLineWidth(0.5);
     doc.line(totalsX - 4, y - 4, W - margin + margin, y - 4);
     doc.line(totalsX - 4, y + 6, W - margin + margin, y + 6);
+    const pdfCurrency = currency.replace('₹', 'Rs.');
     doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
     doc.text('Total Due:', totalsX, y + 3);
-    doc.text(`${currency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
+    doc.text(`${pdfCurrency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
     
     // Amount in words (Below the underline)
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
