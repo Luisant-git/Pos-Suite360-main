@@ -44,6 +44,7 @@ interface InvoicePrintModalProps {
 const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer = false, isEstimation = false, autoPrint = false }: InvoicePrintModalProps) => {
   const { settings } = useSettings();
   const [isSharing, setIsSharing] = useState(false);
+  const [isSharingQR, setIsSharingQR] = useState(false);
 
   // Always fetch full sale data to ensure unit, paymentMode, customer are fully populated
   const { data: fullSale, isLoading } = useQuery({
@@ -227,6 +228,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       return;
     }
     
+    setIsSharingQR(true);
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -322,24 +324,38 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       ctx.font = `bold ${11 * scale}px sans-serif`;
       ctx.fillText('SECURE PAYMENTS BY POS SUITE 360', width / 2, height - 25 * scale);
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], `Pay_${invoiceNo}.png`, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: `Pay Invoice ${invoiceNo}` });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Pay_${invoiceNo}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      }, 'image/png');
+      await new Promise<void>((resolve) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            resolve();
+            return;
+          }
+          const file = new File([blob], `Pay_${invoiceNo}.png`, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: `Pay Invoice ${invoiceNo}` });
+            } catch (err: any) {
+              if (err.name !== 'AbortError') {
+                console.error('Error sharing QR code:', err);
+              }
+            }
+          } else {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Pay_${invoiceNo}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+          resolve();
+        }, 'image/png');
+      });
     } catch (err) {
       console.error('Error sharing QR Code:', err);
       toast.error('Failed to share QR Code');
+    } finally {
+      setIsSharingQR(false);
     }
   };
 
@@ -604,9 +620,14 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                 <button 
                   type="button"
                   onClick={handleShareQR}
-                  className="bg-[#38BDF8] hover:bg-[#0EA5E9] text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
+                  disabled={isSharingQR}
+                  className="bg-[#38BDF8] hover:bg-[#0EA5E9] disabled:opacity-70 text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
                 >
-                  <QrCode size={14} /> <span className="hidden sm:inline">Share QR</span>
+                  {isSharingQR ? (
+                    <><Loader2 size={14} className="animate-spin" /> <span className="hidden sm:inline">Preparing...</span></>
+                  ) : (
+                    <><QrCode size={14} /> <span className="hidden sm:inline">Share QR</span></>
+                  )}
                 </button>
               )}
             </div>

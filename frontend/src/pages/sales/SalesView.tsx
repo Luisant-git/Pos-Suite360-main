@@ -160,7 +160,7 @@ const SalesView = () => {
             <Printer size={16} /> Print
           </button>
           <button 
-            onClick={handleWhatsAppSend}
+            onClick={handleShare}
             disabled={isSharing}
             className="flex items-center gap-2 bg-[#22C55E] border border-[#22C55E] text-white hover:bg-[#16A34A] disabled:opacity-70 px-4 py-2 rounded font-bold text-[13px] transition-colors shadow-sm"
           >

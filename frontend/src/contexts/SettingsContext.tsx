@@ -24,6 +24,7 @@ interface Settings {
   city?: string;
   state?: string;
   country?: string;
+  upiId?: string;
 }
 
 interface SettingsContextType {
