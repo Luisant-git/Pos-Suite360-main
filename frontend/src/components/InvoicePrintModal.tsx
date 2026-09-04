@@ -145,8 +145,29 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
     // Payment info right side
     const infoY = y - (5 * (1 + (sale?.customer?.phone ? 1 : 0) + (sale?.customer?.address ? 1 : 0) + (sale?.customer?.gstNumber ? 1 : 0))) - 5;
-    addText('PAYMENT MODE', W - margin, infoY, { size: 8, bold: true, color: '#64748b', align: 'right' });
-    addText(sale?.paymentMode?.name || 'Cash', W - margin, infoY + 5, { size: 10, bold: true, align: 'right' });
+    
+    addText('INVOICE DETAILS', W - margin, infoY, { size: 8, bold: true, color: '#64748b', align: 'right' });
+    
+    const detailsLabelX = W - margin - 35;
+    const detailsValueX = W - margin;
+    
+    doc.setFontSize(9);
+    doc.setTextColor('#334155');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Date:', detailsLabelX, infoY + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.text(date, detailsValueX, infoY + 6, { align: 'right' });
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Payment:', detailsLabelX, infoY + 11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(sale?.paymentMode?.name || 'Cash', detailsValueX, infoY + 11, { align: 'right' });
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Status:', detailsLabelX, infoY + 16);
+    doc.setFont('helvetica', 'normal');
+    doc.text(sale?.status || 'Completed', detailsValueX, infoY + 16, { align: 'right' });
 
     y += 4;
     doc.line(col, y, W - margin, y); y += 6;
@@ -189,13 +210,17 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     if (Number(sale?.tax) > 0) { doc.text('Tax:', totalsX, y); doc.text(Number(sale.tax).toFixed(2), valX, y, { align: 'right' }); y += lineH; }
 
     // Grand total box
-    doc.setFillColor('#F0F5FA'); doc.rect(totalsX - 4, y - 4, W - margin - totalsX + 4 + margin, 10, 'F');
+    doc.setFillColor('#F0F5FA'); doc.rect(totalsX - 4, y - 4, W - margin - totalsX + 4 + margin, 14, 'F');
     doc.setDrawColor('#1A63A8'); doc.setLineWidth(0.5);
     doc.line(totalsX - 4, y - 4, W - margin + margin, y - 4);
-    doc.line(totalsX - 4, y + 6, W - margin + margin, y + 6);
+    doc.line(totalsX - 4, y + 10, W - margin + margin, y + 10);
     doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
     doc.text('Total Due:', totalsX, y + 3);
     doc.text(`${currency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
+    
+    // Amount in words
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
+    doc.text(`${numberToWords(grandTotal)} ONLY`, valX, y + 8, { align: 'right' });
     
     // Draw QR Code on the left side of the totals
     const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
