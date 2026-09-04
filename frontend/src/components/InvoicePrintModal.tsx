@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
+import { QRCodeSVG } from 'qrcode.react';
 
 // Basic number to words converter (for Malaysian Ringgit / general use)
 const numberToWords = (num: number): string => {
@@ -53,6 +54,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   });
 
   const sale = fullSale || initialSale;
+  const invoiceNo = sale?.estimationNo || sale?.invoiceNo || '';
 
   useEffect(() => {
     if (autoPrint && !isLoading && sale) {
@@ -63,6 +65,16 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       return () => clearTimeout(timer);
     }
   }, [autoPrint, isLoading, sale, onClose]);
+
+  useEffect(() => {
+    if (isOpen && invoiceNo) {
+      const originalTitle = document.title;
+      document.title = `invoice_${invoiceNo}`;
+      return () => {
+        document.title = originalTitle;
+      };
+    }
+  }, [isOpen, invoiceNo]);
 
   if (!isOpen) return null;
 
@@ -76,8 +88,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     );
   }
 
-  // Fallback data if sale is not fully populated yet
-  const invoiceNo = sale?.estimationNo || sale?.invoiceNo || '';
   const date = sale?.date ? new Date(sale.date).toISOString().split('T')[0] : '';
   const customerName = sale?.customer?.name || 'CASH A/C';
   const items = sale?.items || [];
@@ -302,15 +312,32 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       {/* Footer Area */}
       <div className="mt-auto grid grid-cols-[1fr_350px] gap-8">
-        {/* Left Footer: Notes/Terms */}
-        <div>
-          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 h-full flex flex-col">
+        {/* Left Footer: Notes/Terms & QR */}
+        <div className="flex flex-col gap-4 h-full">
+          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex-1 flex flex-col">
             <h3 className="text-[10px] font-bold text-[#1A63A8] uppercase tracking-widest mb-2">Terms & Conditions</h3>
             <div 
               className="text-[11px] text-slate-600 prose prose-sm max-w-none html-content flex-1"
               dangerouslySetInnerHTML={{ __html: (settings?.invoiceNotes !== undefined && settings?.invoiceNotes !== null) ? settings.invoiceNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.' }}
             />
           </div>
+          
+          {settings?.upiId && grandTotal > 0 && (
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4">
+              <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
+                <QRCodeSVG 
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  size={64}
+                  level="M"
+                />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1">Scan to Pay</h3>
+                <p className="text-[10px] text-slate-600 font-medium">UPI ID: {settings.upiId}</p>
+                <p className="text-[9px] text-slate-500 mt-1">Scan using any UPI app</p>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Right Footer: Totals & Signature */}
