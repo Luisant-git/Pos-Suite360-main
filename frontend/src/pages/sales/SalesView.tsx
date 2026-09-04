@@ -24,7 +24,7 @@ const SalesView = () => {
     enabled: !!id,
   });
 
-  const handleWhatsAppSend = () => {
+  const handleShare = async () => {
     if (!sale) return;
     setIsSharing(true);
     const invoiceNo = sale.invoiceNo || '';
@@ -100,20 +100,24 @@ const SalesView = () => {
 
     const pdfBlob = doc.output('blob');
     const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
-    const tryShare = async () => {
-      try {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: `Invoice ${invoiceNo}` });
-          setIsSharing(false); return;
-        }
-      } catch (_) {}
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(pdfBlob);
-      link.download = `Invoice_${invoiceNo}.pdf`;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Invoice ${invoiceNo}` });
+      } else {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(pdfBlob);
+        link.download = `Invoice_${invoiceNo}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error sharing:', err);
+      }
+    } finally {
       setIsSharing(false);
-    };
-    tryShare();
+    }
   };
 
   if (isLoading) {

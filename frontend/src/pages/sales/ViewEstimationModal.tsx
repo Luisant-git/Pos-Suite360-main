@@ -22,7 +22,7 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
     enabled: !!estimationId,
   });
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!est) return;
     setIsSharing(true);
     const estNo = est.estimationNo || '';
@@ -91,20 +91,24 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
 
     const pdfBlob = doc.output('blob');
     const file = new File([pdfBlob], `Estimation_${estNo}.pdf`, { type: 'application/pdf' });
-    const tryShare = async () => {
-      try {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: `Estimation ${estNo}` });
-          setIsSharing(false); return;
-        }
-      } catch (_) {}
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(pdfBlob);
-      link.download = `Estimation_${estNo}.pdf`;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Estimation ${estNo}` });
+      } else {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(pdfBlob);
+        link.download = `Estimation_${estNo}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error sharing:', err);
+      }
+    } finally {
       setIsSharing(false);
-    };
-    tryShare();
+    }
   };
 
   if (isLoading) {
