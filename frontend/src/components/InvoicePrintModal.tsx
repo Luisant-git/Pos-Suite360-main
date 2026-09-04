@@ -210,17 +210,17 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     if (Number(sale?.tax) > 0) { doc.text('Tax:', totalsX, y); doc.text(Number(sale.tax).toFixed(2), valX, y, { align: 'right' }); y += lineH; }
 
     // Grand total box
-    doc.setFillColor('#F0F5FA'); doc.rect(totalsX - 4, y - 4, W - margin - totalsX + 4 + margin, 14, 'F');
+    doc.setFillColor('#F0F5FA'); doc.rect(totalsX - 4, y - 4, W - margin - totalsX + 4 + margin, 10, 'F');
     doc.setDrawColor('#1A63A8'); doc.setLineWidth(0.5);
     doc.line(totalsX - 4, y - 4, W - margin + margin, y - 4);
-    doc.line(totalsX - 4, y + 10, W - margin + margin, y + 10);
+    doc.line(totalsX - 4, y + 6, W - margin + margin, y + 6);
     doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
     doc.text('Total Due:', totalsX, y + 3);
     doc.text(`${currency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
     
-    // Amount in words
+    // Amount in words (Below the underline)
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
-    doc.text(`${numberToWords(grandTotal)} ONLY`, valX, y + 8, { align: 'right' });
+    doc.text(`${numberToWords(grandTotal)} ONLY`, valX, y + 11, { align: 'right' });
     
     // Draw QR Code on the left side of the totals
     const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
