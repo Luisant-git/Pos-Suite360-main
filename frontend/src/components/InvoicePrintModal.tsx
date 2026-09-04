@@ -200,6 +200,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
     doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
 
+    // Push Totals to the bottom of the page if there is space
+    const pageHeight = 297; // A4 height in mm
+    const bottomY = pageHeight - margin - 35; // 35mm from bottom
+    if (y < bottomY) {
+      y = bottomY;
+    }
+
     // Totals
     const totalsStartY = y;
     const totalsX = W - margin - 60;
