@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Printer, Loader2 } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
