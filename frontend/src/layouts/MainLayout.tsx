@@ -382,25 +382,35 @@ const MainLayout = () => {
 
               {hasPerm('expenses_entry') && <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" compact={showBackButton} />}
 
-              {hasAnyPerm(['reports_sales', 'reports_purchase', 'reports_manufacturing', 'reports_financial']) && (
+              {hasAnyPerm(['reports_sales', 'reports_sales_return', 'reports_estimations', 'reports_purchase', 'reports_purchase_return', 'reports_rm_purchase', 'reports_production', 'reports_batch_pnl', 'reports_stock', 'reports_profit_ledger']) && (
               <NavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive} rightAligned compact={showBackButton}>
-                <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Purchase & Sales</div>
+                {(hasPerm('reports_purchase') || hasPerm('reports_purchase_return') || hasPerm('reports_sales') || hasPerm('reports_sales_return') || hasPerm('reports_estimations')) && (
+                  <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Purchase & Sales</div>
+                )}
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
-                {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
+                {hasPerm('reports_purchase_return') && <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
                 {hasPerm('reports_sales') && <DropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
-                {hasPerm('reports_sales') && <DropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
-                {hasPerm('reports_sales') && <DropdownItem to="/reports/estimations" icon="fa-file-text-o" title="Estimation Report" />}
+                {hasPerm('reports_sales_return') && <DropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
+                {hasPerm('reports_estimations') && <DropdownItem to="/reports/estimations" icon="fa-file-text-o" title="Estimation Report" />}
                 
-                <div className="h-px bg-gray-100 my-1 mx-4"></div>
-                <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Manufacturing</div>
-                {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
-                {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
-                {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/batch-pnl" icon="fa-pie-chart" title="Batch P&L Report" />}
+                {(hasPerm('reports_rm_purchase') || hasPerm('reports_production') || hasPerm('reports_batch_pnl')) && (
+                  <>
+                    <div className="h-px bg-gray-100 my-1 mx-4"></div>
+                    <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Manufacturing</div>
+                  </>
+                )}
+                {hasPerm('reports_rm_purchase') && <DropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
+                {hasPerm('reports_production') && <DropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
+                {hasPerm('reports_batch_pnl') && <DropdownItem to="/reports/batch-pnl" icon="fa-pie-chart" title="Batch P&L Report" />}
 
-                <div className="h-px bg-gray-100 my-1 mx-4"></div>
-                <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Financial</div>
-                {hasPerm('reports_financial') && <DropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />}
-                {hasPerm('reports_financial') && <DropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />}
+                {(hasPerm('reports_stock') || hasPerm('reports_profit_ledger')) && (
+                  <>
+                    <div className="h-px bg-gray-100 my-1 mx-4"></div>
+                    <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Financial</div>
+                  </>
+                )}
+                {hasPerm('reports_stock') && <DropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />}
+                {hasPerm('reports_profit_ledger') && <DropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />}
               </NavDropdown>
               )}
             </nav>
@@ -564,20 +574,20 @@ const MainLayout = () => {
 
               {hasPerm('expenses_entry') && <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" onClick={closeMobileMenu} />}
 
-              {hasAnyPerm(['reports_sales', 'reports_purchase', 'reports_manufacturing', 'reports_financial']) && (
+              {hasAnyPerm(['reports_sales', 'reports_sales_return', 'reports_estimations', 'reports_purchase', 'reports_purchase_return', 'reports_rm_purchase', 'reports_production', 'reports_batch_pnl', 'reports_stock', 'reports_profit_ledger']) && (
               <MobileNavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive}>
                 {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/sales" icon="fa-line-chart" title="Sales Report" />}
-                {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
-                {hasPerm('reports_sales') && <MobileDropdownItem to="/reports/estimations" icon="fa-file-text-o" title="Estimation Report" />}
+                {hasPerm('reports_sales_return') && <MobileDropdownItem to="/reports/sales-return" icon="fa-mail-reply" title="Sales Return Report" isDanger />}
+                {hasPerm('reports_estimations') && <MobileDropdownItem to="/reports/estimations" icon="fa-file-text-o" title="Estimation Report" />}
                 {hasPerm('reports_purchase') && <MobileDropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
-                {hasPerm('reports_purchase') && <MobileDropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
-                <div className="my-1 border-t border-[#2A3F54]/30"></div>
-                {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
-                {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
-                {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/batch-pnl" icon="fa-pie-chart" title="Batch P&L Report" />}
-                <div className="my-1 border-t border-[#2A3F54]/30"></div>
-                {hasPerm('reports_financial') && <MobileDropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />}
-                {hasPerm('reports_financial') && <MobileDropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />}
+                {hasPerm('reports_purchase_return') && <MobileDropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
+                
+                {hasPerm('reports_rm_purchase') && <MobileDropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
+                {hasPerm('reports_production') && <MobileDropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
+                {hasPerm('reports_batch_pnl') && <MobileDropdownItem to="/reports/batch-pnl" icon="fa-pie-chart" title="Batch P&L Report" />}
+                
+                {hasPerm('reports_stock') && <MobileDropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />}
+                {hasPerm('reports_profit_ledger') && <MobileDropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />}
               </MobileNavDropdown>
               )}
             </nav>

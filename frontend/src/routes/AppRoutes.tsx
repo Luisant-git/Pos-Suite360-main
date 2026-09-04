@@ -128,17 +128,17 @@ const AppRoutes = () => {
 
         {/* Report Routes */}
         <Route element={<ProtectedRoute requiredPerms="reports_sales" />}><Route path="/reports/sales" element={<SalesReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_sales" />}><Route path="/reports/sales-return" element={<SalesReturnReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_sales" />}><Route path="/reports/estimations" element={<EstimationReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_sales_return" />}><Route path="/reports/sales-return" element={<SalesReturnReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_estimations" />}><Route path="/reports/estimations" element={<EstimationReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_purchase" />}><Route path="/reports/purchase" element={<PurchaseReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_purchase" />}><Route path="/reports/purchase-return" element={<PurchaseReturnReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_financial" />}><Route path="/reports/stock" element={<StockReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_financial" />}><Route path="/reports/profit-ledger" element={<ProfitLossReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_financial" />}><Route path="/reports/expenses" element={<ExpenseReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_financial" />}><Route path="/reports/stock-ledger" element={<StockLedgerReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_manufacturing" />}><Route path="/reports/raw-material-purchase" element={<RawMaterialPurchaseReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_manufacturing" />}><Route path="/reports/production" element={<ProductionReport />} /></Route>
-        <Route element={<ProtectedRoute requiredPerms="reports_manufacturing" />}><Route path="/reports/batch-pnl" element={<BatchPnlReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_purchase_return" />}><Route path="/reports/purchase-return" element={<PurchaseReturnReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_stock" />}><Route path="/reports/stock" element={<StockReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_profit_ledger" />}><Route path="/reports/profit-ledger" element={<ProfitLossReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_profit_ledger" />}><Route path="/reports/expenses" element={<ExpenseReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_stock" />}><Route path="/reports/stock-ledger" element={<StockLedgerReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_rm_purchase" />}><Route path="/reports/raw-material-purchase" element={<RawMaterialPurchaseReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_production" />}><Route path="/reports/production" element={<ProductionReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_batch_pnl" />}><Route path="/reports/batch-pnl" element={<BatchPnlReport />} /></Route>
 
         {/* Manufacturing & Raw Materials */}
         <Route element={<ProtectedRoute requiredPerms="mfg_rm_master" />}><Route path="/raw-materials/master" element={<RawMaterialMaster />} /></Route>

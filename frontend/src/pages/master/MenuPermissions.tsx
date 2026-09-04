@@ -74,10 +74,16 @@ const MODULES = [
     name: 'Reports',
     icon: <Shield size={18} />,
     permissions: [
-      { id: 'reports_sales', name: 'Sales Reports' },
-      { id: 'reports_purchase', name: 'Purchase Reports' },
-      { id: 'reports_manufacturing', name: 'Manufacturing Reports' },
-      { id: 'reports_financial', name: 'Financial & Stock Reports' },
+      { id: 'reports_purchase', name: 'Purchase Report' },
+      { id: 'reports_purchase_return', name: 'Purchase Return Report' },
+      { id: 'reports_sales', name: 'Sales Report' },
+      { id: 'reports_sales_return', name: 'Sales Return Report' },
+      { id: 'reports_estimations', name: 'Estimation Report' },
+      { id: 'reports_rm_purchase', name: 'RM Purchase Report' },
+      { id: 'reports_production', name: 'Production Report' },
+      { id: 'reports_batch_pnl', name: 'Batch P&L Report' },
+      { id: 'reports_stock', name: 'Stock As On Date' },
+      { id: 'reports_profit_ledger', name: 'Profit / Ledger' },
     ]
   },
   {

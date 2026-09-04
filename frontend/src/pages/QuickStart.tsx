@@ -72,11 +72,11 @@ const menuData = [
     colorClass: 'hover:border-teal-500 [&>div]:text-teal-600 [&>div]:bg-teal-50',
     items: [
       { name: 'Purchase Report', path: '/reports/purchase', icon: FileText, authKey: 'reports_purchase' },
-      { name: 'Purchase Return Report', path: '/reports/purchase-return', icon: FileText, authKey: 'reports_purchase' },
+      { name: 'Purchase Return Report', path: '/reports/purchase-return', icon: FileText, authKey: 'reports_purchase_return' },
       { name: 'Sales Report', path: '/reports/sales', icon: FileText, authKey: 'reports_sales' },
-      { name: 'Sales Return Report', path: '/reports/sales-return', icon: FileText, authKey: 'reports_sales' },
-      { name: 'Stock As On Date', path: '/reports/stock', icon: FileText, authKey: 'reports_financial' },
-      { name: 'Profit / Ledger', path: '/reports/profit-ledger', icon: FileText, authKey: 'reports_financial' },
+      { name: 'Sales Return Report', path: '/reports/sales-return', icon: FileText, authKey: 'reports_sales_return' },
+      { name: 'Stock As On Date', path: '/reports/stock', icon: FileText, authKey: 'reports_stock' },
+      { name: 'Profit / Ledger', path: '/reports/profit-ledger', icon: FileText, authKey: 'reports_profit_ledger' },
     ]
   }
 ];
