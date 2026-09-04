@@ -84,14 +84,15 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const grandTotal = sale?.grandTotal || 0;
   const currency = settings?.currencySymbol || 'RM';
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     setIsSharing(true);
-    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    const W = 210;
-    const margin = 14;
-    let y = margin;
-    const col = margin;
-    const lineH = 6;
+    try {
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const W = 210;
+      const margin = 14;
+      let y = margin;
+      const col = margin;
+      const lineH = 6;
 
     const addText = (text: string, x: number, yPos: number, opts: any = {}) => {
       doc.setFontSize(opts.size || 10);
@@ -188,24 +189,24 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     const pdfBlob = doc.output('blob');
     const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
 
-    // Try native share (works on mobile/Edge), fallback to download on desktop Chrome
-    const tryShare = async () => {
-      try {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: `Invoice ${invoiceNo}` });
-          setIsSharing(false);
-          return;
-        }
-      } catch (_) { /* fall through */ }
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(pdfBlob);
-      link.download = `Invoice_${invoiceNo}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `Invoice ${invoiceNo}` });
+      } else {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(pdfBlob);
+        link.download = `Invoice_${invoiceNo}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error generating/sharing PDF:', err);
+        // Assuming toast is available globally or ignored if not imported, wait, let's just log it
+      }
+    } finally {
       setIsSharing(false);
-    };
-    tryShare();
+    }
   };
 
   const InvoiceContent = () => (
@@ -371,19 +372,19 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             </div>
           </div>
 
-          <div className="text-right mt-4 relative">
-            <p className="text-[10px] font-bold text-slate-800 mb-12">For {settings?.shopName || 'POS Suite 360'}</p>
-            {settings?.signatureImage && (
+          {settings?.signatureImage && (
+            <div className="text-right mt-4 relative">
+              <p className="text-[10px] font-bold text-slate-800 mb-12">For {settings?.shopName || 'POS Suite 360'}</p>
               <img 
                 src={settings.signatureImage} 
                 alt="Authorised Signature" 
                 className="absolute bottom-6 right-8 h-12 object-contain opacity-80 mix-blend-multiply"
               />
-            )}
-            <div className="inline-block border-t border-slate-400 pt-2 px-8 w-48 mt-4">
-              <p className="text-[11px] font-bold text-slate-700 text-center">Authorized Signatory</p>
+              <div className="inline-block border-t border-slate-400 pt-2 px-8 w-48 mt-4">
+                <p className="text-[11px] font-bold text-slate-700 text-center">Authorized Signatory</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
