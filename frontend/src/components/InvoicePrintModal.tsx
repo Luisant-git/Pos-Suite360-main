@@ -373,9 +373,57 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       ctx.fillText(`${currency} ${Number(grandTotal).toFixed(2)}`, width / 2, currentY);
 
       currentY += 35 * scale;
-      ctx.fillStyle = '#16A34A'; // Emerald green
-      ctx.font = `bold ${13 * scale}px sans-serif`;
-      ctx.fillText('✓ ACCEPTING ALL UPI APPS', width / 2, currentY);
+      
+      const loadImage = (src: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+        });
+      };
+
+      try {
+        const [gpayImg, phonepeImg, paytmImg, upiImg] = await Promise.all([
+          loadImage('/gpay.svg'),
+          loadImage('/phonepe.svg'),
+          loadImage('/paytm.svg'),
+          loadImage('/upi.svg')
+        ]);
+
+        const drawImageAspect = (img: HTMLImageElement, x: number, y: number, maxWidth: number, maxHeight: number) => {
+          let w = img.width || 100;
+          let h = img.height || 40;
+          const ratio = Math.min(maxWidth / w, maxHeight / h);
+          const finalW = w * ratio;
+          const finalH = h * ratio;
+          const offsetX = x + (maxWidth - finalW) / 2;
+          const offsetY = y + (maxHeight - finalH) / 2;
+          ctx.drawImage(img, offsetX, offsetY, finalW, finalH);
+        };
+
+        const iconBoxW = 75 * scale;
+        const iconBoxH = 26 * scale;
+        const gap = 12 * scale;
+        const totalW = (4 * iconBoxW) + (3 * gap);
+        let startX = (width - totalW) / 2;
+
+        const imgs = [gpayImg, phonepeImg, paytmImg, upiImg];
+        imgs.forEach((img) => {
+          // Draw a very subtle white pill behind each logo
+          roundRect(ctx, startX - (1 * scale), currentY - (17 * scale) - (1 * scale), iconBoxW + (2 * scale), iconBoxH + (2 * scale), 7 * scale, '#e2e8f0');
+          roundRect(ctx, startX, currentY - (17 * scale), iconBoxW, iconBoxH, 6 * scale, '#ffffff');
+
+          drawImageAspect(img, startX + (6 * scale), currentY - (14 * scale), iconBoxW - (12 * scale), iconBoxH - (6 * scale));
+          startX += iconBoxW + gap;
+        });
+      } catch (err) {
+        console.error('Failed to load payment icons', err);
+        ctx.fillStyle = '#16A34A';
+        ctx.font = `bold ${13 * scale}px sans-serif`;
+        ctx.fillText('✓ ACCEPTING ALL UPI APPS', width / 2, currentY);
+      }
 
       // 7. Footer Watermark
       ctx.fillStyle = '#94A3B8';
