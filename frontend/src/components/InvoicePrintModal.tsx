@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Loader2 } from 'lucide-react';
+import { Printer, Loader2, QrCode } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
+import toast from 'react-hot-toast';
 
 // Basic number to words converter (for Malaysian Ringgit / general use)
 const numberToWords = (num: number): string => {
@@ -219,6 +220,129 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     }
   };
 
+  const handleShareQR = async () => {
+    const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
+    if (!qrCanvas) {
+      toast.error('QR code is not available for this invoice');
+      return;
+    }
+    
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get 2d context');
+
+      const scale = 3;
+      const width = 400 * scale;
+      const height = 650 * scale;
+      canvas.width = width;
+      canvas.height = height;
+
+      // Ensure high quality rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Helper function to draw rounded rectangles
+      const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number, fill: string) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+      };
+
+      // 1. Background (Light Slate)
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Header Area (Dark Blue)
+      ctx.fillStyle = '#04325E';
+      ctx.fillRect(0, 0, width, 180 * scale);
+
+      // 3. Header Text
+      ctx.textAlign = 'center';
+      
+      // Shop Name
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${22 * scale}px sans-serif`;
+      ctx.fillText((settings?.shopName || 'POS Suite 360').toUpperCase(), width / 2, 70 * scale);
+      
+      // Subtitle
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = `bold ${13 * scale}px sans-serif`;
+      ctx.letterSpacing = `${2 * scale}px`; // Simulating letter spacing by adding spaces could be done, but standard canvas doesn't support letterSpacing directly in all old browsers. Modern browsers support ctx.letterSpacing.
+      (ctx as any).letterSpacing = `${2 * scale}px`;
+      ctx.fillText('SCAN TO PAY', width / 2, 105 * scale);
+      (ctx as any).letterSpacing = '0px';
+
+      // 4. Floating White Card
+      const cardMargin = 30 * scale;
+      const cardY = 140 * scale;
+      const cardWidth = width - (cardMargin * 2);
+      const cardHeight = 440 * scale;
+      
+      // Shadow (Draw a slightly offset gray rect)
+      roundRect(ctx, cardMargin, cardY + 8 * scale, cardWidth, cardHeight, 16 * scale, '#E2E8F0');
+      // Main Card
+      roundRect(ctx, cardMargin, cardY, cardWidth, cardHeight, 16 * scale, '#ffffff');
+
+      // 5. QR Code inside the card
+      const qrSize = 240 * scale;
+      const qrX = (width - qrSize) / 2;
+      const qrY = cardY + 30 * scale;
+      ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+      // 6. Payment Details inside card
+      let currentY = qrY + qrSize + 45 * scale;
+      
+      ctx.fillStyle = '#64748B';
+      ctx.font = `bold ${13 * scale}px sans-serif`;
+      ctx.fillText(`INVOICE NO: #${invoiceNo}`, width / 2, currentY);
+
+      currentY += 45 * scale;
+      ctx.fillStyle = '#0F172A';
+      ctx.font = `black ${38 * scale}px sans-serif`;
+      ctx.fillText(`${currency} ${Number(grandTotal).toFixed(2)}`, width / 2, currentY);
+
+      currentY += 35 * scale;
+      ctx.fillStyle = '#16A34A'; // Emerald green
+      ctx.font = `bold ${13 * scale}px sans-serif`;
+      ctx.fillText('✓ ACCEPTING ALL UPI APPS', width / 2, currentY);
+
+      // 7. Footer Watermark
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = `bold ${11 * scale}px sans-serif`;
+      ctx.fillText('SECURE PAYMENTS BY POS SUITE 360', width / 2, height - 25 * scale);
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `Pay_${invoiceNo}.png`, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: `Pay Invoice ${invoiceNo}` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `Pay_${invoiceNo}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }, 'image/png');
+    } catch (err) {
+      console.error('Error sharing QR Code:', err);
+      toast.error('Failed to share QR Code');
+    }
+  };
+
   const InvoiceContent = () => (
     <div 
       className={`flex flex-col flex-1 bg-white text-slate-800 ${hiddenRenderer ? 'w-[800px] h-[1100px] box-border p-10 text-[13px]' : 'p-8 text-[12px] print:p-6 print:text-[11px]'} overflow-hidden`}
@@ -329,6 +453,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                   value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
                   size={64}
                   level="M"
+                />
+                <QRCodeCanvas 
+                  id="upi-qr-code-canvas"
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  size={900}
+                  level="M"
+                  className="hidden"
                 />
               </div>
               <div className="flex flex-col">
@@ -456,18 +587,29 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         {/* Footer Actions - Screen Only */}
         {!autoPrint && (
           <div className="flex flex-wrap justify-between items-center gap-2 p-3 bg-gray-50 border-t border-gray-200 rounded-b-md print:hidden shrink-0">
-            <button 
-              type="button"
-              onClick={handleWhatsApp}
-              disabled={isSharing}
-              className="bg-[#25D366] hover:bg-[#128C7E] disabled:opacity-70 text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
-            >
-              {isSharing ? (
-                <><Loader2 size={14} className="animate-spin" /> Preparing...</>
-              ) : (
-                <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share Invoice</>
+            <div className="flex items-center gap-2">
+              <button 
+                type="button"
+                onClick={handleWhatsApp}
+                disabled={isSharing}
+                className="bg-[#25D366] hover:bg-[#128C7E] disabled:opacity-70 text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
+              >
+                {isSharing ? (
+                  <><Loader2 size={14} className="animate-spin" /> Preparing...</>
+                ) : (
+                  <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> <span className="hidden sm:inline">Share Invoice</span></>
+                )}
+              </button>
+              {settings?.upiId && grandTotal > 0 && (
+                <button 
+                  type="button"
+                  onClick={handleShareQR}
+                  className="bg-[#38BDF8] hover:bg-[#0EA5E9] text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
+                >
+                  <QrCode size={14} /> <span className="hidden sm:inline">Share QR</span>
+                </button>
               )}
-            </button>
+            </div>
             <div className="flex items-center gap-2">
               <button 
                 type="button"
