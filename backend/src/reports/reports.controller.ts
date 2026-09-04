@@ -14,4 +14,15 @@ export class ReportsController {
   ) {
     return this.reportsService.getProfitLoss(fromDate, toDate);
   }
+
+  @Get('batch-pnl')
+  async getBatchProfitAndLoss(
+    @Query('workName') workName?: string,
+    @Query('productId') productId?: number,
+  ) {
+    if (!workName && !productId) {
+      return { error: 'Either workName or productId is required' };
+    }
+    return this.reportsService.getBatchProfitAndLoss(workName, productId);
+  }
 }

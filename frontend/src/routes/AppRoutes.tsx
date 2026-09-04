@@ -65,6 +65,7 @@ import ExpenseReport from '../pages/reports/ExpenseReport';
 import ProfitLossReport from '../pages/reports/ProfitLossReport';
 import RawMaterialPurchaseReport from '../pages/reports/RawMaterialPurchaseReport';
 import ProductionReport from '../pages/reports/ProductionReport';
+import BatchPnlReport from '../pages/reports/BatchPnlReport';
 
 // Settings
 import Settings from '../pages/Settings';
@@ -137,6 +138,7 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute requiredPerms="reports_financial" />}><Route path="/reports/stock-ledger" element={<StockLedgerReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_manufacturing" />}><Route path="/reports/raw-material-purchase" element={<RawMaterialPurchaseReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_manufacturing" />}><Route path="/reports/production" element={<ProductionReport />} /></Route>
+        <Route element={<ProtectedRoute requiredPerms="reports_manufacturing" />}><Route path="/reports/batch-pnl" element={<BatchPnlReport />} /></Route>
 
         {/* Manufacturing & Raw Materials */}
         <Route element={<ProtectedRoute requiredPerms="mfg_rm_master" />}><Route path="/raw-materials/master" element={<RawMaterialMaster />} /></Route>

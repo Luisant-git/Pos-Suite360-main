@@ -3,21 +3,21 @@ import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-do
 import { ChevronDown, LogOut, Settings as SettingsIcon, Zap, ArrowLeft, Menu, X, Shield, Users as UsersIcon } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import api from '../services/api';
-const NavItem = ({ title, icon, to, onClick }: { title: string, icon: string, to: string, onClick?: () => void }) => (
+const NavItem = ({ title, icon, to, onClick, compact }: { title: string, icon: string, to: string, onClick?: () => void, compact?: boolean }) => (
   <NavLink 
     to={to} 
     onClick={onClick}
-    className={({ isActive }) => `flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-4 py-3 text-[13px] xl:text-sm font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 lg:border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 lg:border-transparent'}`}
+    className={({ isActive }) => `flex items-center ${compact ? 'gap-1.5 xl:gap-2 px-2.5 xl:px-3 text-[13px] xl:text-sm' : 'gap-1.5 xl:gap-2 px-2.5 xl:px-4 text-[13px] xl:text-sm'} py-3 font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 lg:border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 lg:border-transparent'}`}
   >
     <i className={`fa ${icon}`}></i>
     <span className="whitespace-nowrap">{title}</span>
   </NavLink>
 );
 
-const NavDropdown = ({ title, icon, children, isActive, rightAligned }: { title: string, icon: string, children: React.ReactNode, isActive?: boolean, rightAligned?: boolean }) => {
+const NavDropdown = ({ title, icon, children, isActive, rightAligned, compact }: { title: string, icon: string, children: React.ReactNode, isActive?: boolean, rightAligned?: boolean, compact?: boolean }) => {
   return (
     <div className="relative group h-full flex items-center">
-      <button className={`flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-4 py-3 h-full text-[13px] xl:text-sm font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 border-transparent'}`}>
+      <button className={`flex items-center ${compact ? 'gap-1.5 xl:gap-2 px-2.5 xl:px-3 text-[13px] xl:text-sm' : 'gap-1.5 xl:gap-2 px-2.5 xl:px-4 text-[13px] xl:text-sm'} py-3 h-full font-bold transition-colors ${isActive ? 'bg-[#1E3A8A] text-white border-b-2 border-white' : 'text-[#E0E7FF] hover:bg-[#1E40AF] hover:text-white border-b-2 border-transparent'}`}>
         <i className={`fa ${icon}`}></i>
         <span className="whitespace-nowrap">{title}</span>
         <ChevronDown size={14} className="ml-0.5 opacity-70" />
@@ -262,6 +262,7 @@ const MainLayout = () => {
               <div className="my-1 border-t border-[#2A3F54]/30"></div>
               <MobileDropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />
               <MobileDropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />
+              <MobileDropdownItem to="/reports/batch-pnl" icon="fa-pie-chart" title="Batch P&L Report" />
               <div className="my-1 border-t border-[#2A3F54]/30"></div>
               <MobileDropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />
               <MobileDropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />
@@ -319,10 +320,10 @@ const MainLayout = () => {
 
             {desktopLayout === 'topbar' && (
               <nav className="hidden lg:flex h-full items-center">
-                <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" />
+                <NavItem to="/dashboard" icon="fa-dashboard" title="Dashboard" compact={showBackButton} />
               
               {hasAnyPerm(['master_products', 'mfg_product_master', 'master_brands', 'master_categories', 'master_units', 'master_suppliers', 'master_customers', 'master_payment_modes', 'master_payment_types', 'master_expense_categories']) && (
-              <NavDropdown title="Master" icon="fa-database" isActive={isMasterActive}>
+              <NavDropdown title="Master" icon="fa-database" isActive={isMasterActive} compact={showBackButton}>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Inventory</div>
                 {hasPerm('master_products') && <DropdownItem to="/master/products" icon="fa-cubes" title="Products" />}
                 {hasPerm('mfg_product_master') && <DropdownItem to="/production/products" icon="fa-industry" title="Product (Mfg)" />}
@@ -347,7 +348,7 @@ const MainLayout = () => {
               )}
 
               {hasAnyPerm(['purchase_entry', 'purchase_return', 'purchase_payments']) && (
-              <NavDropdown title="Purchases" icon="fa-truck" isActive={isPurchaseActive}>
+              <NavDropdown title="Purchases" icon="fa-truck" isActive={isPurchaseActive} compact={showBackButton}>
                 {hasPerm('purchase_entry') && <DropdownItem to="/purchase/new" icon="fa-shopping-basket" title="Purchase Entry" />}
                 {hasPerm('purchase_return') && <DropdownItem to="/purchase/return" icon="fa-undo" title="Purchase Return" isWarning />}
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
@@ -356,7 +357,7 @@ const MainLayout = () => {
               )}
 
               {hasAnyPerm(['mfg_rm_master', 'mfg_rm_purchase', 'mfg_production']) && (
-              <NavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive}>
+              <NavDropdown title="Manufacturing" icon="fa-industry" isActive={isManufacturingActive} compact={showBackButton}>
                 {hasPerm('mfg_rm_master') && <DropdownItem to="/raw-materials/master" icon="fa-database" title="Raw Material Master" />}
                 {hasPerm('mfg_rm_purchase') && <DropdownItem to="/raw-materials/purchase" icon="fa-shopping-cart" title="Raw Material Purchase" />}
                 {hasPerm('mfg_production') && <DropdownItem to="/production" icon="fa-cogs" title="Production Entry" />}
@@ -364,7 +365,7 @@ const MainLayout = () => {
               )}
 
               {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
-              <NavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive && location.pathname !== '/sales/estimation'}>
+              <NavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive && location.pathname !== '/sales/estimation'} compact={showBackButton}>
                 {hasPerm('sales_pos') && <DropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />}
                 {hasPerm('sales_return') && <DropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />}
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
@@ -373,16 +374,16 @@ const MainLayout = () => {
               )}
 
               {hasPerm('sales_estimation') && (
-              <NavDropdown title="Estimation" icon="fa-file-invoice" isActive={location.pathname.startsWith('/sales/estimation')}>
+              <NavDropdown title="Estimation" icon="fa-file-invoice" isActive={location.pathname.startsWith('/sales/estimation')} compact={showBackButton}>
                 <DropdownItem to="/sales/estimation" icon="fa-plus-circle" title="Estimation Entry" />
                 <DropdownItem to="/sales/estimation-list" icon="fa-list-ul" title="Estimation List" />
               </NavDropdown>
               )}
 
-              {hasPerm('expenses_entry') && <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" />}
+              {hasPerm('expenses_entry') && <NavItem to="/expenses/new" icon="fa-calculator" title="Expenses" compact={showBackButton} />}
 
               {hasAnyPerm(['reports_sales', 'reports_purchase', 'reports_manufacturing', 'reports_financial']) && (
-              <NavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive} rightAligned>
+              <NavDropdown title="Reports" icon="fa-pie-chart" isActive={isReportsActive} rightAligned compact={showBackButton}>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Purchase & Sales</div>
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase" icon="fa-file-text-o" title="Purchase Report" />}
                 {hasPerm('reports_purchase') && <DropdownItem to="/reports/purchase-return" icon="fa-mail-reply" title="Purchase Return Report" isWarning />}
@@ -394,6 +395,7 @@ const MainLayout = () => {
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Manufacturing</div>
                 {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
                 {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
+                {hasPerm('reports_manufacturing') && <DropdownItem to="/reports/batch-pnl" icon="fa-pie-chart" title="Batch P&L Report" />}
 
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 <div className="px-4 py-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Financial</div>
@@ -572,6 +574,7 @@ const MainLayout = () => {
                 <div className="my-1 border-t border-[#2A3F54]/30"></div>
                 {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/raw-material-purchase" icon="fa-truck" title="RM Purchase Report" />}
                 {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/production" icon="fa-industry" title="Production Report" />}
+                {hasPerm('reports_manufacturing') && <MobileDropdownItem to="/reports/batch-pnl" icon="fa-pie-chart" title="Batch P&L Report" />}
                 <div className="my-1 border-t border-[#2A3F54]/30"></div>
                 {hasPerm('reports_financial') && <MobileDropdownItem to="/reports/stock" icon="fa-cubes" title="Stock As On Date" />}
                 {hasPerm('reports_financial') && <MobileDropdownItem to="/reports/profit-ledger" icon="fa-bar-chart" title="Profit / Ledger" />}

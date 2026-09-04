@@ -92,4 +92,57 @@ export class ReportsService {
       netProfit,
     };
   }
+
+  async getBatchProfitAndLoss(workName?: string, productId?: number) {
+    const whereClause: any = {};
+    if (workName) {
+      whereClause.workName = workName;
+    }
+    if (productId) {
+      whereClause.finishedProductId = Number(productId);
+    }
+
+    const productions = await this.prisma.production.findMany({
+      where: whereClause,
+      include: {
+        rawMaterial: true,
+        finishedProduct: true,
+      },
+    });
+
+    let totalCost = 0;
+    let totalRevenue = 0;
+
+    const materialsUsed: Record<string, { quantity: number; cost: number; name: string }> = {};
+
+    productions.forEach(prod => {
+      const intakeQty = Number(prod.intakeQuantity || 0);
+      const purchaseRate = Number(prod.rawMaterial?.purchaseRate || 0);
+      const cost = intakeQty * purchaseRate;
+      
+      const outcomeQty = Number(prod.outcomeQuantity || 0);
+      const sellingRate = Number(prod.finishedProduct?.sellingRate || 0);
+      const revenue = outcomeQty * sellingRate;
+
+      totalCost += cost;
+      totalRevenue += revenue;
+
+      const matName = prod.rawMaterial?.name || 'Unknown';
+      if (!materialsUsed[matName]) {
+        materialsUsed[matName] = { quantity: 0, cost: 0, name: matName };
+      }
+      materialsUsed[matName].quantity += intakeQty;
+      materialsUsed[matName].cost += cost;
+    });
+
+    const profit = totalRevenue - totalCost;
+
+    return {
+      workName,
+      totalCost,
+      totalRevenue,
+      profit,
+      materialsUsed: Object.values(materialsUsed),
+    };
+  }
 }
