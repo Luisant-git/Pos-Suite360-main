@@ -1,25 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { X, Printer, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Printer, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useState } from 'react';
 import InvoicePrintModal from '../../components/InvoicePrintModal';
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
-import toast from 'react-hot-toast';
-
-const WhatsAppIcon = ({ size = 16, className = "" }: { size?: number, className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="currentColor"
-    className={className}
-  >
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-  </svg>
-);
+import jsPDF from 'jspdf';
 
 interface Props {
   estimationId: number;
@@ -29,7 +14,7 @@ interface Props {
 export default function ViewEstimationModal({ estimationId, onClose }: Props) {
   const { settings, formatCurrency } = useSettings();
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const { data: est, isLoading } = useQuery({
     queryKey: ['estimations', estimationId],
@@ -37,54 +22,89 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
     enabled: !!estimationId,
   });
 
-  const processHiddenPdf = async (): Promise<string | null> => {
-    return new Promise((resolve) => {
-      setIsProcessingPdf(true);
-      setTimeout(async () => {
-        const element = document.getElementById('hidden-printable-invoice');
-        if (!element) {
-          setIsProcessingPdf(false);
-          return resolve(null);
-        }
-        const opt = {
-          margin: 0.5,
-          filename: `Estimation_${est?.estimationNo}.pdf`,
-          image:        { type: 'jpeg' as const, quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }
-        };
-        const pdfBase64 = await html2pdf().set(opt).from(element).output('datauristring');
-        setIsProcessingPdf(false);
-        resolve(pdfBase64);
-      }, 300);
-    });
-  };
+  const handleShare = () => {
+    if (!est) return;
+    setIsSharing(true);
+    const estNo = est.estimationNo || '';
+    const date = est.date ? new Date(est.date).toISOString().split('T')[0] : '';
+    const customerName = est.customer?.name || 'CASH A/C';
+    const items = est.items || [];
+    const grandTotal = est.grandTotal || 0;
+    const currency = settings?.currencySymbol || 'RM';
 
-  const handleWhatsAppSend = async () => {
-    const phone = est?.customer?.phone;
-    if (!phone) {
-      toast.error('Customer does not have a phone number attached.');
-      return;
-    }
-    toast.loading('Preparing WhatsApp message...', { id: 'wa-toast' });
-    const pdfBase64 = await processHiddenPdf();
-    if (pdfBase64) {
-      toast.loading('Sending estimation directly to WhatsApp...', { id: 'wa-toast' });
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const W = 210, margin = 14, col = margin, lineH = 6;
+    let y = margin;
+
+    const t = (text: string, x: number, yp: number, opts: any = {}) => {
+      doc.setFontSize(opts.size || 10);
+      doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+      doc.setTextColor(opts.color || '#1e293b');
+      doc.text(String(text ?? ''), x, yp, { maxWidth: opts.maxWidth });
+    };
+
+    t(settings?.shopName || 'POS Suite 360', col, y, { size: 16, bold: true, color: '#04325E' }); y += 7;
+    if (settings?.shopAddress) { t(settings.shopAddress, col, y, { size: 9, color: '#475569' }); y += 5; }
+    const cityLine = [settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ');
+    if (cityLine) { t(cityLine, col, y, { size: 9, bold: true, color: '#475569' }); y += 5; }
+    if (settings?.phone) { t(`Tel: ${settings.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+    t('ESTIMATION', W - margin, margin + 4, { size: 18, bold: true, color: '#1A63A8' });
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
+    doc.text(`Est No: #${estNo}`, W - margin, margin + 11, { align: 'right' });
+    doc.text(`Date: ${date}`, W - margin, margin + 17, { align: 'right' });
+    y += 4; doc.setDrawColor('#e2e8f0'); doc.setLineWidth(0.3); doc.line(col, y, W - margin, y); y += 6;
+    t('CUSTOMER', col, y, { size: 8, bold: true, color: '#64748b' }); y += 5;
+    t(customerName, col, y, { size: 11, bold: true }); y += 5;
+    if (est.customer?.phone) { t(`Phone: ${est.customer.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+    if (est.customer?.address) { t(est.customer.address, col, y, { size: 9, color: '#475569', maxWidth: 80 }); y += 5; }
+    t('STATUS', W - margin - 60, margin + 22, { size: 8, bold: true, color: '#64748b' });
+    t(est.status || 'Pending', W - margin - 60, margin + 27, { size: 10, bold: true });
+    y += 4; doc.line(col, y, W - margin, y); y += 6;
+    doc.setFillColor('#2D6AA1'); doc.rect(col, y - 4, W - margin * 2, 8, 'F');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#ffffff');
+    doc.text('#', col + 2, y + 1); doc.text('Item', col + 10, y + 1);
+    doc.text('Qty', col + 100, y + 1, { align: 'center' });
+    doc.text('Rate', col + 130, y + 1, { align: 'right' });
+    doc.text('Amount', W - margin, y + 1, { align: 'right' }); y += 8;
+    items.forEach((item: any, idx: number) => {
+      if (idx % 2 === 0) { doc.setFillColor('#f8fafc'); doc.rect(col, y - 4, W - margin * 2, lineH + 2, 'F'); }
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#1e293b');
+      doc.text(String(idx + 1), col + 2, y);
+      doc.setFont('helvetica', 'bold'); doc.text(item.product?.name || '', col + 10, y, { maxWidth: 80 });
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 100, y, { align: 'center' });
+      doc.text(Number(item.rate || 0).toFixed(2), col + 130, y, { align: 'right' });
+      doc.setFont('helvetica', 'bold'); doc.text(Number(item.amount || 0).toFixed(2), W - margin, y, { align: 'right' });
+      y += lineH + 2;
+    });
+    doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
+    const tx = W - margin - 60;
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor('#334155');
+    doc.text('Subtotal:', tx, y); doc.text(Number(est.subtotal || 0).toFixed(2), W - margin, y, { align: 'right' }); y += lineH;
+    if (Number(est.discount) > 0) { doc.text('Discount:', tx, y); doc.text(Number(est.discount).toFixed(2), W - margin, y, { align: 'right' }); y += lineH; }
+    if (Number(est.tax) > 0) { doc.text('Tax:', tx, y); doc.text(Number(est.tax).toFixed(2), W - margin, y, { align: 'right' }); y += lineH; }
+    doc.setFillColor('#F0F5FA'); doc.rect(tx - 4, y - 4, W - margin - tx + 4 + margin, 10, 'F');
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
+    doc.text('Total Due:', tx, y + 3); doc.text(`${currency} ${Number(grandTotal).toFixed(2)}`, W - margin, y + 3, { align: 'right' }); y += 16;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#94a3b8');
+    doc.text('Thank you for your business!', W / 2, y, { align: 'center' });
+
+    const pdfBlob = doc.output('blob');
+    const file = new File([pdfBlob], `Estimation_${estNo}.pdf`, { type: 'application/pdf' });
+    const tryShare = async () => {
       try {
-        const message = `Hello ${est.customer.name},\n\nHere is your estimation ${est.estimationNo}.\nTotal Amount: ${formatCurrency(est.grandTotal)}\n\nThank you for your business!`;
-        await api.post('/whatsapp/send-pdf', {
-          phone: phone,
-          base64Pdf: pdfBase64,
-          filename: `Estimation_${est.estimationNo}.pdf`,
-          caption: message
-        });
-        toast.success('Estimation sent successfully to WhatsApp!', { id: 'wa-toast' });
-      } catch (err: any) {
-        toast.error(err.response?.data?.message || 'Failed to send WhatsApp message.', { id: 'wa-toast' });
-      }
-    } else {
-      toast.error('Failed to generate PDF for WhatsApp.', { id: 'wa-toast' });
-    }
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: `Estimation ${estNo}` });
+          setIsSharing(false); return;
+        }
+      } catch (_) {}
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(pdfBlob);
+      link.download = `Estimation_${estNo}.pdf`;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      setIsSharing(false);
+    };
+    tryShare();
   };
 
   if (isLoading) {
@@ -123,10 +143,15 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
               <Printer size={14} /> Print
             </button>
             <button 
-              onClick={handleWhatsAppSend}
-              className="flex items-center gap-1.5 bg-[#22C55E] hover:bg-[#16A34A] px-3 py-1.5 rounded font-bold text-[12px] transition-colors"
+              onClick={handleShare}
+              disabled={isSharing}
+              className="flex items-center gap-1.5 bg-[#22C55E] hover:bg-[#16A34A] disabled:opacity-70 px-3 py-1.5 rounded font-bold text-[12px] transition-colors"
             >
-              <WhatsAppIcon size={14} /> Send WhatsApp
+              {isSharing ? (
+                <><Loader2 size={13} className="animate-spin" /> Preparing...</>
+              ) : (
+                <><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share Estimation</>
+              )}
             </button>
             <button onClick={onClose} className="hover:bg-blue-600 p-1.5 rounded transition-colors ml-2"><X size={18} /></button>
           </div>
@@ -136,7 +161,7 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
         <div className="p-6 overflow-y-auto bg-[#F8FAFC]">
           <div className="flex gap-6 flex-col md:flex-row">
             
-            {/* Left Column - Details */}
+            {/* Left Column */}
             <div className="flex-1 space-y-6">
               <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-[#1E293B] px-4 py-2 flex items-center gap-2 text-white">
@@ -209,18 +234,9 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
                   </div>
                   {settings?.enableTax && (
                     (() => {
-                      if (Number(est.tax) === 0) {
-                        return (
-                          <div className="flex justify-between items-center text-gray-600">
-                            <span>Tax</span>
-                            <span className="font-bold">{formatCurrency(0)}</span>
-                          </div>
-                        );
-                      }
-
+                      if (Number(est.tax) === 0) return null;
                       const storeState = (settings.state || '').trim().toLowerCase();
                       const custState = (est.customer?.state || '').trim().toLowerCase();
-                      
                       if (storeState && custState && storeState === custState) {
                         const splitTax = Number(est.tax) / 2;
                         return (
@@ -263,16 +279,6 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
         sale={est}
         isEstimation={true} 
       />
-
-      {isProcessingPdf && (
-        <InvoicePrintModal 
-          isOpen={true} 
-          onClose={() => {}} 
-          sale={est} 
-          isEstimation={true}
-          hiddenRenderer={true}
-        />
-      )}
     </div>
   );
 }

@@ -1,5 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Printer, Loader2 } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
@@ -39,6 +41,7 @@ interface InvoicePrintModalProps {
 
 const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer = false, isEstimation = false, autoPrint = false }: InvoicePrintModalProps) => {
   const { settings } = useSettings();
+  const [isSharing, setIsSharing] = useState(false);
 
   // Always fetch full sale data to ensure unit, paymentMode, customer are fully populated
   const { data: fullSale, isLoading } = useQuery({
@@ -82,16 +85,127 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const currency = settings?.currencySymbol || 'RM';
 
   const handleWhatsApp = () => {
-    let text = `*${settings?.shopName || 'INVOICE'}*\n`;
-    text += `Invoice No: ${invoiceNo}\n`;
-    text += `Date: ${date}\n\n`;
-    items.forEach((item: any) => {
-      text += `${item.quantity}x ${item.product?.name || 'Product'} - ${currency} ${item.amount}\n`;
+    setIsSharing(true);
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const W = 210;
+    const margin = 14;
+    let y = margin;
+    const col = margin;
+    const lineH = 6;
+
+    const addText = (text: string, x: number, yPos: number, opts: any = {}) => {
+      doc.setFontSize(opts.size || 10);
+      doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+      doc.setTextColor(opts.color || '#1e293b');
+      doc.text(String(text ?? ''), x, yPos, { maxWidth: opts.maxWidth });
+    };
+
+    // Header
+    addText(settings?.shopName || 'POS Suite 360', col, y, { size: 16, bold: true, color: '#04325E' });
+    y += 7;
+    if (settings?.invoiceTitle) { addText(settings.invoiceTitle, col, y, { size: 10, color: '#1A63A8' }); y += 5; }
+    if (settings?.shopAddress) { addText(settings.shopAddress, col, y, { size: 9, color: '#475569' }); y += 5; }
+    const cityLine = [settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ');
+    if (cityLine) { addText(cityLine, col, y, { size: 9, bold: true, color: '#475569' }); y += 5; }
+    if (settings?.phone) { addText(`Tel: ${settings.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+    if (settings?.gstin) { addText(`GSTIN: ${settings.gstin}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+
+    // Invoice label top-right
+    addText(isEstimation ? 'ESTIMATION' : 'INVOICE', W - margin, margin + 4, { size: 20, bold: true, color: '#1A63A8' });
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
+    doc.text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, W - margin, margin + 11, { align: 'right' });
+    doc.text(`Date: ${date}`, W - margin, margin + 17, { align: 'right' });
+
+    y += 4;
+    doc.setDrawColor('#e2e8f0'); doc.setLineWidth(0.3); doc.line(col, y, W - margin, y);
+    y += 6;
+
+    // Bill To
+    addText('BILLED TO', col, y, { size: 8, bold: true, color: '#64748b' }); y += 5;
+    addText(customerName, col, y, { size: 11, bold: true }); y += 5;
+    if (sale?.customer?.phone) { addText(`Phone: ${sale.customer.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+    if (sale?.customer?.address) { addText(sale.customer.address, col, y, { size: 9, color: '#475569', maxWidth: 80 }); y += 5; }
+    if (sale?.customer?.gstNumber) { addText(`GSTIN: ${sale.customer.gstNumber}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+
+    // Payment info right side
+    const infoY = y - (5 * (1 + (sale?.customer?.phone ? 1 : 0) + (sale?.customer?.address ? 1 : 0) + (sale?.customer?.gstNumber ? 1 : 0))) - 5;
+    addText('PAYMENT MODE', W - margin - 60, infoY, { size: 8, bold: true, color: '#64748b' });
+    addText(sale?.paymentMode?.name || 'Cash', W - margin - 60, infoY + 5, { size: 10, bold: true });
+
+    y += 4;
+    doc.line(col, y, W - margin, y); y += 6;
+
+    // Table header
+    doc.setFillColor('#2D6AA1');
+    doc.rect(col, y - 4, W - margin * 2, 8, 'F');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#ffffff');
+    doc.text('#', col + 2, y + 1);
+    doc.text('Item Description', col + 10, y + 1);
+    doc.text('Qty', col + 100, y + 1, { align: 'center' });
+    doc.text('Rate', col + 130, y + 1, { align: 'right' });
+    doc.text('Amount', W - margin, y + 1, { align: 'right' });
+    y += 8;
+
+    // Table rows
+    items.forEach((item: any, idx: number) => {
+      if (idx % 2 === 0) { doc.setFillColor('#f8fafc'); doc.rect(col, y - 4, W - margin * 2, lineH + 2, 'F'); }
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#1e293b');
+      doc.text(String(idx + 1), col + 2, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text(item.product?.name || '', col + 10, y, { maxWidth: 80 });
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 100, y, { align: 'center' });
+      doc.text(Number(item.rate || 0).toFixed(2), col + 130, y, { align: 'right' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(Number(item.amount || 0).toFixed(2), W - margin, y, { align: 'right' });
+      y += lineH + 2;
     });
-    text += `\n*TOTAL: ${currency} ${grandTotal}*`;
-    
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+
+    doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
+
+    // Totals
+    const totalsX = W - margin - 60;
+    const valX = W - margin;
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor('#334155');
+    doc.text('Subtotal:', totalsX, y); doc.text(Number(sale?.subtotal || 0).toFixed(2), valX, y, { align: 'right' }); y += lineH;
+    if (Number(sale?.discount) > 0) { doc.text('Discount:', totalsX, y); doc.text(Number(sale.discount).toFixed(2), valX, y, { align: 'right' }); y += lineH; }
+    if (Number(sale?.tax) > 0) { doc.text('Tax:', totalsX, y); doc.text(Number(sale.tax).toFixed(2), valX, y, { align: 'right' }); y += lineH; }
+
+    // Grand total box
+    doc.setFillColor('#F0F5FA'); doc.rect(totalsX - 4, y - 4, W - margin - totalsX + 4 + margin, 10, 'F');
+    doc.setDrawColor('#1A63A8'); doc.setLineWidth(0.5);
+    doc.line(totalsX - 4, y - 4, W - margin + margin, y - 4);
+    doc.line(totalsX - 4, y + 6, W - margin + margin, y + 6);
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
+    doc.text('Total Due:', totalsX, y + 3);
+    doc.text(`${currency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
+    y += 16;
+
+    // Footer
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#94a3b8');
+    doc.text(`Thank you for partnering with ${settings?.shopName || 'POS Suite 360'}!`, W / 2, y, { align: 'center' });
+
+    const pdfBlob = doc.output('blob');
+    const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
+
+    // Try native share (works on mobile/Edge), fallback to download on desktop Chrome
+    const tryShare = async () => {
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: `Invoice ${invoiceNo}` });
+          setIsSharing(false);
+          return;
+        }
+      } catch (_) { /* fall through */ }
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(pdfBlob);
+      link.download = `Invoice_${invoiceNo}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setIsSharing(false);
+    };
+    tryShare();
   };
 
   const InvoiceContent = () => (
@@ -287,9 +401,9 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     );
   }
 
-  return (
+  return createPortal(
     <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 print:absolute print:inset-0 print:block print:bg-transparent print:m-0 print:p-0 ${autoPrint ? 'opacity-0 pointer-events-none print:opacity-100' : 'bg-black/60'}`}>
-      <div className={`bg-white w-full max-w-[210mm] max-h-[95vh] h-full flex flex-col rounded-md relative print:w-full print:max-w-none print:shadow-none print:h-auto print:min-h-0 ${!autoPrint && 'shadow-2xl'}`}>
+      <div className={`bg-white w-full max-w-4xl max-h-[90vh] flex flex-col rounded-md relative print:w-full print:max-w-none print:shadow-none print:h-auto print:min-h-0 ${!autoPrint && 'shadow-2xl'}`}>
         
         {/* Header - Screen Only */}
         {!autoPrint && (
@@ -298,15 +412,14 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               <Printer size={16} />
               <span>Print {isEstimation ? 'Estimation' : 'Invoice'} - {invoiceNo}</span>
             </div>
-            <button type="button" onClick={onClose} className="hover:text-red-400 transition-colors">
+            {/* <button type="button" onClick={onClose} className="hover:text-red-400 transition-colors">
               <X size={20} />
-            </button>
+            </button> */}
           </div>
         )}
 
         {/* Printable Area */}
-        <div id="printable-invoice" className="flex-1 min-h-0 overflow-auto bg-gray-200 p-8 print:p-0 print:bg-white flex justify-center print:overflow-visible">
-          {/* A4 Paper wrapper for screen view */}
+        <div id="printable-invoice" className="flex-1 min-h-0 overflow-auto bg-gray-200 p-2 sm:p-8 print:p-0 print:bg-white flex justify-center print:overflow-visible">
           <div className="bg-white shadow-sm w-full max-w-[210mm] min-h-[297mm] print:w-full print:max-w-none print:shadow-none print:min-h-[100vh] flex flex-col">
             <InvoiceContent />
           </div>
@@ -314,23 +427,28 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
         {/* Footer Actions - Screen Only */}
         {!autoPrint && (
-          <div className="flex justify-between items-center p-4 bg-gray-50 border-t border-gray-200 rounded-b-md print:hidden shrink-0">
+          <div className="flex flex-wrap justify-between items-center gap-2 p-3 bg-gray-50 border-t border-gray-200 rounded-b-md print:hidden shrink-0">
             <button 
               type="button"
               onClick={handleWhatsApp}
-              className="bg-[#25D366] hover:bg-[#128C7E] text-white px-4 py-2 rounded flex items-center gap-2 font-bold"
+              disabled={isSharing}
+              className="bg-[#25D366] hover:bg-[#128C7E] disabled:opacity-70 text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
             >
-              WhatsApp
+              {isSharing ? (
+                <><Loader2 size={14} className="animate-spin" /> Preparing...</>
+              ) : (
+                <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share Invoice</>
+              )}
             </button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button 
                 type="button"
                 onClick={() => window.print()}
-                className="bg-[#04325E] hover:bg-[#032341] text-white px-5 py-2 rounded font-bold flex items-center gap-2"
+                className="bg-[#04325E] hover:bg-[#032341] text-white px-3 py-2 rounded font-bold flex items-center gap-1.5 text-[12px]"
               >
-                <Printer size={18} /> Print / Save PDF
+                <Printer size={14} /> <span className="hidden sm:inline">Print / Save PDF</span><span className="sm:hidden">Print</span>
               </button>
-              <button onClick={onClose} className="px-4 py-2 bg-gray-500 text-white font-bold hover:bg-gray-600 rounded">
+              <button onClick={onClose} className="px-3 py-2 bg-gray-500 text-white font-bold hover:bg-gray-600 rounded text-[12px]">
                 Close
               </button>
             </div>
@@ -338,7 +456,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
