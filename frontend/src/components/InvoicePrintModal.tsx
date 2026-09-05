@@ -272,54 +272,57 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
     doc.text(`${numberToWords(grandTotal)} ONLY`, valX, y + 11, { align: 'right' });
     
-    // Draw QR Code on the left side of the totals
-      const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
-      if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
-        try {
-          const upiUrl = `${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
-          
-          const qrDataUrl = qrCanvas.toDataURL('image/png');
-          doc.addImage(qrDataUrl, 'PNG', col, totalsStartY - 2, 28, 28);
-          // Make the QR code image clickable in the PDF
-          doc.link(col, totalsStartY - 2, 28, 28, { url: upiUrl });
-          
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor('#1A63A8'); // Make it look like a link
-          doc.text('Scan or Click to Pay', col + 32, totalsStartY + 6);
-          // Make the text clickable in the PDF
-          doc.link(col + 32, totalsStartY, 35, 8, { url: upiUrl });
-          
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor('#64748b');
-          doc.text(`UPI ID: ${settings.upiId}`, col + 32, totalsStartY + 11);
-      } catch (e) {
-        console.error('Error adding QR to PDF', e);
-      }
-    }
-    
+    // Terms & Conditions (Top Left Footer)
     let maxFooterY = totalsStartY + 25;
-    
     const rawNotes = isEstimation
       ? (settings?.estimationNotes !== undefined && settings?.estimationNotes !== null) ? settings.estimationNotes : ''
       : (settings?.invoiceNotes !== undefined && settings?.invoiceNotes !== null) ? settings.invoiceNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.';
 
+    let currentLeftY = totalsStartY - 2;
+
     if (rawNotes) {
-      const hasQR = showPaymentInfo && settings?.upiId && grandTotal > 0;
-      const notesY = totalsStartY + (hasQR ? 32 : 12);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor('#1A63A8');
-      doc.text('Terms & Conditions', col, notesY);
+      doc.text('TERMS & CONDITIONS', col, currentLeftY);
       
       doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor('#64748b');
+      doc.setFont('helvetica', 'bold'); // Make terms bold
+      doc.setTextColor('#1e293b'); // Darker color
       const cleanNotes = rawNotes.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
       const splitNotes = doc.splitTextToSize(cleanNotes.trim(), (W / 2));
-      doc.text(splitNotes, col, notesY + 4);
-      maxFooterY = Math.max(maxFooterY, notesY + 4 + (splitNotes.length * 3.5));
+      doc.text(splitNotes, col, currentLeftY + 4);
+      
+      const notesHeight = 4 + (splitNotes.length * 3.5);
+      currentLeftY += notesHeight + 6; 
+      maxFooterY = Math.max(maxFooterY, currentLeftY);
+    }
+
+    // Draw QR Code on the left side of the totals, below Terms
+    const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
+    if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
+      try {
+        const upiUrl = `${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+        
+        const qrDataUrl = qrCanvas.toDataURL('image/png');
+        doc.addImage(qrDataUrl, 'PNG', col, currentLeftY, 28, 28);
+        doc.link(col, currentLeftY, 28, 28, { url: upiUrl });
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor('#1A63A8');
+        doc.text('Scan or Click to Pay', col + 32, currentLeftY + 8);
+        doc.link(col + 32, currentLeftY + 2, 35, 8, { url: upiUrl });
+        
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor('#64748b');
+        doc.text(`UPI ID: ${settings.upiId}`, col + 32, currentLeftY + 13);
+
+        maxFooterY = Math.max(maxFooterY, currentLeftY + 28);
+      } catch (e) {
+        console.error('Error adding QR to PDF', e);
+      }
     }
 
     y = maxFooterY + 10;
@@ -667,7 +670,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex-1 flex flex-col">
             <h3 className="text-[10px] font-bold text-[#1A63A8] uppercase tracking-widest mb-2">Terms & Conditions</h3>
             <div 
-              className="text-[11px] text-slate-600 prose prose-sm max-w-none html-content flex-1"
+              className="text-[11px] text-slate-800 font-bold prose prose-sm max-w-none html-content flex-1"
               dangerouslySetInnerHTML={{ __html: (settings?.invoiceNotes !== undefined && settings?.invoiceNotes !== null) ? settings.invoiceNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.' }}
             />
           </div>
