@@ -266,7 +266,7 @@ export default function ReceiptPrintModal({ isOpen, onClose, type, data, party, 
         </div>
       </div>
 
-      {/* Signatures */}
+      {/* Signatures 
       <div className="mt-12 grid grid-cols-2 gap-8 px-8">
         <div className="text-center">
           <div className="border-t border-slate-400 pt-2 w-48 mx-auto">
@@ -286,6 +286,7 @@ export default function ReceiptPrintModal({ isOpen, onClose, type, data, party, 
           </div>
         </div>
       </div>
+      */}
 
       <div className="mt-8 text-center text-[10px] font-medium text-slate-500 border-t border-slate-200 pt-3">
         <p>{settings?.shopName || 'POS Suite 360'} • Bill-by-Bill FIFO Credit Settlement Receipt | Page 1 of 1</p>
