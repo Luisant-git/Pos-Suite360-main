@@ -1172,7 +1172,13 @@ const Estimation = () => {
           </div>
           
           {(editId && editEstimationData ? editEstimationData.stockMaintained : settings?.estimationStockMaintain) && settings?.upiId && Number(watch('netAmount')) > 0 && (
-            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4">
+            <a 
+              href={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${watch('estimationNo')}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`}
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"
+              style={{ textDecoration: 'none' }}
+            >
               <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
                 <QRCodeSVG 
                   value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${watch('estimationNo')}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`}
@@ -1181,11 +1187,11 @@ const Estimation = () => {
                 />
               </div>
               <div className="flex flex-col">
-                <h3 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1">Scan to Pay</h3>
+                <h3 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1">Scan or Click to Pay</h3>
                 <p className="text-[10px] text-slate-600 font-medium">UPI ID: {settings.upiId}</p>
-                <p className="text-[9px] text-slate-500 mt-1">Scan using any UPI app</p>
+                <p className="text-[9px] text-slate-500 mt-1">Scan or tap to open UPI app</p>
               </div>
-            </div>
+            </a>
           )}
         </div>
         
