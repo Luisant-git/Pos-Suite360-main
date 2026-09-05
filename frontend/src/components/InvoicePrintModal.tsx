@@ -226,16 +226,20 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement | null;
       if (settings?.upiId && grandTotal > 0 && qrCanvas) {
         const upiUrl = `upi://pay?pa=${encodeURIComponent(settings.upiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+        const backendUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace('/api', '');
+        const clickUrl = `${backendUrl}/upi-redirect?pa=${encodeURIComponent(settings.upiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}`;
         const qrDataUrl = qrCanvas.toDataURL('image/png');
         const qrY = totalsStartY + 22;
         doc.addImage(qrDataUrl, 'PNG', col, qrY, 22, 22);
+        doc.link(col, qrY, 22, 22, { url: clickUrl });
         doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
         doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 5);
-        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#0000EE');
-        doc.textWithLink(upiUrl, col + 26, qrY + 11, { url: upiUrl });
-        doc.setTextColor('#64748b');
-        doc.text(`UPI ID: ${settings.upiId.trim()}`, col + 26, qrY + 17);
-        doc.text('Scan or tap to open UPI app', col + 26, qrY + 22);
+        doc.link(col, qrY, W / 2 - col, 25, { url: clickUrl });
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
+        doc.text(`UPI ID: ${settings.upiId.trim()}`, col + 26, qrY + 11);
+        doc.text('Scan QR or tap text to pay', col + 26, qrY + 17);
+        doc.setTextColor('#0000EE');
+        doc.textWithLink('Click here to pay', col + 26, qrY + 22, { url: clickUrl });
       }
 
       // Totals (right)
