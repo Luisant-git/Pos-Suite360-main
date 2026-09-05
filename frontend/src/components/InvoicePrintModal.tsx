@@ -242,21 +242,27 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     doc.text(`${numberToWords(grandTotal)} ONLY`, valX, y + 11, { align: 'right' });
     
     // Draw QR Code on the left side of the totals
-    const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
-    if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
-      try {
-        const qrDataUrl = qrCanvas.toDataURL('image/png');
-        doc.addImage(qrDataUrl, 'PNG', col, totalsStartY - 2, 28, 28);
-        
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor('#1e293b');
-        doc.text('Scan to Pay', col + 32, totalsStartY + 6);
-        
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor('#64748b');
-        doc.text(`UPI ID: ${settings.upiId}`, col + 32, totalsStartY + 11);
+      const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
+      if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
+        try {
+          const upiUrl = `upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+          
+          const qrDataUrl = qrCanvas.toDataURL('image/png');
+          doc.addImage(qrDataUrl, 'PNG', col, totalsStartY - 2, 28, 28);
+          // Make the QR code image clickable in the PDF
+          doc.link(col, totalsStartY - 2, 28, 28, { url: upiUrl });
+          
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor('#1A63A8'); // Make it look like a link
+          doc.text('Scan or Click to Pay', col + 32, totalsStartY + 6);
+          // Make the text clickable in the PDF
+          doc.link(col + 32, totalsStartY, 35, 8, { url: upiUrl });
+          
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor('#64748b');
+          doc.text(`UPI ID: ${settings.upiId}`, col + 32, totalsStartY + 11);
       } catch (e) {
         console.error('Error adding QR to PDF', e);
       }

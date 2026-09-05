@@ -455,7 +455,8 @@ const Estimation = () => {
       filename:     `Estimation_${watch('estimationNo')}.pdf`,
       image:        { type: 'jpeg' as const, quality: 0.98 },
       html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' as const }
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' as const },
+      enableLinks:  true
     };
 
     let originalParent: ParentNode | null = null;
