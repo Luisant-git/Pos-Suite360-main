@@ -1182,7 +1182,7 @@ const Estimation = () => {
             >
               <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
                 <QRCodeSVG 
-                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${watch('estimationNo')}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`}
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(watch('estimationNo'))}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`}
                   size={64}
                   level="M"
                 />

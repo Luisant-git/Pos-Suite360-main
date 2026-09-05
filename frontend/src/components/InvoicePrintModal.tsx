@@ -302,7 +302,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
     if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
       try {
-        const upiUrl = `${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+        const upiUrl = `${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
         
         const qrDataUrl = qrCanvas.toDataURL('image/png');
         doc.addImage(qrDataUrl, 'PNG', col, currentLeftY, 28, 28);
@@ -677,7 +677,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           
           {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
             <a 
-              href={`${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+              href={`${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -685,13 +685,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             >
               <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
                 <QRCodeSVG 
-                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
                   size={64}
                   level="M"
                 />
                 <QRCodeCanvas 
                   id="upi-qr-code-canvas"
-                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
                   size={900}
                   level="M"
                   className="hidden"
