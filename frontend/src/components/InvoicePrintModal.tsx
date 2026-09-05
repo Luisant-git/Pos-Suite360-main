@@ -285,7 +285,12 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: `Invoice ${invoiceNo}` });
+        let shareText = `Here is your Invoice ${invoiceNo}.`;
+        if (showPaymentInfo && settings?.upiId && grandTotal > 0) {
+          const upiUrl = `upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+          shareText += `\n\nClick below to pay instantly via UPI:\n${upiUrl}`;
+        }
+        await navigator.share({ files: [file], title: `Invoice ${invoiceNo}`, text: shareText });
       } else {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(pdfBlob);
