@@ -34,21 +34,21 @@ const UpiRedirect = () => {
         <h2 className="text-xl font-bold text-gray-800 mb-2">Redirecting to Payment...</h2>
         <div className="mb-6 flex flex-col items-center">
           <p className="text-gray-600 text-sm mb-3">Please complete the payment in your UPI app:</p>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center -space-x-3">
             {/* GPay */}
-            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-sm rounded-full w-12 h-12 p-2 overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-md rounded-full w-12 h-12 p-2 overflow-hidden hover:shadow-lg transition-shadow hover:z-10 z-0">
               <img src="/icons/gpay.png" alt="GPay" className="w-full h-full object-contain" />
             </div>
             {/* PhonePe */}
-            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-sm rounded-full w-12 h-12 p-1.5 overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-md rounded-full w-12 h-12 p-1.5 overflow-hidden hover:shadow-lg transition-shadow hover:z-10 z-[1]">
               <img src="/icons/phonepe.png" alt="PhonePe" className="w-full h-full object-contain" />
             </div>
             {/* Paytm */}
-            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-sm rounded-full w-12 h-12 p-2 overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-md rounded-full w-12 h-12 p-2 overflow-hidden hover:shadow-lg transition-shadow hover:z-10 z-[2]">
               <img src="/icons/paytm.png" alt="Paytm" className="w-full h-full object-contain" />
             </div>
             {/* UPI */}
-            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-sm rounded-full w-12 h-12 p-2 overflow-hidden hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-center bg-white border border-gray-100 shadow-md rounded-full w-12 h-12 p-2 overflow-hidden hover:shadow-lg transition-shadow hover:z-10 z-[3]">
               <img src="/icons/upi.png" alt="UPI" className="w-full h-full object-contain" />
             </div>
           </div>
