@@ -289,7 +289,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold'); // Make terms bold
       doc.setTextColor('#1e293b'); // Darker color
-      const cleanNotes = rawNotes.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
+      const cleanNotes = rawNotes.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n').replace(/<[^>]+>/g, '').replace(/\n\s*\n/g, '\n');
       const splitNotes = doc.splitTextToSize(cleanNotes.trim(), (W / 2));
       doc.text(splitNotes, col, currentLeftY + 4);
       
