@@ -648,6 +648,15 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           </div>
         )}
 
+        {/* Hidden container for full A4 PDF generation via html2pdf */}
+        <div style={{ display: 'none' }}>
+          <div id="pdf-invoice-content">
+            <div className="w-[800px] bg-white">
+              <InvoiceContent />
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>,
     document.body
