@@ -125,7 +125,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       // --- HEADER ---
       let headerLeftY = y;
-      // Logo (top-left)
       if (settings?.logoImage) {
         try {
           const logo = await loadImg(settings.logoImage);
@@ -134,7 +133,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           headerLeftY += lh + 8;
         } catch { /* skip */ }
       }
-      // Shop name below logo
       text((settings?.shopName || 'POS Suite 360').toUpperCase(), pad, headerLeftY + 14, 'bold 16px Arial', '#04325E');
       headerLeftY += 18;
       if (settings?.invoiceTitle) { text(settings.invoiceTitle, pad, headerLeftY + 6, 'bold 11px Arial', '#1A63A8'); headerLeftY += 14; }
@@ -146,11 +144,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       ].filter(Boolean) as string[];
       addrLines.forEach((line, i) => text(line, pad, headerLeftY + 8 + i * 14, '10px Arial', '#334155'));
       headerLeftY += 8 + addrLines.length * 14;
-
-      // Invoice title (right)
       text(isEstimation ? 'ESTIMATION' : 'INVOICE', 794 - pad, y + 32, 'bold 30px Arial', '#1A63A8', 'right');
       text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, 794 - pad, y + 50, 'bold 11px Arial', '#334155', 'right');
-
       y = headerLeftY + 16;
 
       // --- INFO CARDS ---
@@ -250,7 +245,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       let ty = footerY + 18;
       const totalRows: [string, string][] = [['Subtotal:', Number(sale?.subtotal || 0).toFixed(2)]];
       if (settings?.enableTax) {
-        const taxVal = parseFloat(sale?.tax);
+        const taxVal = parseFloat(String(sale?.tax ?? ''));
         if (!isNaN(taxVal) && taxVal > 0) {
           const ss = (settings.state || '').trim().toLowerCase();
           const cs = (sale?.customer?.state || '').trim().toLowerCase();
@@ -298,6 +293,15 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+
+      // Add clickable UPI link over the QR area in the PDF
+      if (showPaymentInfo && settings?.upiId && grandTotal > 0) {
+        const upiLink = `upi://pay?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+        const s = 210 / 794; // canvas px to mm
+        const qrBoxY = footerY + 78; // matches qrY2 in canvas drawing
+        pdf.link(pad * s, qrBoxY * s, (leftW - 8) * s, 60 * s, { url: upiLink });
+      }
+
       const pdfBlob = pdf.output('blob');
 
       const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
