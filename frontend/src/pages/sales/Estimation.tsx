@@ -487,13 +487,7 @@ const Estimation = () => {
       // Generate base64 PDF
       const pdfBase64 = await html2pdf().set(opt).from(element).output('datauristring');
       
-      let message = `Hello ${customer.name},\n\nHere is your invoice ${watch('estimationNo')}.\nTotal Amount: ${formatCurrency(watch('netAmount'))}\n\nThank you for your business!`;
-      
-      const showPayment = (editId && editEstimationData ? editEstimationData.stockMaintained : settings?.estimationStockMaintain) && settings?.upiId && Number(watch('netAmount')) > 0;
-      if (showPayment) {
-        const upiUrl = `upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${watch('estimationNo')}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`;
-        message += `\n\n*Click below to pay instantly via UPI:*\n${upiUrl}`;
-      }
+      const message = `Hello ${customer.name},\n\nHere is your invoice ${watch('estimationNo')}.\nTotal Amount: ${formatCurrency(watch('netAmount'))}\n\nThank you for your business!`;
 
       // Send to backend WhatsApp integration
       await api.post('/whatsapp/send-pdf', {

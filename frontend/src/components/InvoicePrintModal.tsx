@@ -292,10 +292,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         let shareText = `Here is your Invoice ${invoiceNo}.`;
-        if (showPaymentInfo && settings?.upiId && grandTotal > 0) {
-          const upiUrl = `upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
-          shareText += `\n\nClick below to pay instantly via UPI:\n${upiUrl}`;
-        }
         await navigator.share({ files: [file], title: `Invoice ${invoiceNo}`, text: shareText });
       } else {
         const link = document.createElement('a');
