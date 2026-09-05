@@ -26,18 +26,10 @@ const UpiRedirect = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full border border-gray-100">
-        <div className="mb-8 relative w-20 h-20 mx-auto" style={{ perspective: '1000px' }}>
-          <div className="w-full h-full rounded-full shadow-xl flex items-center justify-center" 
-               style={{ 
-                 background: 'linear-gradient(135deg, #fbbf24 0%, #fef3c7 40%, #f59e0b 100%)',
-                 border: '4px solid #fde68a',
-                 boxShadow: '0 10px 25px -5px rgba(245, 158, 11, 0.5), inset 0 -4px 8px rgba(180, 83, 9, 0.5)',
-                 animation: 'coin-spin 2s linear infinite',
-                 transformStyle: 'preserve-3d'
-               }}>
-            <div className="absolute inset-0 rounded-full border-[2px] border-[#d97706] border-dashed opacity-40 m-[4px]"></div>
-            <span className="text-4xl text-[#92400e] font-black tracking-tighter shadow-sm" style={{ transform: 'translateZ(1px)' }}>₹</span>
-          </div>
+        <div className="mb-4">
+          <svg className="w-16 h-16 text-[#059669] mx-auto animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
         <h2 className="text-xl font-bold text-gray-800 mb-2">Redirecting to Payment...</h2>
         <p className="text-gray-600 mb-6 text-sm">Please complete the payment in your UPI app (GPay, PhonePe, Paytm, etc).</p>
@@ -51,10 +43,6 @@ const UpiRedirect = () => {
             50% { transform: scaleX(1); transform-origin: left; }
             51% { transform: scaleX(1); transform-origin: right; }
             100% { transform: scaleX(0); transform-origin: right; }
-          }
-          @keyframes coin-spin {
-            0% { transform: rotateY(0deg); }
-            100% { transform: rotateY(360deg); }
           }
         `}</style>
       </div>
