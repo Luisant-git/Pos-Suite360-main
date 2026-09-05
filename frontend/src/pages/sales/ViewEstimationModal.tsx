@@ -87,18 +87,6 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
     doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
     doc.text('Total Due:', tx, y + 3); doc.text(`${currency} ${Number(grandTotal).toFixed(2)}`, W - margin, y + 3, { align: 'right' }); y += 16;
     
-    // Signature Image
-    if (settings?.signatureImage) {
-      try {
-        doc.addImage(settings.signatureImage, 'PNG', W - margin - 40, y, 40, 15);
-        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor('#1e293b');
-        doc.text('Authorized Signatory', W - margin, y + 18, { align: 'right' });
-        y += 20;
-      } catch (e) {
-        console.error('Error adding signature to PDF', e);
-      }
-    }
-
     doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#94a3b8');
     doc.text('Thank you for your business!', W / 2, y, { align: 'center' });
 

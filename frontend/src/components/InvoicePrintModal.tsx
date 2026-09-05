@@ -265,7 +265,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     y += 18;
 
     // Signature Image
-    if (settings?.signatureImage) {
+    if (settings?.signatureImage && !isEstimation) {
       try {
         doc.addImage(settings.signatureImage, 'PNG', W - margin - 40, totalsStartY + 2, 40, 15);
         doc.setFontSize(8);
@@ -677,7 +677,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             </div>
           </div>
 
-          {settings?.signatureImage && (
+          {settings?.signatureImage && !isEstimation && (
             <div className="text-right mt-4 relative">
               <p className="text-[10px] font-bold text-slate-800 mb-12">For {settings?.shopName || 'POS Suite 360'}</p>
               <img 
