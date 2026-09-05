@@ -242,8 +242,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       doc.text(Number(sale?.subtotal || 0).toFixed(2), valX, y, { align: 'right' }); y += lineH;
 
       if (settings?.enableTax) {
-        const taxVal = parseFloat(String(sale?.tax ?? ''));
-        if (!isNaN(taxVal) && taxVal > 0) {
+        const taxVal = Number(sale?.tax || 0);
+        if (taxVal > 0) {
           const ss = (settings.state || '').trim().toLowerCase();
           const cs = (sale?.customer?.state || '').trim().toLowerCase();
           if (ss && cs && ss === cs) {
@@ -600,6 +600,16 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             />
           </div>
           
+          {/* QRCodeCanvas always rendered when upiId exists so PDF can always find it */}
+          {settings?.upiId && grandTotal > 0 && (
+            <QRCodeCanvas 
+              id="upi-qr-code-canvas"
+              value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR&mc=0000&mode=02&purpose=00`}
+              size={900}
+              level="M"
+              className="hidden"
+            />
+          )}
           {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
             <a 
               href={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
@@ -613,13 +623,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                   value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR&mc=0000&mode=02&purpose=00`}
                   size={64}
                   level="M"
-                />
-                <QRCodeCanvas 
-                  id="upi-qr-code-canvas"
-                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR&mc=0000&mode=02&purpose=00`}
-                  size={900}
-                  level="M"
-                  className="hidden"
                 />
               </div>
               <div className="flex flex-col">
@@ -643,13 +646,14 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               {/* Tax Rendering */}
               {settings?.enableTax && (
                 (() => {
-                  if (Number(sale?.tax) === 0) return null;
+                  const taxNum = Number(sale?.tax || 0);
+                  if (isNaN(taxNum) || taxNum === 0) return null;
 
                   const storeState = (settings.state || '').trim().toLowerCase();
                   const custState = (sale?.customer?.state || '').trim().toLowerCase();
                   
                   if (storeState && custState && storeState === custState) {
-                    const splitTax = Number(sale.tax) / 2;
+                    const splitTax = taxNum / 2;
                     return (
                       <>
                         <div className="flex justify-between text-[#334155]">
@@ -666,7 +670,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                     return (
                       <div className="flex justify-between text-[#334155]">
                         <span>IGST:</span>
-                        <span className="font-semibold tracking-wide">{Number(sale?.tax).toFixed(2)}</span>
+                        <span className="font-semibold tracking-wide">{taxNum.toFixed(2)}</span>
                       </div>
                     );
                   }
