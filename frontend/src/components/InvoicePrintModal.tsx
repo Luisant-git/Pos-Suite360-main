@@ -157,7 +157,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       // Invoice details right side
       const infoStartY = margin + 18;
-      addText('INVOICE DETAILS', W - margin, infoStartY, { size: 8, bold: true, color: '#64748b', align: 'right' });
+      addText(isEstimation ? 'ESTIMATION DETAILS' : 'INVOICE DETAILS', W - margin, infoStartY, { size: 8, bold: true, color: '#64748b', align: 'right' });
       const lx = W - margin - 35, vx = W - margin;
       doc.setFontSize(9); doc.setTextColor('#334155');
       [['Date:', date], ['Payment:', sale?.paymentMode?.name || 'Cash'], ['Status:', sale?.status || 'Completed']]
