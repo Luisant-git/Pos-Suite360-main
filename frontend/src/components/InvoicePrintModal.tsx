@@ -112,12 +112,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       }
 
       // Filter out stylesheets containing oklch (Tailwind v4) which html-to-image cannot parse
+      // skipFonts prevents CORS errors from cross-origin font stylesheets (e.g. Google Fonts)
       const dataUrl = await toPng(element, {
         pixelRatio: 2,
         backgroundColor: '#ffffff',
+        skipFonts: true,
         filter: (node) => {
           if (node instanceof HTMLStyleElement && node.textContent?.includes('oklch')) return false;
-          if (node instanceof HTMLLinkElement && node.rel === 'stylesheet') return false;
           return true;
         },
       });
