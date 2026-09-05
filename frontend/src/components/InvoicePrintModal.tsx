@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, Loader2, QrCode } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
 
 const numberToWords = (num: number): string => {
   if (!num || num === 0) return 'ZERO';
