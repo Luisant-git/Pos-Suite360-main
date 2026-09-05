@@ -93,13 +93,204 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const handleWhatsApp = async () => {
     setIsSharing(true);
     try {
-      // A4 at 96dpi: 794x1123px. Scale 2 for sharpness.
-      const S = 2;
-      const W = 794 * S, H = 1123 * S;
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d')!;
-      ctx.scale(S, S);
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const W = 210;
+      const margin = 14;
+      let y = margin;
+      const col = margin;
+      const lineH = 6;
+
+      const addText = (t: string | string[], x: number, yPos: number, opts: any = {}) => {
+        doc.setFontSize(opts.size || 10);
+        doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+        doc.setTextColor(opts.color || '#1e293b');
+        const textOpts: any = {};
+        if (opts.maxWidth) textOpts.maxWidth = opts.maxWidth;
+        if (opts.align) textOpts.align = opts.align;
+        doc.text(t || '', x, yPos, textOpts);
+      };
+
+      // Logo
+      if (settings?.logoImage) {
+        try {
+          const logoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image(); img.crossOrigin = 'Anonymous';
+            img.onload = () => resolve(img); img.onerror = reject; img.src = settings.logoImage!;
+          });
+          const maxW = 50, maxH = 20;
+          const ratio = Math.min(maxW / (logoImg.width || 100), maxH / (logoImg.height || 40));
+          const lw = (logoImg.width || 100) * ratio, lh = (logoImg.height || 40) * ratio;
+          const cv = document.createElement('canvas'); cv.width = logoImg.width; cv.height = logoImg.height;
+          cv.getContext('2d')!.drawImage(logoImg, 0, 0);
+          doc.addImage(cv.toDataURL('image/png'), 'PNG', col, y, lw, lh);
+          y += lh + 4;
+        } catch { /* skip */ }
+      }
+
+      addText((settings?.shopName || 'POS Suite 360').toUpperCase(), col, y, { size: 14, bold: true, color: '#04325E' }); y += 7;
+      if (settings?.invoiceTitle) { addText(settings.invoiceTitle, col, y, { size: 10, color: '#1A63A8' }); y += 5; }
+      if (settings?.shopAddress) { addText(settings.shopAddress, col, y, { size: 9, color: '#475569' }); y += 5; }
+      const cityLine = [settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ');
+      if (cityLine) { addText(cityLine, col, y, { size: 9, bold: true, color: '#475569' }); y += 5; }
+      if (settings?.phone) { addText(`Tel: ${settings.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+      if (settings?.gstin) { addText(`GSTIN: ${settings.gstin}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+
+      // Invoice label top-right
+      addText(isEstimation ? 'ESTIMATION' : 'INVOICE', W - margin, margin + 4, { size: 20, bold: true, color: '#1A63A8', align: 'right' });
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
+      doc.text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, W - margin, margin + 11, { align: 'right' });
+
+      y += 4;
+      doc.setDrawColor('#e2e8f0'); doc.setLineWidth(0.3); doc.line(col, y, W - margin, y); y += 6;
+
+      // Bill To
+      addText('BILLED TO / CUSTOMER DETAILS', col, y, { size: 8, bold: true, color: '#64748b' }); y += 5;
+      addText(customerName, col, y, { size: 11, bold: true }); y += 5;
+      if (sale?.customer?.address) {
+        const addressLines = doc.splitTextToSize(sale.customer.address, 80);
+        addText(addressLines, col, y, { size: 9, color: '#475569' }); y += (addressLines.length * 4) + 1;
+      }
+      if (sale?.customer?.state) { addText(sale.customer.state, col, y, { size: 9, color: '#475569' }); y += 5; }
+      if (sale?.customer?.phone) { addText(`Phone: ${sale.customer.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+      if (sale?.customer?.gstNumber) { addText(`GSTIN: ${sale.customer.gstNumber}`, col, y, { size: 9, color: '#475569' }); y += 5; }
+
+      // Invoice details right side
+      const infoStartY = margin + 18;
+      addText('INVOICE DETAILS', W - margin, infoStartY, { size: 8, bold: true, color: '#64748b', align: 'right' });
+      const lx = W - margin - 35, vx = W - margin;
+      doc.setFontSize(9); doc.setTextColor('#334155');
+      [['Date:', date], ['Payment:', sale?.paymentMode?.name || 'Cash'], ['Status:', sale?.status || 'Completed']]
+        .forEach(([label, val], i) => {
+          doc.setFont('helvetica', 'bold'); doc.text(label, lx, infoStartY + 6 + i * 5);
+          doc.setFont('helvetica', 'normal'); doc.text(val, vx, infoStartY + 6 + i * 5, { align: 'right' });
+        });
+
+      y += 4;
+      doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
+
+      // Table header
+      doc.setFillColor('#2D6AA1'); doc.rect(col, y - 4, W - margin * 2, 8, 'F');
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#ffffff');
+      doc.text('#', col + 2, y + 1);
+      doc.text('ITEM DESCRIPTION', col + 10, y + 1);
+      doc.text('QTY', col + 105, y + 1, { align: 'center' });
+      doc.text(`RATE (${currency})`, col + 138, y + 1, { align: 'right' });
+      doc.text(`AMOUNT (${currency})`, W - margin - 2, y + 1, { align: 'right' });
+      y += 8;
+
+      // Table rows
+      items.forEach((item: any, idx: number) => {
+        const splitName = doc.splitTextToSize(
+          `${item.product?.name || ''}${item.product?.code ? ` (${item.product.code})` : ''}`, 80
+        );
+        const rowH = Math.max(lineH + 2, splitName.length * 4 + 2);
+        if (idx % 2 === 0) { doc.setFillColor('#f8fafc'); doc.rect(col, y - 4, W - margin * 2, rowH, 'F'); }
+        doc.setFontSize(9); doc.setTextColor('#1e293b');
+        doc.setFont('helvetica', 'normal'); doc.text(String(idx + 1), col + 2, y);
+        doc.setFont('helvetica', 'bold'); doc.text(splitName, col + 10, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 105, y, { align: 'center' });
+        doc.text(Number(item.rate || 0).toFixed(2), col + 138, y, { align: 'right' });
+        doc.setFont('helvetica', 'bold');
+        doc.text(Number(item.amount || item.total || 0).toFixed(2), W - margin - 2, y, { align: 'right' });
+        y += rowH;
+      });
+
+      doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
+
+      // Push footer to bottom if space allows
+      const bottomY = 297 - margin - 50;
+      if (y < bottomY) y = bottomY;
+
+      const totalsStartY = y;
+      const totalsX = W - margin - 60, valX = W - margin - 2;
+
+      // Terms & Conditions (left)
+      const rawNotes = (settings?.invoiceNotes ?? '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.');
+      if (rawNotes) {
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
+        doc.text('TERMS & CONDITIONS', col, totalsStartY);
+        const cleanNotes = rawNotes
+          .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n')
+          .replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ')
+          .replace(/(\d+\.)/g, '\n$1').replace(/\n\s*\n/g, '\n').trim();
+        const splitNotes = doc.splitTextToSize(cleanNotes, totalsX - col - 4);
+        doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1e293b');
+        doc.text(splitNotes, col, totalsStartY + 5);
+      }
+
+      // QR code (left, below terms)
+      const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement | null;
+      if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
+        const upiUrl = `upi://pay?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+        const qrDataUrl = qrCanvas.toDataURL('image/png');
+        const qrY = totalsStartY + 22;
+        doc.addImage(qrDataUrl, 'PNG', col, qrY, 22, 22);
+        doc.link(col, qrY, 22, 22, { url: upiUrl });
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
+        doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 7);
+        doc.link(col + 26, qrY + 2, 50, 7, { url: upiUrl });
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
+        doc.text(`UPI ID: ${settings.upiId.trim()}`, col + 26, qrY + 13);
+        doc.text('Scan or tap to open UPI app', col + 26, qrY + 18);
+      }
+
+      // Totals (right)
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor('#334155');
+      doc.text('Subtotal:', totalsX, y);
+      doc.text(Number(sale?.subtotal || 0).toFixed(2), valX, y, { align: 'right' }); y += lineH;
+
+      if (settings?.enableTax) {
+        const taxVal = parseFloat(String(sale?.tax ?? ''));
+        if (!isNaN(taxVal) && taxVal > 0) {
+          const ss = (settings.state || '').trim().toLowerCase();
+          const cs = (sale?.customer?.state || '').trim().toLowerCase();
+          if (ss && cs && ss === cs) {
+            const half = (taxVal / 2).toFixed(2);
+            doc.text('CGST:', totalsX, y); doc.text(half, valX, y, { align: 'right' }); y += lineH;
+            doc.text('SGST:', totalsX, y); doc.text(half, valX, y, { align: 'right' }); y += lineH;
+          } else {
+            doc.text('IGST:', totalsX, y); doc.text(taxVal.toFixed(2), valX, y, { align: 'right' }); y += lineH;
+          }
+        }
+      }
+      if (Number(sale?.discount) > 0) {
+        doc.text('Discount:', totalsX, y); doc.text(Number(sale.discount).toFixed(2), valX, y, { align: 'right' }); y += lineH;
+      }
+
+      // Total due box
+      doc.setFillColor('#F0F5FA'); doc.rect(totalsX - 4, y - 4, W - margin - totalsX + 4 + margin, 12, 'F');
+      doc.setDrawColor('#1A63A8'); doc.setLineWidth(0.5);
+      doc.line(totalsX - 4, y - 4, W, y - 4);
+      doc.line(totalsX - 4, y + 8, W, y + 8);
+      doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
+      doc.text('Total Due:', totalsX, y + 3);
+      doc.text(`${currency.replace('\u20b9', 'Rs.')} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
+      y += 14;
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
+      doc.text(`${numberToWords(grandTotal)} ONLY`, valX, y, { align: 'right' });
+
+      // Footer
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor('#94a3b8');
+      doc.text(`Thank you for partnering with ${settings?.shopName || 'POS Suite 360'}! | Page 1 of 1`, W / 2, 287, { align: 'center' });
+
+      const pdfBlob = doc.output('blob');
+      const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${isEstimation ? 'Estimation' : 'Invoice'} ${invoiceNo}` });
+      } else {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(pdfBlob);
+        link.download = `Invoice_${invoiceNo}.pdf`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') console.error('Error generating/sharing PDF:', err);
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
       const pad = 32;
       const cw = 794 - pad * 2; // content width
