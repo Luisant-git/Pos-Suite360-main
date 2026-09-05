@@ -108,7 +108,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           margin: 0,
           filename: `Invoice_${invoiceNo}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            ignoreElements: (el: Element) =>
+              el instanceof HTMLStyleElement && (el.textContent?.includes('oklch') ?? false),
+          },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
         .from(element)
