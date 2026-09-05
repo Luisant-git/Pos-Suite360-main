@@ -103,22 +103,28 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const element = document.getElementById('pdf-invoice-content');
       if (!element) throw new Error('Invoice content not found');
 
-      const pdfBlob: Blob = await html2pdf()
-        .set({
-          margin: 0,
-          filename: `Invoice_${invoiceNo}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            ignoreElements: (el: Element) =>
-              el instanceof HTMLStyleElement && (el.textContent?.includes('oklch') ?? false),
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        })
-        .from(element)
-        .outputPdf('blob');
+      // Temporarily remove oklch style tags (Tailwind v4) — html2canvas cannot parse oklch
+      const oklchStyles = Array.from(document.querySelectorAll('style')).filter(
+        (s) => s.textContent?.includes('oklch')
+      );
+      oklchStyles.forEach((s) => s.remove());
+
+      let pdfBlob: Blob;
+      try {
+        pdfBlob = await html2pdf()
+          .set({
+            margin: 0,
+            filename: `Invoice_${invoiceNo}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          })
+          .from(element)
+          .outputPdf('blob');
+      } finally {
+        // Always restore the removed style tags
+        oklchStyles.forEach((s) => document.head.appendChild(s));
+      }
 
       const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
 
