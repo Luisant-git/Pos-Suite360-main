@@ -1,36 +1,16 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, Loader2, QrCode } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import numberToWords from '../utils/numberToWords';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
-
-// Basic number to words converter (for Malaysian Ringgit / general use)
-const numberToWords = (num: number): string => {
-  if (!num || num === 0) return "ZERO";
-  const a = ["", "ONE ", "TWO ", "THREE ", "FOUR ", "FIVE ", "SIX ", "SEVEN ", "EIGHT ", "NINE ", "TEN ", "ELEVEN ", "TWELVE ", "THIRTEEN ", "FOURTEEN ", "FIFTEEN ", "SIXTEEN ", "SEVENTEEN ", "EIGHTEEN ", "NINETEEN "];
-  const b = ["", "", "TWENTY ", "THIRTY ", "FORTY ", "FIFTY ", "SIXTY ", "SEVENTY ", "EIGHTY ", "NINETY "];
-
-  const convertWhole = (n: number): string => {
-    if (n < 20) return a[n];
-    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? a[n % 10] : "");
-    if (n < 1000) return a[Math.floor(n / 100)] + "HUNDRED " + (n % 100 !== 0 ? convertWhole(n % 100) : "");
-    if (n < 1000000) return convertWhole(Math.floor(n / 1000)) + "THOUSAND " + (n % 1000 !== 0 ? convertWhole(n % 1000) : "");
-    return n.toString(); // Fallback for very large numbers
-  };
-
-  const wholePart = Math.floor(Number(num));
-  const cents = Math.round((Number(num) - wholePart) * 100);
-  
-  let res = convertWhole(wholePart) || "";
-  if (cents > 0) {
-    res += `AND CENTS ${convertWhole(cents) || ""}`;
-  }
-  return res ? res.trim() : "";
-};
 
 interface InvoicePrintModalProps {
   isOpen: boolean;
@@ -100,261 +80,34 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const handleWhatsApp = async () => {
     setIsSharing(true);
     try {
-      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      const W = 210;
-      const margin = 14;
-      let y = margin;
-      const col = margin;
-      const lineH = 6;
-
-    const addText = (text: string | string[], x: number, yPos: number, opts: any = {}) => {
-      doc.setFontSize(opts.size || 10);
-      doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
-      doc.setTextColor(opts.color || '#1e293b');
-      const textOpts: any = {};
-      if (opts.maxWidth) textOpts.maxWidth = opts.maxWidth;
-      if (opts.align) textOpts.align = opts.align;
-      doc.text(text || '', x, yPos, textOpts);
-    };
-
-    // Header
-    if (settings?.logoImage) {
-      try {
-        const logoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'Anonymous';
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-          img.src = settings.logoImage!;
-        });
-        const maxWidth = 50;
-        const maxHeight = 20;
-        let w = logoImg.width || 100;
-        let h = logoImg.height || 40;
-        const ratio = Math.min(maxWidth / w, maxHeight / h);
-        
-        // Ensure image format is handled correctly; jsPDF often requires canvas extraction or direct image element
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(logoImg, 0, 0, w, h);
-          const dataUrl = canvas.toDataURL('image/png');
-          doc.addImage(dataUrl, 'PNG', col, y, w * ratio, h * ratio);
-          y += (h * ratio) + 4;
-        }
-      } catch (err) {
-        console.error('Failed to load logo for PDF', err);
-      }
-    }
-
-    addText(settings?.shopName || 'POS Suite 360', col, y, { size: 16, bold: true, color: '#04325E' });
-    y += 7;
-    if (settings?.invoiceTitle) { addText(settings.invoiceTitle, col, y, { size: 10, color: '#1A63A8' }); y += 5; }
-    if (settings?.shopAddress) { addText(settings.shopAddress, col, y, { size: 9, color: '#475569' }); y += 5; }
-    const cityLine = [settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ');
-    if (cityLine) { addText(cityLine, col, y, { size: 9, bold: true, color: '#475569' }); y += 5; }
-    if (settings?.phone) { addText(`Tel: ${settings.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
-    if (settings?.gstin) { addText(`GSTIN: ${settings.gstin}`, col, y, { size: 9, color: '#475569' }); y += 5; }
-
-    // Invoice label top-right
-    addText(isEstimation ? 'ESTIMATION' : 'INVOICE', W - margin, margin + 4, { size: 20, bold: true, color: '#1A63A8', align: 'right' });
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
-    doc.text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, W - margin, margin + 11, { align: 'right' });
-    doc.text(`Date: ${date}`, W - margin, margin + 17, { align: 'right' });
-
-    y += 4;
-    doc.setDrawColor('#e2e8f0'); doc.setLineWidth(0.3); doc.line(col, y, W - margin, y);
-    y += 6;
-
-    // Bill To
-    addText('BILLED TO', col, y, { size: 8, bold: true, color: '#64748b' }); y += 5;
-    addText(customerName, col, y, { size: 11, bold: true }); y += 5;
-    if (sale?.customer?.phone) { addText(`Phone: ${sale.customer.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
-    if (sale?.customer?.address) {
-      doc.setFontSize(9);
-      const addressLines = doc.splitTextToSize(sale.customer.address, 80);
-      addText(addressLines, col, y, { size: 9, color: '#475569' });
-      y += (addressLines.length * 4) + 1;
-    }
-    if (sale?.customer?.gstNumber) { addText(`GSTIN: ${sale.customer.gstNumber}`, col, y, { size: 9, color: '#475569' }); y += 5; }
-
-    // Payment info right side
-    const infoY = y - (5 * (1 + (sale?.customer?.phone ? 1 : 0) + (sale?.customer?.address ? 1 : 0) + (sale?.customer?.gstNumber ? 1 : 0))) - 5;
-    
-    addText('INVOICE DETAILS', W - margin, infoY, { size: 8, bold: true, color: '#64748b', align: 'right' });
-    
-    const detailsLabelX = W - margin - 35;
-    const detailsValueX = W - margin;
-    
-    doc.setFontSize(9);
-    doc.setTextColor('#334155');
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Date:', detailsLabelX, infoY + 6);
-    doc.setFont('helvetica', 'normal');
-    doc.text(date, detailsValueX, infoY + 6, { align: 'right' });
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Payment:', detailsLabelX, infoY + 11);
-    doc.setFont('helvetica', 'normal');
-    doc.text(sale?.paymentMode?.name || 'Cash', detailsValueX, infoY + 11, { align: 'right' });
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Status:', detailsLabelX, infoY + 16);
-    doc.setFont('helvetica', 'normal');
-    doc.text(sale?.status || 'Completed', detailsValueX, infoY + 16, { align: 'right' });
-
-    y += 4;
-    doc.line(col, y, W - margin, y); y += 6;
-
-    // Table header
-    doc.setFillColor('#2D6AA1');
-    doc.rect(col, y - 4, W - margin * 2, 8, 'F');
-    doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#ffffff');
-    doc.text('#', col + 2, y + 1);
-    doc.text('Item Description', col + 10, y + 1);
-    doc.text('Qty', col + 100, y + 1, { align: 'center' });
-    doc.text('Rate', col + 130, y + 1, { align: 'right' });
-    doc.text('Amount', W - margin - 2, y + 1, { align: 'right' });
-    y += 8;
-
-    // Table rows
-    items.forEach((item: any, idx: number) => {
-      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
-      const splitName = doc.splitTextToSize(item.product?.name || '', 80);
-      const rowLines = splitName.length;
-      const currentRowH = Math.max(lineH + 2, (rowLines * 4) + 2);
-
-      if (idx % 2 === 0) { doc.setFillColor('#f8fafc'); doc.rect(col, y - 4, W - margin * 2, currentRowH, 'F'); }
-      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#1e293b');
-      doc.text(String(idx + 1), col + 2, y);
-      doc.setFont('helvetica', 'bold');
-      doc.text(splitName, col + 10, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 100, y, { align: 'center' });
-      doc.text(Number(item.rate || 0).toFixed(2), col + 130, y, { align: 'right' });
-      doc.setFont('helvetica', 'bold');
-      doc.text(Number(item.amount || item.total || 0).toFixed(2), W - margin - 2, y, { align: 'right' });
-      y += currentRowH;
-    });
-
-    doc.setDrawColor('#e2e8f0'); doc.line(col, y, W - margin, y); y += 6;
-
-    // Push Totals to the bottom of the page if there is space
-    const pageHeight = 297; // A4 height in mm
-    const bottomY = pageHeight - margin - 35; // 35mm from bottom
-    if (y < bottomY) {
-      y = bottomY;
-    }
-
-    // Totals
-    const totalsStartY = y;
-    const totalsX = W - margin - 60;
-    const valX = W - margin - 2;
-    doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor('#334155');
-    doc.text('Subtotal:', totalsX, y); doc.text(Number(sale?.subtotal || 0).toFixed(2), valX, y, { align: 'right' }); y += lineH;
-    if (Number(sale?.discount) > 0) { doc.text('Discount:', totalsX, y); doc.text(Number(sale.discount).toFixed(2), valX, y, { align: 'right' }); y += lineH; }
-    if (Number(sale?.tax) > 0) { doc.text('Tax:', totalsX, y); doc.text(Number(sale.tax).toFixed(2), valX, y, { align: 'right' }); y += lineH; }
-
-    // Grand total box
-    doc.setFillColor('#F0F5FA'); doc.rect(totalsX - 4, y - 4, W - margin - totalsX + 4 + margin, 12, 'F');
-    doc.setDrawColor('#1A63A8'); doc.setLineWidth(0.5);
-    doc.line(totalsX - 4, y - 4, W - margin + margin, y - 4);
-    doc.line(totalsX - 4, y + 8, W - margin + margin, y + 8);
-    const pdfCurrency = currency.replace('₹', 'Rs.');
-    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
-    doc.text('Total Due:', totalsX, y + 3);
-    doc.text(`${pdfCurrency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
-    
-    // Amount in words (Below the underline)
-    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
-    doc.text(`${numberToWords(grandTotal)} ONLY`, valX, y + 11, { align: 'right' });
-    
-    // Terms & Conditions (Top Left Footer)
-    let maxFooterY = totalsStartY + 25;
-    const rawNotes = isEstimation
-      ? (settings?.estimationNotes !== undefined && settings?.estimationNotes !== null) ? settings.estimationNotes : ''
-      : (settings?.invoiceNotes !== undefined && settings?.invoiceNotes !== null) ? settings.invoiceNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.';
-
-    let currentLeftY = totalsStartY - 2;
-
-    if (rawNotes) {
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor('#1A63A8');
-      doc.text('TERMS & CONDITIONS', col, currentLeftY);
+      const element = document.getElementById('pdf-invoice-content');
+      if (!element) throw new Error('Invoice content not found');
       
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold'); // Make terms bold
-      doc.setTextColor('#1e293b'); // Darker color
-      
-      let cleanNotes = rawNotes
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/(p|div|li)>/gi, '\n')
-        .replace(/<[^>]+>/g, '') // Remove remaining tags
-        .replace(/&nbsp;/g, ' ')
-        .replace(/(\d+\.)/g, '\n$1') // Force newline before "1.", "2.", etc.
-        .replace(/\n\s*\n/g, '\n') // Collapse multiple newlines
-        .trim();
-        
-      const splitNotes = doc.splitTextToSize(cleanNotes, (W / 2));
-      doc.text(splitNotes, col, currentLeftY + 4);
-      
-      const notesHeight = 4 + (splitNotes.length * 3.5);
-      currentLeftY += notesHeight + 6; 
-      maxFooterY = Math.max(maxFooterY, currentLeftY);
-    }
-
-    // Draw QR Code on the left side of the totals, below Terms
-    const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
-    if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
-      try {
-        const upiUrl = `${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
-        
-        const qrDataUrl = qrCanvas.toDataURL('image/png');
-        doc.addImage(qrDataUrl, 'PNG', col, currentLeftY, 28, 28);
-        doc.link(col, currentLeftY, 28, 28, { url: upiUrl });
-        
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor('#1A63A8');
-        doc.text('Scan or Click to Pay', col + 32, currentLeftY + 8);
-        doc.link(col + 32, currentLeftY + 2, 35, 8, { url: upiUrl });
-        
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor('#64748b');
-        doc.text(`UPI ID: ${settings.upiId}`, col + 32, currentLeftY + 13);
-
-        maxFooterY = Math.max(maxFooterY, currentLeftY + 28);
-      } catch (e) {
-        console.error('Error adding QR to PDF', e);
+      // Temporarily make it visible for html2canvas
+      if (element.parentElement) {
+        element.parentElement.style.display = 'block';
+        element.parentElement.style.position = 'absolute';
+        element.parentElement.style.left = '-9999px';
       }
-    }
 
-    y = maxFooterY + 10;
+      const opt = {
+        margin:       0,
+        filename:     `Invoice_${invoiceNo}.pdf`,
+        image:        { type: 'jpeg', quality: 1.0 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
 
-    // Signature Image
-    if (settings?.signatureImage && !isEstimation) {
-      try {
-        doc.addImage(settings.signatureImage, 'PNG', W - margin - 40, totalsStartY + 2, 40, 15);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor('#1e293b');
-        doc.text('Authorized Signatory', W - margin, totalsStartY + 20, { align: 'right' });
-      } catch (e) {
-        console.error('Error adding signature to PDF', e);
+      const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
+      
+      // Hide it again
+      if (element.parentElement) {
+        element.parentElement.style.display = 'none';
+        element.parentElement.style.position = '';
+        element.parentElement.style.left = '';
       }
-    }
 
-    // Footer
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#94a3b8');
-    doc.text(`Thank you for partnering with ${settings?.shopName || 'POS Suite 360'}!`, W / 2, y, { align: 'center' });
-
-    const pdfBlob = doc.output('blob');
-    const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
+      const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: `${isEstimation ? 'Estimation' : 'Invoice'} ${invoiceNo}` });
@@ -369,7 +122,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         console.error('Error generating/sharing PDF:', err);
-        // Assuming toast is available globally or ignored if not imported, wait, let's just log it
       }
     } finally {
       setIsSharing(false);
