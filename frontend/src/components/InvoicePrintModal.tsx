@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, Loader2, QrCode } from 'lucide-react';
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
+import { jsPDF } from 'jspdf';
+import { toPng } from 'html-to-image';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
@@ -104,22 +104,29 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const element = document.getElementById('pdf-invoice-content');
       if (!element) throw new Error('Invoice content not found');
       
-      // Temporarily make it visible for html2canvas
+      // Temporarily make it visible for html-to-image
       if (element.parentElement) {
         element.parentElement.style.display = 'block';
         element.parentElement.style.position = 'absolute';
         element.parentElement.style.left = '-9999px';
       }
 
-      const opt = {
-        margin:       0,
-        filename:     `Invoice_${invoiceNo}.pdf`,
-        image:        { type: 'jpeg' as const, quality: 1.0 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' as const }
-      };
+      // Generate image via html-to-image (supports modern CSS like oklch natively via SVG foreignObject)
+      const dataUrl = await toPng(element, { 
+        pixelRatio: 2,
+        backgroundColor: '#ffffff'
+      });
 
-      const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
+      // Create PDF and add the image
+      const pdf = new jsPDF({
+        unit: 'in',
+        format: 'a4',
+        orientation: 'portrait'
+      });
+      // 800px width / 1100px height is the container size.
+      // A4 width is 8.27in. Height scaled proportionally: 8.27 * (1100/800) = 11.37125in
+      pdf.addImage(dataUrl, 'PNG', 0, 0, 8.27, 11.371);
+      const pdfBlob = pdf.output('blob');
       
       // Hide it again
       if (element.parentElement) {
