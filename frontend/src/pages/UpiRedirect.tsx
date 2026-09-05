@@ -10,10 +10,11 @@ const UpiRedirect = () => {
     
     if (pa) {
       const pn = params.get('pn') || '';
+      const tr = params.get('tr') || '';
       const am = params.get('am') || '';
       const cu = params.get('cu') || 'INR';
       
-      const upiUrl = `upi://pay?pa=${pa}&pn=${encodeURIComponent(pn)}&am=${am}&cu=${cu}`;
+      const upiUrl = `upi://pay?pa=${pa.trim()}&pn=${encodeURIComponent(pn)}${tr ? `&tr=${encodeURIComponent(tr)}` : ''}&am=${am}&cu=${cu}`;
       
       // Give a slight delay so the UI renders before the browser intercept occurs
       setTimeout(() => {
