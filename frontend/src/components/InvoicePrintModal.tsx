@@ -224,10 +224,9 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       rect(pad, footerY, leftW - 8, 70, '#f8fafc');
       border(pad, footerY, leftW - 8, 70, '#f1f5f9');
       text('TERMS & CONDITIONS', pad + 8, footerY + 14, 'bold 8px Arial', '#1A63A8');
-      const notes = ((settings?.invoiceNotes || '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.')
-        .replace(/<br\/>/gi, '
-').replace(/<[^>]+>/g, '')).split('
-');
+      const notesRaw = (settings?.invoiceNotes || '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.')
+        .replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '');
+      const notes = notesRaw.split('\n');
       notes.slice(0, 4).forEach((line, i) => text(line.trim(), pad + 8, footerY + 26 + i * 12, '8px Arial', '#1e293b'));
 
       // QR code
