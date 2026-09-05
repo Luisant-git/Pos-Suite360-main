@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, Save, X, Printer, RefreshCw, List, UserPlus, AlertTriangle, FileText } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import toast from 'react-hot-toast';
+import { QRCodeSVG } from 'qrcode.react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
@@ -1161,14 +1162,31 @@ const Estimation = () => {
 
       {/* Footer Area */}
       <div className="mt-auto grid grid-cols-[1fr_350px] gap-8">
-        <div>
-          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 h-full flex flex-col">
+        <div className="flex flex-col gap-4 h-full">
+          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex-1 flex flex-col">
             <h3 className="text-[10px] font-bold text-[#1A63A8] uppercase tracking-widest mb-2">Terms & Conditions</h3>
             <div 
               className="text-[11px] text-slate-600 prose prose-sm max-w-none html-content flex-1"
               dangerouslySetInnerHTML={{ __html: (settings?.estimationNotes !== undefined && settings?.estimationNotes !== null) ? settings.estimationNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.' }}
             />
           </div>
+          
+          {(editId && editEstimationData ? editEstimationData.stockMaintained : settings?.estimationStockMaintain) && settings?.upiId && Number(watch('netAmount')) > 0 && (
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4">
+              <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
+                <QRCodeSVG 
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${watch('estimationNo')}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`}
+                  size={64}
+                  level="M"
+                />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1">Scan to Pay</h3>
+                <p className="text-[10px] text-slate-600 font-medium">UPI ID: {settings.upiId}</p>
+                <p className="text-[9px] text-slate-500 mt-1">Scan using any UPI app</p>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="flex flex-col justify-end">
@@ -1198,13 +1216,6 @@ const Estimation = () => {
 
           <div className="text-right mt-4 relative">
             <p className="text-[10px] font-bold text-slate-800 mb-12">For {settings?.shopName || 'POS Suite 360'}</p>
-            {settings?.signatureImage && (
-              <img 
-                src={settings.signatureImage} 
-                alt="Authorised Signature" 
-                className="absolute bottom-6 right-8 h-12 object-contain opacity-80 mix-blend-multiply"
-              />
-            )}
             <div className="inline-block border-t border-slate-400 pt-2 px-8 w-48 mt-4">
               <p className="text-[11px] font-bold text-slate-700 text-center">Authorized Signatory</p>
             </div>

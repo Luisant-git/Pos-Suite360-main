@@ -41,6 +41,7 @@ export class EstimationsService {
           subtotal: createEstimationDto.subtotal,
           discount: createEstimationDto.discount || 0,
           grandTotal: createEstimationDto.grandTotal,
+          stockMaintained: settings?.estimationStockMaintain || false,
           items: {
             create: createEstimationDto.items.map((item) => ({
               productId: item.productId,
@@ -217,6 +218,7 @@ export class EstimationsService {
           subtotal: updateEstimationDto.subtotal,
           discount: updateEstimationDto.discount || 0,
           grandTotal: updateEstimationDto.grandTotal,
+          stockMaintained: settings?.estimationStockMaintain || false,
           items: {
             create: updateEstimationDto.items.map((item: any) => ({
               productId: item.productId,
