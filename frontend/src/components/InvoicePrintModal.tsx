@@ -1,36 +1,16 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, Loader2, QrCode } from 'lucide-react';
-
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import numberToWords from '../utils/numberToWords';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
-
-// Basic number to words converter (for Malaysian Ringgit / general use)
-const numberToWords = (num: number): string => {
-  if (!num || num === 0) return "ZERO";
-  const a = ["", "ONE ", "TWO ", "THREE ", "FOUR ", "FIVE ", "SIX ", "SEVEN ", "EIGHT ", "NINE ", "TEN ", "ELEVEN ", "TWELVE ", "THIRTEEN ", "FOURTEEN ", "FIFTEEN ", "SIXTEEN ", "SEVENTEEN ", "EIGHTEEN ", "NINETEEN "];
-  const b = ["", "", "TWENTY ", "THIRTY ", "FORTY ", "FIFTY ", "SIXTY ", "SEVENTY ", "EIGHTY ", "NINETY "];
-
-  const convertWhole = (n: number): string => {
-    if (n < 20) return a[n];
-    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? a[n % 10] : "");
-    if (n < 1000) return a[Math.floor(n / 100)] + "HUNDRED " + (n % 100 !== 0 ? convertWhole(n % 100) : "");
-    if (n < 1000000) return convertWhole(Math.floor(n / 1000)) + "THOUSAND " + (n % 1000 !== 0 ? convertWhole(n % 1000) : "");
-    return n.toString(); // Fallback for very large numbers
-  };
-
-  const wholePart = Math.floor(Number(num));
-  const cents = Math.round((Number(num) - wholePart) * 100);
-  
-  let res = convertWhole(wholePart) || "";
-  if (cents > 0) {
-    res += `AND CENTS ${convertWhole(cents) || ""}`;
-  }
-  return res ? res.trim() : "";
-};
 
 interface InvoicePrintModalProps {
   isOpen: boolean;
@@ -97,188 +77,38 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const grandTotal = sale?.grandTotal || 0;
   const currency = settings?.currencySymbol || 'RM';
 
-  const buildInvoiceHTML = (): string => {
-    const upiValue = showPaymentInfo && settings?.upiId && grandTotal > 0
-      ? `upi://pay?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`
-      : null;
-
-    const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement | null;
-    const qrDataUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : null;
-
-    const taxRows = (() => {
-      if (!settings?.enableTax) return '';
-      const taxAmount = Number(sale?.tax);
-      if (!taxAmount || isNaN(taxAmount) || taxAmount === 0) return '';
-      const storeState = (settings.state || '').trim().toLowerCase();
-      const custState = (sale?.customer?.state || '').trim().toLowerCase();
-      if (storeState && custState && storeState === custState) {
-        const split = (taxAmount / 2).toFixed(2);
-        return `<tr><td style="padding:4px 0;color:#334155">CGST:</td><td style="text-align:right;font-weight:600">${split}</td></tr>
-                <tr><td style="padding:4px 0;color:#334155">SGST:</td><td style="text-align:right;font-weight:600">${split}</td></tr>`;
-      }
-      return `<tr><td style="padding:4px 0;color:#334155">IGST:</td><td style="text-align:right;font-weight:600">${taxAmount.toFixed(2)}</td></tr>`;
-    })();
-
-    const itemRows = items.map((item: any, idx: number) => `
-      <tr style="border-bottom:1px solid #f1f5f9">
-        <td style="padding:10px 12px;color:#94a3b8">${idx + 1}</td>
-        <td style="padding:10px 12px"><span style="font-weight:700;color:#1e293b">${item.product?.name || ''}</span>${item.product?.code ? ` <span style="color:#94a3b8">(${item.product.code})</span>` : ''}</td>
-        <td style="padding:10px 12px;text-align:center;color:#475569">${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}</td>
-        <td style="padding:10px 12px;text-align:right;color:#475569">${Number(item.rate || 0).toFixed(2)}</td>
-        <td style="padding:10px 12px;text-align:right;font-weight:700;color:#1e293b">${Number(item.amount || item.total || 0).toFixed(2)}</td>
-      </tr>`).join('');
-
-    const notes = (settings?.invoiceNotes !== undefined && settings?.invoiceNotes !== null)
-      ? settings.invoiceNotes
-      : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.';
-
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; font-size: 12px; color: #1e293b; background: #fff; }
-  @page { size: A4; margin: 10mm; }
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-</style>
-</head><body>
-<div style="width:100%;background:#fff;padding:20px">
-  <!-- Header -->
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
-    <div>
-      ${settings?.logoImage ? `<img src="${settings.logoImage}" style="max-height:60px;max-width:160px;object-fit:contain;display:block;margin-bottom:8px"/>` : ''}
-      <div style="font-size:18px;font-weight:700;color:#04325E;text-transform:uppercase">${settings?.shopName || 'POS Suite 360'}</div>
-      ${settings?.invoiceTitle ? `<div style="color:#1A63A8;font-weight:700;font-size:11px;margin-top:2px">${settings.invoiceTitle}</div>` : ''}
-      <div style="margin-top:6px;font-size:10px;color:#334155;line-height:1.6">
-        ${settings?.shopAddress ? `<div>${settings.shopAddress}</div>` : ''}
-        <div style="font-weight:700">${[settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ')}</div>
-        ${settings?.phone ? `<div>Tel: ${settings.phone}</div>` : ''}
-        ${settings?.gstin ? `<div>GSTIN: ${settings.gstin}</div>` : ''}
-      </div>
-    </div>
-    <div style="text-align:right">
-      <div style="font-size:28px;font-weight:900;color:#1A63A8;letter-spacing:2px">${isEstimation ? 'ESTIMATION' : 'INVOICE'}</div>
-      <div style="font-weight:700;color:#334155;font-size:11px;margin-top:4px">${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}</div>
-    </div>
-  </div>
-
-  <!-- Info Cards -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:12px">
-      <div style="font-size:9px;font-weight:900;color:#334155;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Billed To / Customer Details</div>
-      <div style="font-weight:700;font-size:12px;margin-bottom:4px">${customerName}</div>
-      <div style="font-size:10px;color:#334155;line-height:1.6">
-        ${sale?.customer?.address ? `<div>${sale.customer.address}</div>` : ''}
-        ${sale?.customer?.state ? `<div>${sale.customer.state}</div>` : ''}
-        ${sale?.customer?.phone ? `<div>Phone: ${sale.customer.phone}</div>` : ''}
-        ${sale?.customer?.gstNumber ? `<div>GSTIN: ${sale.customer.gstNumber}</div>` : ''}
-      </div>
-    </div>
-    <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:12px">
-      <div style="font-size:9px;font-weight:900;color:#334155;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${isEstimation ? 'Estimation Details' : 'Invoice Details'}</div>
-      <table style="font-size:10px;width:100%">
-        <tr><td style="font-weight:700;color:#475569;padding:2px 0;width:110px">Date:</td><td>${date}</td></tr>
-        <tr><td style="font-weight:700;color:#475569;padding:2px 0">Payment Mode:</td><td>${sale?.paymentMode?.name || 'Cash'}</td></tr>
-        <tr><td style="font-weight:700;color:#475569;padding:2px 0">Status:</td><td>${sale?.status || 'Completed'}</td></tr>
-        ${Number(sale?.customer?.openingBalance) > 0 ? `<tr><td style="font-weight:700;color:#475569;padding:2px 0">Pending Amount:</td><td>${currency} ${Number(sale.customer.openingBalance).toFixed(2)}</td></tr>` : ''}
-      </table>
-    </div>
-  </div>
-
-  <!-- Items Table -->
-  <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;margin-bottom:16px;font-size:11px">
-    <thead>
-      <tr style="background:#2D6AA1;color:#fff;font-size:9px;text-transform:uppercase;letter-spacing:1px">
-        <th style="padding:10px 12px;font-weight:700;width:5%;text-align:left">#</th>
-        <th style="padding:10px 12px;font-weight:700;width:45%;text-align:left">Item Description</th>
-        <th style="padding:10px 12px;font-weight:700;width:15%;text-align:center">Quantity</th>
-        <th style="padding:10px 12px;font-weight:700;width:15%;text-align:right">Unit Rate (${currency})</th>
-        <th style="padding:10px 12px;font-weight:700;width:20%;text-align:right">Amount (${currency})</th>
-      </tr>
-    </thead>
-    <tbody>${itemRows}</tbody>
-  </table>
-
-  <!-- Footer -->
-  <div style="display:grid;grid-template-columns:1fr 300px;gap:24px">
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:12px">
-        <div style="font-size:9px;font-weight:700;color:#1A63A8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Terms &amp; Conditions</div>
-        <div style="font-size:10px;color:#1e293b;font-weight:700">${notes}</div>
-      </div>
-      ${qrDataUrl && upiValue ? `
-      <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px">
-        <img src="${qrDataUrl}" style="width:64px;height:64px;border:1px solid #e2e8f0;border-radius:4px"/>
-        <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Scan or Click to Pay</div>
-          <div style="font-size:9px;color:#475569">UPI ID: ${settings!.upiId!.trim()}</div>
-          <div style="font-size:8px;color:#94a3b8;margin-top:2px">Scan or tap to open UPI app</div>
-        </div>
-      </div>` : ''}
-    </div>
-    <div style="display:flex;flex-direction:column;justify-content:flex-end">
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:16px">
-        <table style="width:100%;font-size:12px">
-          <tr><td style="padding:4px 0;color:#334155">Subtotal:</td><td style="text-align:right;font-weight:600">${Number(sale?.subtotal || 0).toFixed(2)}</td></tr>
-          ${taxRows}
-          ${Number(sale?.discount) > 0 ? `<tr><td style="padding:4px 0;color:#334155">Discount:</td><td style="text-align:right;font-weight:600">${Number(sale?.discount || 0).toFixed(2)}</td></tr>` : ''}
-        </table>
-        <div style="background:#F0F5FA;border-top:2px solid #1A63A8;border-bottom:2px solid #1A63A8;padding:10px 0;display:flex;justify-content:space-between;margin-top:8px">
-          <span style="font-weight:700;font-size:13px;color:#04325E">Total Due:</span>
-          <span style="font-weight:900;font-size:14px;color:#04325E">${currency} ${Number(grandTotal).toFixed(2)}</span>
-        </div>
-        <div style="text-align:right;font-size:8px;color:#1A63A8;font-weight:700;text-transform:uppercase;margin-top:4px">${numberToWords(grandTotal)} ONLY</div>
-      </div>
-      ${settings?.signatureImage && !isEstimation ? `
-      <div style="text-align:right;position:relative">
-        <div style="font-size:9px;font-weight:700;margin-bottom:40px">For ${settings?.shopName || 'POS Suite 360'}</div>
-        <img src="${settings.signatureImage}" style="position:absolute;bottom:20px;right:24px;height:40px;object-fit:contain;opacity:0.8"/>
-        <div style="display:inline-block;border-top:1px solid #94a3b8;padding-top:6px;width:160px">
-          <div style="font-size:10px;font-weight:700;color:#334155;text-align:center">Authorized Signatory</div>
-        </div>
-      </div>` : ''}
-    </div>
-  </div>
-
-  <div style="margin-top:24px;text-align:center;font-size:10px;color:#475569;border-top:1px solid #e2e8f0;padding-top:10px">
-    Thank you for partnering with ${settings?.shopName || 'POS Suite 360'}! | Page 1 of 1
-  </div>
-</div>
-</body></html>`;
-  };
-
   const handleWhatsApp = async () => {
     setIsSharing(true);
     try {
-      const html = buildInvoiceHTML();
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
+      const element = document.getElementById('pdf-invoice-content');
+      if (!element) throw new Error('Invoice content not found');
+      
+      // Temporarily make it visible for html2canvas
+      if (element.parentElement) {
+        element.parentElement.style.display = 'block';
+        element.parentElement.style.position = 'absolute';
+        element.parentElement.style.left = '-9999px';
+      }
 
-      // Load HTML into a hidden iframe — it has NO Tailwind/oklch styles
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:none;visibility:hidden';
-      iframe.src = url;
-      document.body.appendChild(iframe);
+      const opt = {
+        margin:       0,
+        filename:     `Invoice_${invoiceNo}.pdf`,
+        image:        { type: 'jpeg', quality: 1.0 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
 
-      await new Promise<void>((resolve) => { iframe.onload = () => resolve(); });
-
-      // html2canvas on the iframe's body — no oklch in that document
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(iframe.contentDocument!.body, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        width: 794,
-        height: 1123,
-      });
-
-      document.body.removeChild(iframe);
-      URL.revokeObjectURL(url);
-
-      const { jsPDF } = await import('jspdf');
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
-      const pdfBlob = pdf.output('blob');
+      const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
+      
+      // Hide it again
+      if (element.parentElement) {
+        element.parentElement.style.display = 'none';
+        element.parentElement.style.position = '';
+        element.parentElement.style.left = '';
+      }
 
       const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
+
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: `${isEstimation ? 'Estimation' : 'Invoice'} ${invoiceNo}` });
       } else {
@@ -290,7 +120,9 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         document.body.removeChild(link);
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') console.error('Error generating/sharing PDF:', err);
+      if (err.name !== 'AbortError') {
+        console.error('Error generating/sharing PDF:', err);
+      }
     } finally {
       setIsSharing(false);
     }
@@ -503,7 +335,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
   const InvoiceContent = () => (
     <div 
-      className={`flex flex-col flex-1 bg-white text-slate-800 ${hiddenRenderer ? 'w-[800px] h-[1100px] box-border p-10 text-[13px]' : 'p-8 text-[12px] print:p-6 print:text-[11px]'} print:overflow-visible overflow-hidden`}
+      className={`flex flex-col flex-1 bg-white text-slate-800 ${hiddenRenderer ? 'w-[800px] h-[1100px] box-border p-10 text-[13px]' : 'p-8 text-[12px] print:p-6 print:text-[11px]'} overflow-hidden`}
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* Header */}
@@ -606,7 +438,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           
           {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
             <a 
-              href={`${window.location.origin}/?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+              href={`${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -614,13 +446,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             >
               <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
                 <QRCodeSVG 
-                  value={`upi://pay?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR&mc=0000&mode=02&purpose=00`}
                   size={64}
                   level="M"
                 />
                 <QRCodeCanvas 
                   id="upi-qr-code-canvas"
-                  value={`upi://pay?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  value={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR&mc=0000&mode=02&purpose=00`}
                   size={900}
                   level="M"
                   className="hidden"
@@ -628,7 +460,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               </div>
               <div className="flex flex-col">
                 <h3 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1">Scan or Click to Pay</h3>
-                <p className="text-[10px] text-slate-600 font-medium">UPI ID: {settings.upiId.trim()}</p>
+                <p className="text-[10px] text-slate-600 font-medium">UPI ID: {settings.upiId}</p>
                 <p className="text-[9px] text-slate-500 mt-1">Scan or tap to open UPI app</p>
               </div>
             </a>
@@ -647,8 +479,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               {/* Tax Rendering */}
               {settings?.enableTax && (
                 (() => {
-                  const taxAmount = Number(sale?.tax);
-                  if (!taxAmount || isNaN(taxAmount) || taxAmount === 0) return null;
+                  if (Number(sale?.tax) === 0) return null;
 
                   const storeState = (settings.state || '').trim().toLowerCase();
                   const custState = (sale?.customer?.state || '').trim().toLowerCase();
@@ -743,8 +574,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         )}
 
         {/* Printable Area */}
-        <div id="printable-invoice" className="flex-1 min-h-0 overflow-auto bg-gray-200 p-2 sm:p-8 print:p-0 print:bg-white flex justify-center print:block print:overflow-visible">
-          <div className="bg-white shadow-sm w-full max-w-[210mm] min-h-[297mm] print:w-full print:max-w-none print:shadow-none print:min-h-screen flex flex-col">
+        <div id="printable-invoice" className="flex-1 min-h-0 overflow-auto bg-gray-200 p-2 sm:p-8 print:p-0 print:bg-white flex justify-center print:overflow-visible">
+          <div className="bg-white shadow-sm w-full max-w-[210mm] min-h-[297mm] print:w-full print:max-w-none print:shadow-none print:min-h-[100vh] flex flex-col">
             <InvoiceContent />
           </div>
         </div>
@@ -794,15 +625,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             </div>
           </div>
         )}
-
-        {/* Hidden container for full A4 PDF generation via html2pdf */}
-        <div style={{ display: 'none' }}>
-          <div id="pdf-invoice-content">
-            <div className="w-[800px] bg-white">
-              <InvoiceContent />
-            </div>
-          </div>
-        </div>
 
       </div>
     </div>,
