@@ -449,10 +449,10 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       try {
         const [gpayImg, phonepeImg, paytmImg, upiImg] = await Promise.all([
-          loadImage('/gpay.svg'),
-          loadImage('/phonepe.svg'),
-          loadImage('/paytm.svg'),
-          loadImage('/upi.svg')
+          loadImage('/icons/gpay.png'),
+          loadImage('/icons/phonepe.png'),
+          loadImage('/icons/paytm.png'),
+          loadImage('/icons/upi.png')
         ]);
 
         const drawImageAspect = (img: HTMLImageElement, x: number, y: number, maxWidth: number, maxHeight: number) => {
@@ -466,20 +466,39 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           ctx.drawImage(img, offsetX, offsetY, finalW, finalH);
         };
 
-        const iconBoxW = 75 * scale;
-        const iconBoxH = 26 * scale;
-        const gap = 12 * scale;
-        const totalW = (4 * iconBoxW) + (3 * gap);
+        const centerY = currentY - (8 * scale);
+        const iconSize = 44 * scale; 
+        const overlap = 14 * scale;
+        const totalW = (4 * iconSize) - (3 * overlap);
         let startX = (width - totalW) / 2;
 
         const imgs = [gpayImg, phonepeImg, paytmImg, upiImg];
         imgs.forEach((img) => {
-          // Draw a very subtle white pill behind each logo
-          roundRect(ctx, startX - (1 * scale), currentY - (17 * scale) - (1 * scale), iconBoxW + (2 * scale), iconBoxH + (2 * scale), 7 * scale, '#e2e8f0');
-          roundRect(ctx, startX, currentY - (17 * scale), iconBoxW, iconBoxH, 6 * scale, '#ffffff');
+          // Draw a thin grey border circle to distinguish overlap
+          ctx.beginPath();
+          ctx.arc(startX + (iconSize / 2), centerY, (iconSize / 2) + (1.5 * scale), 0, 2 * Math.PI);
+          ctx.fillStyle = '#cbd5e1';
+          ctx.fill();
 
-          drawImageAspect(img, startX + (6 * scale), currentY - (14 * scale), iconBoxW - (12 * scale), iconBoxH - (6 * scale));
-          startX += iconBoxW + gap;
+          // Draw inner white circle
+          ctx.beginPath();
+          ctx.arc(startX + (iconSize / 2), centerY, iconSize / 2, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+
+          // Create circular clipping path for the image
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(startX + (iconSize / 2), centerY, iconSize / 2, 0, 2 * Math.PI);
+          ctx.clip();
+
+          // Draw the image inside (with padding)
+          const padding = 8 * scale;
+          drawImageAspect(img, startX + padding, centerY - (iconSize / 2) + padding, iconSize - (padding * 2), iconSize - (padding * 2));
+          
+          ctx.restore();
+
+          startX += iconSize - overlap;
         });
       } catch (err) {
         console.error('Failed to load payment icons', err);
