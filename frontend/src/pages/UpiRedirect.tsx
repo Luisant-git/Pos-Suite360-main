@@ -29,33 +29,51 @@ const UpiRedirect = () => {
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 font-sans">
-      <div className="bg-white rounded-lg shadow-sm p-8 text-center max-w-sm w-full border border-gray-100">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#064e3b] p-4 font-sans relative overflow-hidden">
+      
+      {/* Decorative background glow */}
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#047857] rounded-full mix-blend-screen filter blur-[100px] opacity-40"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-[#10b981] rounded-full mix-blend-screen filter blur-[100px] opacity-20"></div>
+
+      <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-sm w-full relative z-10 border-t-4 border-t-yellow-400">
         
-        {/* Simple Spinner */}
-        <div className="mb-6 flex justify-center">
-          <svg className="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
+        {/* Golden Coin Spinner */}
+        <div className="mb-8 flex justify-center perspective-[1000px]">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-100 via-yellow-400 to-yellow-600 border-[4px] border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.4)] flex items-center justify-center animate-[flip_2s_ease-in-out_infinite]" style={{ transformStyle: 'preserve-3d' }}>
+            <div className="text-yellow-800 text-4xl font-black" style={{ transform: 'translateZ(1px)' }}>₹</div>
+            {/* Inner ring for coin detail */}
+            <div className="absolute w-[80%] h-[80%] rounded-full border-2 border-yellow-200/60 border-dashed" style={{ transform: 'translateZ(1px)' }}></div>
+          </div>
         </div>
 
-        <h1 className="text-xl font-semibold text-gray-800 mb-2">Redirecting to Payment...</h1>
+        <h1 className="text-2xl font-black text-[#064e3b] mb-2 tracking-tight">Connecting to UPI</h1>
         
-        <p className="text-sm text-gray-500 mb-6">
-          Opening your UPI app to pay <strong className="text-gray-800">{shopName}</strong>.
+        <p className="text-sm text-slate-500 mb-6 font-medium">
+          Authorizing payment for <span className="font-bold text-[#047857]">{shopName}</span>
         </p>
 
         {amount && (
-          <div className="bg-gray-50 rounded p-4 mb-4 border border-gray-100">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Amount</p>
-            <p className="text-2xl font-bold text-gray-900">₹{Number(amount).toFixed(2)}</p>
+          <div className="bg-gradient-to-br from-[#ecfdf5] to-[#d1fae5] rounded-xl p-5 mb-4 border border-[#34d399]/40 shadow-inner">
+            <p className="text-[10px] text-[#047857] uppercase tracking-[0.15em] font-bold mb-1">Total Amount</p>
+            <p className="text-4xl font-black text-[#064e3b] drop-shadow-sm">₹{Number(amount).toFixed(2)}</p>
           </div>
         )}
 
-        <p className="text-xs text-gray-400 mt-4">
-          Please do not press back or close this window.
-        </p>
+        {/* Loading Dots */}
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+        </div>
+        <p className="text-xs text-slate-400 mt-3 font-medium">Please wait, do not close this window.</p>
+        
+        <style>{`
+          @keyframes flip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+          }
+        `}</style>
       </div>
     </div>
   );
