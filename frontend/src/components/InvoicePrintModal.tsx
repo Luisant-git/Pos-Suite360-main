@@ -118,6 +118,37 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     };
 
     // Header
+    if (settings?.logoImage) {
+      try {
+        const logoImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = settings.logoImage!;
+        });
+        const maxWidth = 50;
+        const maxHeight = 20;
+        let w = logoImg.width || 100;
+        let h = logoImg.height || 40;
+        const ratio = Math.min(maxWidth / w, maxHeight / h);
+        
+        // Ensure image format is handled correctly; jsPDF often requires canvas extraction or direct image element
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(logoImg, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/png');
+          doc.addImage(dataUrl, 'PNG', col, y, w * ratio, h * ratio);
+          y += (h * ratio) + 4;
+        }
+      } catch (err) {
+        console.error('Failed to load logo for PDF', err);
+      }
+    }
+
     addText(settings?.shopName || 'POS Suite 360', col, y, { size: 16, bold: true, color: '#04325E' });
     y += 7;
     if (settings?.invoiceTitle) { addText(settings.invoiceTitle, col, y, { size: 10, color: '#1A63A8' }); y += 5; }
