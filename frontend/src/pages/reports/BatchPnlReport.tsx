@@ -135,28 +135,47 @@ const BatchPnlReport = () => {
 
       {/* Summary Cards Section */}
       {reportData && !isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4 shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-4 shrink-0">
+          {/* Row 1/Col 1 */}
           <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
-            <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Total Cost (Raw Materials)</p>
+            <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Total Cost</p>
             <p className="text-[20px] font-bold text-red-600">{formatCurrency(reportData.totalCost)}</p>
           </div>
+          {/* Row 1/Col 2 */}
           <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
             <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Potential Revenue</p>
             <p className="text-[20px] font-bold text-green-600">{formatCurrency(reportData.totalRevenue)}</p>
           </div>
+          {/* Row 1/Col 3 */}
           <div className={`bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center ${reportData.profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
             <p className={`text-[12px] font-bold mb-1 uppercase ${reportData.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>Profit / Loss</p>
             <p className={`text-[20px] font-bold ${reportData.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{formatCurrency(Math.abs(reportData.profit))} {reportData.profit < 0 ? '(Loss)' : ''}</p>
           </div>
+          
+          {/* Row 1/Col 4 */}
+          <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
+            <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Cost Per Unit</p>
+            <p className="text-[20px] font-bold text-[#475569]">{formatCurrency(reportData.costPerUnit)}</p>
+          </div>
+
+          {/* Row 1/Col 5 */}
           <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
             <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Produced Qty</p>
             <p className="text-[20px] font-bold text-[#1A63A8]">{reportData.totalProducedQty}</p>
           </div>
+          
+          {/* Row 1/Col 6 */}
           <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
-            <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Wastage</p>
+            <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Wastage Qty</p>
             <p className="text-[20px] font-bold text-orange-600">
               {Number(reportData.wastageQty).toFixed(2)} <span className="text-[12px] font-normal">({Number(reportData.wastagePercentage).toFixed(2)}%)</span>
             </p>
+          </div>
+
+          {/* Row 1/Col 7 */}
+          <div className="bg-orange-50 p-4 rounded-md border border-orange-100 shadow-sm flex flex-col justify-center">
+            <p className="text-orange-700 text-[12px] font-bold mb-1 uppercase">Wastage Cost</p>
+            <p className="text-[20px] font-bold text-orange-600">{formatCurrency(reportData.wastageCost)}</p>
           </div>
         </div>
       )}
@@ -169,8 +188,15 @@ const BatchPnlReport = () => {
             <h2 className="font-bold text-[13px] tracking-wide">RAW MATERIALS CONSUMED</h2>
           </div>
           {reportData && (
-            <button type="button" 
-              onClick={() => {
+            <div className="flex gap-2">
+              <button type="button" 
+                onClick={() => window.print()}
+                className="bg-white border border-[#CBD5E1] text-[#334155] hover:bg-gray-50 px-3 py-1.5 rounded flex items-center gap-1.5 text-[12px] font-bold transition-colors"
+              >
+                <FileText size={14} /> Print Report
+              </button>
+              <button type="button" 
+                onClick={() => {
                 const exportData = reportData.materialsUsed.map((m: any) => ({
                   'Material Name': m.name,
                   'Quantity Consumed': m.quantity,
@@ -197,6 +223,7 @@ const BatchPnlReport = () => {
             >
               <Download size={14} /> Export Excel
             </button>
+            </div>
           )}
         </div>
 

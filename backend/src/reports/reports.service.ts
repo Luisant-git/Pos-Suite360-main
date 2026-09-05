@@ -153,6 +153,9 @@ export class ReportsService {
     
     const wastageQty = totalTheoreticalYield > 0 ? Math.max(0, totalTheoreticalYield - totalProducedQty) : 0;
     const wastagePercentage = totalTheoreticalYield > 0 ? (wastageQty / totalTheoreticalYield) * 100 : 0;
+    
+    const wastageCost = totalCost * (wastagePercentage / 100);
+    const costPerUnit = totalProducedQty > 0 ? (totalCost / totalProducedQty) : 0;
 
     return {
       workName,
@@ -162,6 +165,8 @@ export class ReportsService {
       totalProducedQty,
       wastageQty,
       wastagePercentage,
+      wastageCost,
+      costPerUnit,
       materialsUsed: Object.values(materialsUsed),
     };
   }
