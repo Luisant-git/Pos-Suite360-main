@@ -264,9 +264,9 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     doc.line(totalsX - 4, y - 4, W - margin + margin, y - 4);
     doc.line(totalsX - 4, y + 8, W - margin + margin, y + 8);
     const pdfCurrency = currency.replace('₹', 'Rs.');
-    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
-    doc.text('Total Due:', totalsX, y + 4);
-    doc.text(`${pdfCurrency} ${Number(grandTotal).toFixed(2)}`, valX, y + 4, { align: 'right' });
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor('#04325E');
+    doc.text('Total Due:', totalsX, y + 3);
+    doc.text(`${pdfCurrency} ${Number(grandTotal).toFixed(2)}`, valX, y + 3, { align: 'right' });
     
     // Amount in words (Below the underline)
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
@@ -432,7 +432,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       currentY += 45 * scale;
       ctx.fillStyle = '#0F172A';
-      ctx.font = `bold ${42 * scale}px sans-serif`;
+      ctx.font = `bold ${38 * scale}px sans-serif`;
       ctx.fillText(`${currency} ${Number(grandTotal).toFixed(2)}`, width / 2, currentY);
 
       currentY += 35 * scale;
