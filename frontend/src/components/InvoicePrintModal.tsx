@@ -144,7 +144,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       y += 4;
       doc.setDrawColor('#e2e8f0'); doc.setLineWidth(0.3); doc.line(col, y, W - margin, y); y += 6;
 
-      // Bill To
+      // Bill To (left column)
+      const billStartY = y;
       addText('BILLED TO / CUSTOMER DETAILS', col, y, { size: 8, bold: true, color: '#64748b' }); y += 5;
       addText(customerName, col, y, { size: 11, bold: true }); y += 5;
       if (sale?.customer?.address) {
@@ -155,15 +156,16 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       if (sale?.customer?.phone) { addText(`Phone: ${sale.customer.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
       if (sale?.customer?.gstNumber) { addText(`GSTIN: ${sale.customer.gstNumber}`, col, y, { size: 9, color: '#475569' }); y += 5; }
 
-      // Invoice details right side
-      const infoStartY = margin + 18;
-      addText(isEstimation ? 'ESTIMATION DETAILS' : 'INVOICE DETAILS', W - margin, infoStartY, { size: 8, bold: true, color: '#64748b', align: 'right' });
-      const lx = W - margin - 35, vx = W - margin;
+      // Invoice/Estimation details — right column, aligned with Bill To
+      const midX = W / 2 + 2;
+      const lx = midX, vx = W - margin;
+      let iy = billStartY;
+      addText(isEstimation ? 'ESTIMATION DETAILS' : 'INVOICE DETAILS', midX, iy, { size: 8, bold: true, color: '#64748b' }); iy += 5;
       doc.setFontSize(9); doc.setTextColor('#334155');
       [['Date:', date], ['Payment:', sale?.paymentMode?.name || 'Cash'], ['Status:', sale?.status || 'Completed']]
-        .forEach(([label, val], i) => {
-          doc.setFont('helvetica', 'bold'); doc.text(label, lx, infoStartY + 6 + i * 5);
-          doc.setFont('helvetica', 'normal'); doc.text(val, vx, infoStartY + 6 + i * 5, { align: 'right' });
+        .forEach(([label, val]) => {
+          doc.setFont('helvetica', 'bold'); doc.text(label, lx, iy);
+          doc.setFont('helvetica', 'normal'); doc.text(val, vx, iy, { align: 'right' }); iy += 5;
         });
 
       y += 4;
