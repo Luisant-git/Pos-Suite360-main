@@ -57,6 +57,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
   const sale = fullSale || initialSale;
   const invoiceNo = sale?.estimationNo || sale?.invoiceNo || '';
+  const showPaymentInfo = !isEstimation || settings?.estimationStockMaintain;
 
   useEffect(() => {
     if (autoPrint && !isLoading && sale) {
@@ -242,7 +243,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     
     // Draw QR Code on the left side of the totals
     const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
-    if (settings?.upiId && grandTotal > 0 && qrCanvas) {
+    if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
       try {
         const qrDataUrl = qrCanvas.toDataURL('image/png');
         doc.addImage(qrDataUrl, 'PNG', col, totalsStartY - 2, 28, 28);
@@ -262,6 +263,19 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     }
     
     y += 18;
+
+    // Signature Image
+    if (settings?.signatureImage) {
+      try {
+        doc.addImage(settings.signatureImage, 'PNG', W - margin - 40, totalsStartY + 2, 40, 15);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor('#1e293b');
+        doc.text('Authorized Signatory', W - margin, totalsStartY + 20, { align: 'right' });
+      } catch (e) {
+        console.error('Error adding signature to PDF', e);
+      }
+    }
 
     // Footer
     doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor('#94a3b8');
@@ -579,7 +593,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             />
           </div>
           
-          {settings?.upiId && grandTotal > 0 && (
+          {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
             <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4">
               <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
                 <QRCodeSVG 
@@ -733,7 +747,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                   <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> <span className="hidden sm:inline">Share Invoice</span></>
                 )}
               </button>
-              {settings?.upiId && grandTotal > 0 && (
+              {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
                 <button 
                   type="button"
                   onClick={handleShareQR}

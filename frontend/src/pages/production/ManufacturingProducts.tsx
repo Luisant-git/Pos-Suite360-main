@@ -284,7 +284,7 @@ const Products = () => {
               <input 
                 {...register('sqM')}
                 type="number"
-                step="0.01"
+                step="any"
                 placeholder="0.00"
                 className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
               />
