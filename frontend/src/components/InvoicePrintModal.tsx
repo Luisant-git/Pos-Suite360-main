@@ -229,13 +229,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         const qrDataUrl = qrCanvas.toDataURL('image/png');
         const qrY = totalsStartY + 22;
         doc.addImage(qrDataUrl, 'PNG', col, qrY, 22, 22);
-        doc.link(col, qrY, 22, 22, { url: upiUrl });
         doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
-        doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 7);
-        doc.link(col, qrY, W / 2 - col, 25, { url: upiUrl });
-        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
-        doc.text(`UPI ID: ${settings.upiId.trim()}`, col + 26, qrY + 13);
-        doc.text('Scan or tap to open UPI app', col + 26, qrY + 18);
+        doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 5);
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#0000EE');
+        doc.textWithLink(upiUrl, col + 26, qrY + 11, { url: upiUrl });
+        doc.setTextColor('#64748b');
+        doc.text(`UPI ID: ${settings.upiId.trim()}`, col + 26, qrY + 17);
+        doc.text('Scan or tap to open UPI app', col + 26, qrY + 22);
       }
 
       // Totals (right)
