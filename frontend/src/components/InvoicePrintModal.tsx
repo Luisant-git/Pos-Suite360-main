@@ -299,7 +299,30 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       }
     }
     
-    y += 18;
+    let maxFooterY = totalsStartY + 25;
+    
+    const rawNotes = isEstimation
+      ? (settings?.estimationNotes !== undefined && settings?.estimationNotes !== null) ? settings.estimationNotes : ''
+      : (settings?.invoiceNotes !== undefined && settings?.invoiceNotes !== null) ? settings.invoiceNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.';
+
+    if (rawNotes) {
+      const hasQR = showPaymentInfo && settings?.upiId && grandTotal > 0;
+      const notesY = totalsStartY + (hasQR ? 32 : 12);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor('#1A63A8');
+      doc.text('Terms & Conditions', col, notesY);
+      
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor('#64748b');
+      const cleanNotes = rawNotes.replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
+      const splitNotes = doc.splitTextToSize(cleanNotes.trim(), (W / 2));
+      doc.text(splitNotes, col, notesY + 4);
+      maxFooterY = Math.max(maxFooterY, notesY + 4 + (splitNotes.length * 3.5));
+    }
+
+    y = maxFooterY + 10;
 
     // Signature Image
     if (settings?.signatureImage && !isEstimation) {
@@ -322,8 +345,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        let shareText = `Here is your Invoice ${invoiceNo}.`;
-        await navigator.share({ files: [file], title: `Invoice ${invoiceNo}`, text: shareText });
+        await navigator.share({ files: [file], title: `${isEstimation ? 'Estimation' : 'Invoice'} ${invoiceNo}` });
       } else {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(pdfBlob);
