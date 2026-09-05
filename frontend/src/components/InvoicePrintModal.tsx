@@ -276,7 +276,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
       if (showPaymentInfo && settings?.upiId && grandTotal > 0 && qrCanvas) {
         try {
-          const upiUrl = `${window.location.origin}/pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+          const upiUrl = `${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
           
           const qrDataUrl = qrCanvas.toDataURL('image/png');
           doc.addImage(qrDataUrl, 'PNG', col, totalsStartY - 2, 28, 28);
@@ -674,7 +674,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           
           {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
             <a 
-              href={`${window.location.origin}/pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+              href={`${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${invoiceNo}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"
