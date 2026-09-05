@@ -109,7 +109,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         filename:     `Invoice_${invoiceNo}.pdf`,
         image:        { type: 'jpeg' as const, quality: 1.0 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' as const }
       };
 
       const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
