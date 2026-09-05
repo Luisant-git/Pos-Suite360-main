@@ -225,7 +225,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       // QR code (left, below terms)
       const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement | null;
       if (settings?.upiId && grandTotal > 0 && qrCanvas) {
-        const upiUrl = `upi://pay?pa=${encodeURIComponent(settings.upiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
         const backendUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace('/api', '');
         const clickUrl = `${backendUrl}/upi-redirect?pa=${encodeURIComponent(settings.upiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}`;
         const qrDataUrl = qrCanvas.toDataURL('image/png');
