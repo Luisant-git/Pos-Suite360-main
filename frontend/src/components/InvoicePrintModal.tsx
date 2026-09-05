@@ -290,6 +290,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     } finally {
       setIsSharing(false);
     }
+  };
+
   const handleShareQR = async () => {
     const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
     if (!qrCanvas) {
