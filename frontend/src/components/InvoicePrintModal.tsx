@@ -435,7 +435,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       ctx.font = `bold ${26 * scale}px sans-serif`;
       ctx.fillText(`${currency} ${Number(grandTotal).toFixed(2)}`, width / 2, currentY);
 
-      currentY += 35 * scale;
+      currentY += 45 * scale;
       
       const loadImage = (src: string): Promise<HTMLImageElement> => {
         return new Promise((resolve, reject) => {
@@ -466,7 +466,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           ctx.drawImage(img, offsetX, offsetY, finalW, finalH);
         };
 
-        const centerY = currentY - (8 * scale);
+        const centerY = currentY;
         const iconSize = 44 * scale; 
         const overlap = 14 * scale;
         const totalW = (4 * iconSize) - (3 * overlap);
