@@ -1,50 +1,93 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 
 const UpiRedirect = () => {
   const location = useLocation();
+  const [shopName, setShopName] = useState('Payment');
+  const [amount, setAmount] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const pa = params.get('pa');
     
     if (pa) {
-      const pn = params.get('pn') || '';
+      const pn = params.get('pn') || 'Shop';
       const tr = params.get('tr') || '';
       const am = params.get('am') || '';
       const cu = params.get('cu') || 'INR';
       
+      setShopName(decodeURIComponent(pn));
+      setAmount(am);
+
       const upiUrl = `upi://pay?pa=${pa}&pn=${encodeURIComponent(pn)}&tr=${tr}&am=${am}&cu=${cu}`;
       
-      // Give a slight delay so the UI renders before the browser intercept occurs
+      // Give a slight delay so the user can see the premium UI before the app intercept occurs
       setTimeout(() => {
         window.location.href = upiUrl;
-      }, 500);
+      }, 1500); 
     }
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full border border-gray-100">
-        <div className="mb-4">
-          <svg className="w-16 h-16 text-[#059669] mx-auto animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-4 font-sans">
+      <div className="bg-white rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden max-w-sm w-full border border-slate-200">
+        
+        {/* Header (Razorpay Style Deep Blue) */}
+        <div className="bg-[#0f172a] p-8 text-center text-white relative">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-emerald-400 to-blue-500"></div>
+          
+          <div className="flex justify-center mb-3">
+            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M6 3h12l4 6-10 13L2 9Z"/></svg>
+            </div>
+          </div>
+
+          <h1 className="text-lg font-bold tracking-tight mb-1 truncate">{shopName}</h1>
+          
+          {amount && (
+            <div className="mt-4">
+              <p className="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-semibold mb-1">Amount Payable</p>
+              <div className="text-3xl font-black flex justify-center items-start gap-1">
+                <span className="text-lg mt-1 text-slate-300">₹</span>
+                {Number(amount).toFixed(2)}
+              </div>
+            </div>
+          )}
         </div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Redirecting to Payment...</h2>
-        <p className="text-gray-600 mb-6 text-sm">Please complete the payment in your UPI app (GPay, PhonePe, Paytm, etc).</p>
-        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4 overflow-hidden relative">
-          <div className="bg-[#059669] h-full absolute animate-[progress_1s_ease-in-out_infinite] w-full origin-left scale-x-0" style={{ animation: 'progress-bar 1.5s ease-in-out infinite' }}></div>
+
+        {/* Body */}
+        <div className="p-8 text-center flex flex-col items-center bg-white">
+          <div className="relative mb-6">
+            <div className="w-16 h-16 border-4 border-slate-100 rounded-full"></div>
+            <div className="w-16 h-16 border-4 border-[#3366FF] rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6 text-[#3366FF]">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </div>
+          </div>
+          
+          <h2 className="text-lg font-bold text-slate-800 mb-2">Connecting to UPI App...</h2>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6 px-2">
+            Please approve the payment request inside your UPI app (GPay, PhonePe, Paytm).
+          </p>
+          
+          <div className="w-full bg-blue-50 text-blue-700 text-[11px] font-semibold py-2.5 px-4 rounded-lg border border-blue-100 flex items-center justify-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            Waiting for confirmation...
+          </div>
         </div>
-        <p className="text-xs text-gray-400">If you are not redirected, please scan the QR code manually.</p>
-        <style>{`
-          @keyframes progress-bar {
-            0% { transform: scaleX(0); transform-origin: left; }
-            50% { transform: scaleX(1); transform-origin: left; }
-            51% { transform: scaleX(1); transform-origin: right; }
-            100% { transform: scaleX(0); transform-origin: right; }
-          }
-        `}</style>
+
+        {/* Footer */}
+        <div className="bg-slate-50 p-3.5 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-500 font-semibold">
+          <ShieldCheck size={14} className="text-emerald-500" />
+          <span>100% SECURE PAYMENT BY POS SUITE 360</span>
+        </div>
+
       </div>
     </div>
   );
