@@ -1213,13 +1213,6 @@ const Estimation = () => {
               {numberToWords(watch('netAmount'))} ONLY
             </div>
           </div>
-
-          <div className="text-right mt-4 relative">
-            <p className="text-[10px] font-bold text-slate-800 mb-12">For {settings?.shopName || 'POS Suite 360'}</p>
-            <div className="inline-block border-t border-slate-400 pt-2 px-8 w-48 mt-4">
-              <p className="text-[11px] font-bold text-slate-700 text-center">Authorized Signatory</p>
-            </div>
-          </div>
         </div>
       </div>
 
