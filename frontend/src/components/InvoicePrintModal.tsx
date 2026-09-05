@@ -236,8 +236,6 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
         doc.text(`UPI ID: ${settings.upiId.trim()}`, col + 26, qrY + 11);
         doc.text('Scan QR or tap text to pay', col + 26, qrY + 17);
-        doc.setTextColor('#0000EE');
-        doc.textWithLink('Click here to pay', col + 26, qrY + 22, { url: clickUrl });
       }
 
       // Totals (right)
