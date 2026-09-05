@@ -111,10 +111,15 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         element.parentElement.style.left = '-9999px';
       }
 
-      // Generate image via html-to-image (supports modern CSS like oklch natively via SVG foreignObject)
-      const dataUrl = await toPng(element, { 
+      // Filter out stylesheets containing oklch (Tailwind v4) which html-to-image cannot parse
+      const dataUrl = await toPng(element, {
         pixelRatio: 2,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        filter: (node) => {
+          if (node instanceof HTMLStyleElement && node.textContent?.includes('oklch')) return false;
+          if (node instanceof HTMLLinkElement && node.rel === 'stylesheet') return false;
+          return true;
+        },
       });
 
       // Create PDF and add the image
