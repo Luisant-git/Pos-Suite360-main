@@ -124,30 +124,34 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       rect(0, 0, 794, 1123, '#ffffff');
 
       // --- HEADER ---
-      // Logo
+      let headerLeftY = y;
+      // Logo (top-left)
       if (settings?.logoImage) {
         try {
           const logo = await loadImg(settings.logoImage);
-          const lh = 48, lw = Math.min(160, logo.width * (lh / logo.height));
-          ctx.drawImage(logo, pad, y, lw, lh);
+          const lh = 56, lw = Math.min(160, logo.width * (lh / logo.height));
+          ctx.drawImage(logo, pad, headerLeftY, lw, lh);
+          headerLeftY += lh + 8;
         } catch { /* skip */ }
       }
-      // Shop name
-      text((settings?.shopName || 'POS Suite 360').toUpperCase(), pad, y + 14, 'bold 16px Arial', '#04325E');
-      if (settings?.invoiceTitle) text(settings.invoiceTitle, pad, y + 30, 'bold 11px Arial', '#1A63A8');
+      // Shop name below logo
+      text((settings?.shopName || 'POS Suite 360').toUpperCase(), pad, headerLeftY + 14, 'bold 16px Arial', '#04325E');
+      headerLeftY += 18;
+      if (settings?.invoiceTitle) { text(settings.invoiceTitle, pad, headerLeftY + 6, 'bold 11px Arial', '#1A63A8'); headerLeftY += 14; }
       const addrLines = [
         settings?.shopAddress,
         [settings?.city, settings?.state, settings?.country].filter(Boolean).join(', '),
         settings?.phone ? `Tel: ${settings.phone}` : '',
         settings?.gstin ? `GSTIN: ${settings.gstin}` : '',
       ].filter(Boolean) as string[];
-      addrLines.forEach((line, i) => text(line, pad, y + 44 + i * 13, '10px Arial', '#334155'));
+      addrLines.forEach((line, i) => text(line, pad, headerLeftY + 8 + i * 14, '10px Arial', '#334155'));
+      headerLeftY += 8 + addrLines.length * 14;
 
       // Invoice title (right)
-      text(isEstimation ? 'ESTIMATION' : 'INVOICE', 794 - pad, y + 28, 'bold 28px Arial', '#1A63A8', 'right');
-      text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, 794 - pad, y + 46, 'bold 11px Arial', '#334155', 'right');
+      text(isEstimation ? 'ESTIMATION' : 'INVOICE', 794 - pad, y + 32, 'bold 30px Arial', '#1A63A8', 'right');
+      text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, 794 - pad, y + 50, 'bold 11px Arial', '#334155', 'right');
 
-      y += Math.max(80, 44 + addrLines.length * 13 + 8);
+      y = headerLeftY + 16;
 
       // --- INFO CARDS ---
       const cardH = 90;
@@ -245,13 +249,16 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       border(rightX, footerY, rightW, 110, '#e2e8f0');
       let ty = footerY + 18;
       const totalRows: [string, string][] = [['Subtotal:', Number(sale?.subtotal || 0).toFixed(2)]];
-      if (settings?.enableTax && Number(sale?.tax)) {
-        const ss = (settings.state || '').trim().toLowerCase();
-        const cs = (sale?.customer?.state || '').trim().toLowerCase();
-        if (ss && cs && ss === cs) {
-          const half = (Number(sale.tax) / 2).toFixed(2);
-          totalRows.push(['CGST:', half], ['SGST:', half]);
-        } else totalRows.push(['IGST:', Number(sale.tax).toFixed(2)]);
+      if (settings?.enableTax) {
+        const taxVal = parseFloat(sale?.tax);
+        if (!isNaN(taxVal) && taxVal > 0) {
+          const ss = (settings.state || '').trim().toLowerCase();
+          const cs = (sale?.customer?.state || '').trim().toLowerCase();
+          if (ss && cs && ss === cs) {
+            const half = (taxVal / 2).toFixed(2);
+            totalRows.push(['CGST:', half], ['SGST:', half]);
+          } else totalRows.push(['IGST:', taxVal.toFixed(2)]);
+        }
       }
       if (Number(sale?.discount) > 0) totalRows.push(['Discount:', Number(sale.discount).toFixed(2)]);
       totalRows.forEach(([label, val]) => {
