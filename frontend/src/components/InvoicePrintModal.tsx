@@ -602,7 +602,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           
           {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
             <a 
-              href={`${window.location.origin}/?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+              href={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tn=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"
