@@ -252,27 +252,45 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
 
+      // Load HTML into a hidden iframe — it has NO Tailwind/oklch styles
       const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:none';
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:none;visibility:hidden';
       iframe.src = url;
       document.body.appendChild(iframe);
 
-      await new Promise<void>((resolve) => {
-        iframe.onload = () => resolve();
+      await new Promise<void>((resolve) => { iframe.onload = () => resolve(); });
+
+      // html2canvas on the iframe's body — no oklch in that document
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(iframe.contentDocument!.body, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: 794,
+        height: 1123,
       });
 
-      // Use the iframe's print to trigger browser Save as PDF
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
+      document.body.removeChild(iframe);
+      URL.revokeObjectURL(url);
 
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-        URL.revokeObjectURL(url);
-      }, 2000);
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Error generating/sharing PDF:', err);
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+      const pdfBlob = pdf.output('blob');
+
+      const file = new File([pdfBlob], `Invoice_${invoiceNo}.pdf`, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${isEstimation ? 'Estimation' : 'Invoice'} ${invoiceNo}` });
+      } else {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(pdfBlob);
+        link.download = `Invoice_${invoiceNo}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') console.error('Error generating/sharing PDF:', err);
     } finally {
       setIsSharing(false);
     }
