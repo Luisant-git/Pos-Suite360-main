@@ -430,9 +430,9 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       ctx.font = `bold ${13 * scale}px sans-serif`;
       ctx.fillText(`INVOICE NO: #${invoiceNo}`, width / 2, currentY);
 
-      currentY += 45 * scale;
+      currentY += 40 * scale;
       ctx.fillStyle = '#0F172A';
-      ctx.font = `bold ${38 * scale}px sans-serif`;
+      ctx.font = `bold ${26 * scale}px sans-serif`;
       ctx.fillText(`${currency} ${Number(grandTotal).toFixed(2)}`, width / 2, currentY);
 
       currentY += 35 * scale;
