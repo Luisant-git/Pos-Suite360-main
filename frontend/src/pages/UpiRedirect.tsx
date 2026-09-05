@@ -1,76 +1,59 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const UpiRedirect = () => {
   const location = useLocation();
-  const [shopName, setShopName] = useState('Payment');
-  const [amount, setAmount] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const pa = params.get('pa');
     
     if (pa) {
-      const pn = params.get('pn') || 'Shop';
+      const pn = params.get('pn') || '';
       const tr = params.get('tr') || '';
       const am = params.get('am') || '';
       const cu = params.get('cu') || 'INR';
       
-      setShopName(decodeURIComponent(pn));
-      setAmount(am);
-
       const upiUrl = `upi://pay?pa=${pa}&pn=${encodeURIComponent(pn)}&tr=${tr}&am=${am}&cu=${cu}`;
       
-      // Delay so the user sees the page before app interception
+      // Give a slight delay so the UI renders before the browser intercept occurs
       setTimeout(() => {
         window.location.href = upiUrl;
-      }, 1500); 
+      }, 500);
     }
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#064e3b] p-4 font-sans relative overflow-hidden">
-      
-      {/* Decorative background glow */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#047857] rounded-full mix-blend-screen filter blur-[100px] opacity-40"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-[#10b981] rounded-full mix-blend-screen filter blur-[100px] opacity-20"></div>
-
-      <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-sm w-full relative z-10 border-t-4 border-t-yellow-400">
-        
-        {/* Golden Coin Spinner */}
-        <div className="mb-8 flex justify-center perspective-[1000px]">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-100 via-yellow-400 to-yellow-600 border-[4px] border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.4)] flex items-center justify-center animate-[flip_2s_ease-in-out_infinite]" style={{ transformStyle: 'preserve-3d' }}>
-            <div className="text-yellow-800 text-4xl font-black" style={{ transform: 'translateZ(1px)' }}>₹</div>
-            {/* Inner ring for coin detail */}
-            <div className="absolute w-[80%] h-[80%] rounded-full border-2 border-yellow-200/60 border-dashed" style={{ transform: 'translateZ(1px)' }}></div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full border border-gray-100">
+        <div className="mb-8 relative w-20 h-20 mx-auto" style={{ perspective: '1000px' }}>
+          <div className="w-full h-full rounded-full shadow-xl flex items-center justify-center" 
+               style={{ 
+                 background: 'linear-gradient(135deg, #fbbf24 0%, #fef3c7 40%, #f59e0b 100%)',
+                 border: '4px solid #fde68a',
+                 boxShadow: '0 10px 25px -5px rgba(245, 158, 11, 0.5), inset 0 -4px 8px rgba(180, 83, 9, 0.5)',
+                 animation: 'coin-spin 2s linear infinite',
+                 transformStyle: 'preserve-3d'
+               }}>
+            <div className="absolute inset-0 rounded-full border-[2px] border-[#d97706] border-dashed opacity-40 m-[4px]"></div>
+            <span className="text-4xl text-[#92400e] font-black tracking-tighter shadow-sm" style={{ transform: 'translateZ(1px)' }}>₹</span>
           </div>
         </div>
-
-        <h1 className="text-2xl font-black text-[#064e3b] mb-2 tracking-tight">Connecting to UPI</h1>
-        
-        <p className="text-sm text-slate-500 mb-6 font-medium">
-          Authorizing payment for <span className="font-bold text-[#047857]">{shopName}</span>
-        </p>
-
-        {amount && (
-          <div className="bg-gradient-to-br from-[#ecfdf5] to-[#d1fae5] rounded-xl p-5 mb-4 border border-[#34d399]/40 shadow-inner">
-            <p className="text-[10px] text-[#047857] uppercase tracking-[0.15em] font-bold mb-1">Total Amount</p>
-            <p className="text-4xl font-black text-[#064e3b] drop-shadow-sm">₹{Number(amount).toFixed(2)}</p>
-          </div>
-        )}
-
-        {/* Loading Dots */}
-        <div className="flex items-center justify-center gap-2 mt-8">
-          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
-          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Redirecting to Payment...</h2>
+        <p className="text-gray-600 mb-6 text-sm">Please complete the payment in your UPI app (GPay, PhonePe, Paytm, etc).</p>
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4 overflow-hidden relative">
+          <div className="bg-[#059669] h-full absolute animate-[progress_1s_ease-in-out_infinite] w-full origin-left scale-x-0" style={{ animation: 'progress-bar 1.5s ease-in-out infinite' }}></div>
         </div>
-        <p className="text-xs text-slate-400 mt-3 font-medium">Please wait, do not close this window.</p>
-        
+        <p className="text-xs text-gray-400">If you are not redirected, please scan the QR code manually.</p>
         <style>{`
-          @keyframes flip {
+          @keyframes progress-bar {
+            0% { transform: scaleX(0); transform-origin: left; }
+            50% { transform: scaleX(1); transform-origin: left; }
+            51% { transform: scaleX(1); transform-origin: right; }
+            100% { transform: scaleX(0); transform-origin: right; }
+          }
+          @keyframes coin-spin {
             0% { transform: rotateY(0deg); }
-            50% { transform: rotateY(180deg); }
             100% { transform: rotateY(360deg); }
           }
         `}</style>
