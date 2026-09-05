@@ -105,7 +105,9 @@ export class ReportsService {
     const productions = await this.prisma.production.findMany({
       where: whereClause,
       include: {
-        rawMaterial: true,
+        rawMaterial: {
+          include: { rawMaterialPurchaseItems: true }
+        },
         finishedProduct: true,
       },
     });
@@ -114,6 +116,9 @@ export class ReportsService {
     let totalRevenue = 0;
 
     const materialsUsed: Record<string, { quantity: number; cost: number; name: string }> = {};
+
+    let totalProducedQty = 0;
+    let totalTheoreticalYield = 0;
 
     productions.forEach(prod => {
       const intakeQty = Number(prod.intakeQuantity || 0);
@@ -126,6 +131,15 @@ export class ReportsService {
 
       totalCost += cost;
       totalRevenue += revenue;
+      totalProducedQty += outcomeQty;
+
+      // theoretical yield calculation
+      const rmSqM = Number(prod.rawMaterial?.rawMaterialPurchaseItems?.[0]?.sqM || 0);
+      const productSqM = Number(prod.finishedProduct?.sqM || 0);
+      const rawSqMUsed = intakeQty * rmSqM;
+      if (productSqM > 0) {
+        totalTheoreticalYield += (rawSqMUsed / productSqM);
+      }
 
       const matName = prod.rawMaterial?.name || 'Unknown';
       if (!materialsUsed[matName]) {
@@ -136,12 +150,18 @@ export class ReportsService {
     });
 
     const profit = totalRevenue - totalCost;
+    
+    const wastageQty = totalTheoreticalYield > 0 ? Math.max(0, totalTheoreticalYield - totalProducedQty) : 0;
+    const wastagePercentage = totalTheoreticalYield > 0 ? (wastageQty / totalTheoreticalYield) * 100 : 0;
 
     return {
       workName,
       totalCost,
       totalRevenue,
       profit,
+      totalProducedQty,
+      wastageQty,
+      wastagePercentage,
       materialsUsed: Object.values(materialsUsed),
     };
   }

@@ -135,18 +135,28 @@ const BatchPnlReport = () => {
 
       {/* Summary Cards Section */}
       {reportData && !isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4 shrink-0">
           <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
             <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Total Cost (Raw Materials)</p>
-            <p className="text-[24px] font-bold text-red-600">{formatCurrency(reportData.totalCost)}</p>
+            <p className="text-[20px] font-bold text-red-600">{formatCurrency(reportData.totalCost)}</p>
           </div>
           <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
             <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Potential Revenue</p>
-            <p className="text-[24px] font-bold text-green-600">{formatCurrency(reportData.totalRevenue)}</p>
+            <p className="text-[20px] font-bold text-green-600">{formatCurrency(reportData.totalRevenue)}</p>
           </div>
           <div className={`bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center ${reportData.profit >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-            <p className={`text-[12px] font-bold mb-1 uppercase ${reportData.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>Potential Profit / Loss</p>
-            <p className={`text-[24px] font-bold ${reportData.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{formatCurrency(Math.abs(reportData.profit))} {reportData.profit < 0 ? '(Loss)' : ''}</p>
+            <p className={`text-[12px] font-bold mb-1 uppercase ${reportData.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>Profit / Loss</p>
+            <p className={`text-[20px] font-bold ${reportData.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>{formatCurrency(Math.abs(reportData.profit))} {reportData.profit < 0 ? '(Loss)' : ''}</p>
+          </div>
+          <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
+            <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Produced Qty</p>
+            <p className="text-[20px] font-bold text-[#1A63A8]">{reportData.totalProducedQty}</p>
+          </div>
+          <div className="bg-white p-4 rounded-md border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
+            <p className="text-[#64748B] text-[12px] font-bold mb-1 uppercase">Wastage</p>
+            <p className="text-[20px] font-bold text-orange-600">
+              {Number(reportData.wastageQty).toFixed(2)} <span className="text-[12px] font-normal">({Number(reportData.wastagePercentage).toFixed(2)}%)</span>
+            </p>
           </div>
         </div>
       )}
