@@ -1,11 +1,25 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, Loader2, QrCode } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-import numberToWords from '../utils/numberToWords';
-// @ts-ignore
 import html2pdf from 'html2pdf.js';
+
+const numberToWords = (num: number): string => {
+  if (!num || num === 0) return 'ZERO';
+  const a = ['', 'ONE ', 'TWO ', 'THREE ', 'FOUR ', 'FIVE ', 'SIX ', 'SEVEN ', 'EIGHT ', 'NINE ', 'TEN ', 'ELEVEN ', 'TWELVE ', 'THIRTEEN ', 'FOURTEEN ', 'FIFTEEN ', 'SIXTEEN ', 'SEVENTEEN ', 'EIGHTEEN ', 'NINETEEN '];
+  const b = ['', '', 'TWENTY ', 'THIRTY ', 'FORTY ', 'FIFTY ', 'SIXTY ', 'SEVENTY ', 'EIGHTY ', 'NINETY '];
+  const convert = (n: number): string => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + 'HUNDRED ' + (n % 100 ? convert(n % 100) : '');
+    if (n < 1000000) return convert(Math.floor(n / 1000)) + 'THOUSAND ' + (n % 1000 ? convert(n % 1000) : '');
+    return n.toString();
+  };
+  const whole = Math.floor(Number(num));
+  const cents = Math.round((Number(num) - whole) * 100);
+  let res = convert(whole) || '';
+  if (cents > 0) res += `AND CENTS ${convert(cents)}`;
+  return res.trim();
+};
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
@@ -93,7 +107,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       const opt = {
         margin:       0,
         filename:     `Invoice_${invoiceNo}.pdf`,
-        image:        { type: 'jpeg', quality: 1.0 },
+        image:        { type: 'jpeg' as const, quality: 1.0 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
       };
@@ -625,6 +639,15 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             </div>
           </div>
         )}
+
+        {/* Hidden container for PDF generation */}
+        <div style={{ display: 'none' }}>
+          <div id="pdf-invoice-content">
+            <div className="w-[800px] bg-white">
+              <InvoiceContent />
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>,
