@@ -1174,7 +1174,7 @@ const Estimation = () => {
           
           {(editId && editEstimationData ? editEstimationData.stockMaintained : settings?.estimationStockMaintain) && settings?.upiId && Number(watch('netAmount')) > 0 && (
             <a 
-              href={`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${watch('estimationNo')}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`}
+              href={`${window.location.origin}/pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${watch('estimationNo')}&am=${Number(watch('netAmount')).toFixed(2)}&cu=INR`}
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"

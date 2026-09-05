@@ -5,6 +5,7 @@ import Login from '../pages/auth/Login';
 import Dashboard from '../pages/dashboard/Dashboard';
 import QuickStart from '../pages/QuickStart';
 import ProtectedRoute from '../components/ProtectedRoute';
+import UpiRedirect from '../pages/UpiRedirect';
 
 // Master
 import Products from '../pages/master/Products';
@@ -73,10 +74,15 @@ import Settings from '../pages/Settings';
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Public Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
       </Route>
       
+      {/* Payment Redirect (Public) */}
+      <Route path="/pay" element={<UpiRedirect />} />
+      
+      {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
