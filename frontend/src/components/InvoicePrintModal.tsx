@@ -616,6 +616,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               className="hidden"
             />
           )}
+          {/* QR click-to-pay link disabled
           {showPaymentInfo && activeUpiId && grandTotal > 0 && (
             <a 
               href={`${window.location.origin}/upi-redirect?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
@@ -638,6 +639,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               </div>
             </a>
           )}
+          */}
         </div>
         
         {/* Right Footer: Totals & Signature */}
