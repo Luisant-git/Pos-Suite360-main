@@ -87,7 +87,7 @@ const saleItemSchema = z.object({
 });
 
 const saleSchema = z.object({
-  customerId: z.coerce.number().min(1, 'Customer is required').or(z.literal(0)),
+  customerId: z.coerce.number().min(0).optional(),
   invoiceNo: z.string(),
   date: z.string(),
   rateType: z.string(),
@@ -345,7 +345,9 @@ const POS = () => {
   });
 
   const onSubmit = (data: SaleFormValues) => {
-    if (!data.customerId) {
+    const selectedPaymentMode = paymentModes.find((p: any) => p.id === Number(data.paymentModeId));
+    const isCash = selectedPaymentMode?.name?.toLowerCase() === 'cash';
+    if (!data.customerId && !isCash) {
       toast.error('Please select a Customer before saving.');
       return;
     }
