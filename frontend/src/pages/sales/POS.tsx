@@ -541,7 +541,7 @@ const POS = () => {
             </div>
 
             <div className="w-full lg:flex-[2]">
-              <div className={`rounded-lg border-l-4 p-3 transition-all ${isCashMode ? 'border-l-[#16A34A] bg-[#F0FDF4]' : 'border-l-[#3B82F6] bg-[#EFF6FF]'}`}>
+              <div className={`rounded-lg border p-3 transition-all ${isCashMode ? 'border-[#86EFAC] bg-[#F0FDF4]' : 'border-[#BFDBFE] bg-[#EFF6FF]'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-[11px] font-bold text-[#1F2937]">Customer Name</label>
                   {isCashMode
