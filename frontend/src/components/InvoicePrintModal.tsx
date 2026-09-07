@@ -141,7 +141,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       if (settings?.gstin) { addText(`GSTIN: ${settings.gstin}`, col, y, { size: 9, color: '#475569' }); y += 5; }
 
       // Invoice label top-right
-      addText(isEstimation ? 'ESTIMATION' : 'TAX INVOICE', W - margin, margin + 4, { size: 20, bold: true, color: '#1A63A8', align: 'right' });
+      addText(isEstimation ? 'ESTIMATION' : 'TAX INVOICE', W - margin, margin + 4, { size: 16, bold: true, color: '#1A63A8', align: 'right' });
       doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
       doc.text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, W - margin, margin + 11, { align: 'right' });
 
@@ -668,7 +668,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           </div>
         </div>
         <div className="text-right">
-          <h2 className="text-4xl font-black text-[#1A63A8] tracking-wider mb-2">{isEstimation ? 'ESTIMATION' : 'TAX INVOICE'}</h2>
+          <h2 className="text-3xl font-black text-[#1A63A8] tracking-wider mb-2">{isEstimation ? 'ESTIMATION' : 'TAX INVOICE'}</h2>
           <p className="font-bold text-slate-700 text-sm">{isEstimation ? 'Est No' : 'Invoice No'}: #{invoiceNo}</p>
         </div>
       </div>
