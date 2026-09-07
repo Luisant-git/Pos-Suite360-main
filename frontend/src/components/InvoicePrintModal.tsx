@@ -180,6 +180,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#ffffff');
       doc.text('#', col + 2, y + 1);
       doc.text('ITEM DESCRIPTION', col + 10, y + 1);
+      doc.text('HSN', col + 88, y + 1, { align: 'center' });
       doc.text('QTY', col + 105, y + 1, { align: 'center' });
       doc.text(`RATE (${currency})`, col + 138, y + 1, { align: 'right' });
       doc.text(`AMOUNT (${currency})`, W - margin - 2, y + 1, { align: 'right' });
@@ -196,6 +197,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         doc.setFont('helvetica', 'normal'); doc.text(String(idx + 1), col + 2, y);
         doc.setFont('helvetica', 'bold'); doc.text(splitName, col + 10, y);
         doc.setFont('helvetica', 'normal');
+        if (item.product?.hsnCode) { doc.setFontSize(8); doc.text(item.product.hsnCode, col + 88, y, { align: 'center' }); doc.setFontSize(9); }
         doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 105, y, { align: 'center' });
         doc.text(Number(item.rate || 0).toFixed(2), col + 138, y, { align: 'right' });
         doc.setFont('helvetica', 'bold');
@@ -709,7 +711,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           <thead className="bg-[#2D6AA1] text-white text-[10px] uppercase tracking-wider">
             <tr>
               <th className="py-3 px-4 font-bold w-[5%]">#</th>
-              <th className="py-3 px-4 font-bold w-[45%]">Item Description</th>
+              <th className="py-3 px-4 font-bold w-[35%]">Item Description</th>
+              <th className="py-3 px-4 font-bold w-[10%] text-center">HSN</th>
               <th className="py-3 px-4 font-bold w-[15%] text-center">Quantity</th>
               <th className="py-3 px-4 font-bold w-[15%] text-right whitespace-nowrap">Unit Rate ({currency})</th>
               <th className="py-3 px-4 font-bold w-[20%] text-right whitespace-nowrap">Amount ({currency})</th>
@@ -722,8 +725,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                 <td className="py-3 px-4">
                   <span className="font-bold text-slate-800">{item.product?.name || ''}</span>
                   {item.product?.code && <span className="text-slate-500 ml-2">({item.product.code})</span>}
-                  {item.product?.hsnCode && <span className="block text-[10px] text-slate-400 mt-0.5">HSN: {item.product.hsnCode}</span>}
                 </td>
+                <td className="py-3 px-4 text-center text-slate-600 text-[11px]">{item.product?.hsnCode || '-'}</td>
                 <td className="py-3 px-4 text-center text-slate-600 font-medium">{item.quantity} {item.product?.unit?.shortCode || 'Nos'}</td>
                 <td className="py-3 px-4 text-right text-slate-600">{Number(item.rate || 0).toFixed(2)}</td>
                 <td className="py-3 px-4 text-right font-bold text-slate-800">{Number(item.amount || item.total || 0).toFixed(2)}</td>

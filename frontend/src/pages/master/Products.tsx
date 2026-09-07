@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Edit, Trash2, CheckCircle, Package, Grid, Maximize, Minimize } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Package, Grid, Maximize, Minimize, Eye, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -42,6 +42,7 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFullTable, setIsFullTable] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [viewProduct, setViewProduct] = useState<any>(null);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
@@ -513,6 +514,12 @@ const Products = () => {
                     <td data-label="Sale Rate" className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-bold text-[#3B82F6]">{formatCurrency(product.sellingRate)}</td>
                     <td data-label="Actions" className="px-3 py-2.5 text-center">
                       <div className="flex justify-center gap-2">
+                        <button type="button"
+                          onClick={() => setViewProduct(product)}
+                          className="text-[#7C3AED] border border-[#7C3AED] rounded p-1 hover:bg-[#7C3AED] hover:text-white transition-colors"
+                        >
+                          <Eye size={12} />
+                        </button>
                         <button type="button" 
                           onClick={() => handleEdit(product)}
                           className="text-[#3B82F6] border border-[#3B82F6] rounded p-1 hover:bg-[#3B82F6] hover:text-white transition-colors"
@@ -520,9 +527,7 @@ const Products = () => {
                           <Edit size={12} />
                         </button>
                         <button type="button" 
-                          onClick={() => {
-                            setItemToDelete(product);
-                          }}
+                          onClick={() => setItemToDelete(product)}
                           className="text-[#EF4444] border border-[#EF4444] rounded p-1 hover:bg-[#EF4444] hover:text-white transition-colors"
                         >
                           <Trash2 size={12} />
@@ -555,6 +560,45 @@ const Products = () => {
         onClose={() => setIsLeaveModalOpen(false)} 
         onConfirm={() => navigate('/dashboard')} 
       />
+
+      {/* View Product Modal */}
+      {viewProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg">
+            <div className="bg-[#3B82F6] text-white px-4 py-3 rounded-t-lg flex justify-between items-center">
+              <div className="flex items-center gap-2 font-bold text-[14px]">
+                <Package size={16} /> {viewProduct.name}
+              </div>
+              <button onClick={() => setViewProduct(null)} className="hover:text-red-300 transition-colors"><X size={18} /></button>
+            </div>
+            <div className="p-5 grid grid-cols-2 gap-3 text-[13px]">
+              {[
+                ['Code', viewProduct.code],
+                ['Unit', viewProduct.unit?.name || '-'],
+                ['Category', viewProduct.category?.name || '-'],
+                ['Brand', viewProduct.brand?.name || '-'],
+                ['Supplier', viewProduct.supplier?.name || '-'],
+                ['Current Stock', `${viewProduct.currentStock} ${viewProduct.unit?.shortCode || ''}`],
+                ['Purchase Rate', viewProduct.purchaseRate],
+                ['Wholesale Rate', viewProduct.wholesaleRate],
+                ['Sale Rate', viewProduct.sellingRate],
+                ['Min Stock', viewProduct.minStock],
+                ['Reorder Level', viewProduct.reorderLevel],
+                ...(viewProduct.taxPercent ? [['GST %', `${viewProduct.taxPercent}%`]] : []),
+                ...(viewProduct.hsnCode ? [['HSN Code', viewProduct.hsnCode]] : []),
+              ].map(([label, value]) => (
+                <div key={label} className="bg-slate-50 rounded p-2">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase">{label}</p>
+                  <p className="font-bold text-slate-800 mt-0.5">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 pb-4 flex justify-end">
+              <button onClick={() => setViewProduct(null)} className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded text-[12px]">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 </div>
   );
 };
