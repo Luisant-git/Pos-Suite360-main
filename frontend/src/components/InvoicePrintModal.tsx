@@ -226,6 +226,13 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       }
 
       // QR code (left, below terms)
+      // QR click-to-pay text disabled
+      // if (settings?.upiId && grandTotal > 0 && qrCanvas) {
+      //   const clickUrl = ...;
+      //   doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 5);
+      //   doc.text(`UPI ID: ${activeUpiId.trim()}`, col + 26, qrY + 11);
+      //   doc.text('Scan QR or tap text to pay', col + 26, qrY + 17);
+      // }
       const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement | null;
       if (activeUpiId && grandTotal > 0 && qrCanvas) {
         const clickUrl = `${window.location.origin}/upi-redirect?pa=${encodeURIComponent(activeUpiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
@@ -233,12 +240,12 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         const qrY = totalsStartY + 22;
         doc.addImage(qrDataUrl, 'PNG', col, qrY, 22, 22);
         doc.link(col, qrY, 22, 22, { url: clickUrl });
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
-        doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 5);
-        doc.link(col, qrY, W / 2 - col, 25, { url: clickUrl });
-        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
-        doc.text(`UPI ID: ${activeUpiId.trim()}`, col + 26, qrY + 11);
-        doc.text('Scan QR or tap text to pay', col + 26, qrY + 17);
+        // doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
+        // doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 5);
+        // doc.link(col, qrY, W / 2 - col, 25, { url: clickUrl });
+        // doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
+        // doc.text(`UPI ID: ${activeUpiId.trim()}`, col + 26, qrY + 11);
+        // doc.text('Scan QR or tap text to pay', col + 26, qrY + 17);
       }
 
       // Totals (right)
