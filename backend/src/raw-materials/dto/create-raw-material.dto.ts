@@ -9,6 +9,10 @@ export class CreateRawMaterialDto {
   @IsNotEmpty()
   code: string;
 
+  @IsString()
+  @IsOptional()
+  hsnCode?: string;
+
   @IsInt()
   unitId: number;
 

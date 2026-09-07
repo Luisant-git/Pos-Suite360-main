@@ -569,6 +569,7 @@ model RawMaterial {
   unitId Int
   unit   Unit @relation(fields: [unitId], references: [id])
 
+  hsnCode      String?
   currentStock Int     @default(0)
   purchaseRate Decimal @default(0)
 

@@ -15,6 +15,7 @@ const rawMaterialSchema = z.object({
   code: z.string().min(1, 'Code is required'),
   name: z.string().min(1, 'Name is required'),
   unitId: z.string().min(1, 'Unit is required'),
+  hsnCode: z.string().optional(),
   currentStock: z.coerce.number().min(0).default(0),
   purchaseRate: z.coerce.number().min(0).default(0),
 });
@@ -34,6 +35,7 @@ const RawMaterialMaster = () => {
       code: '',
       name: '',
       unitId: '',
+      hsnCode: '',
       currentStock: '' as any,
       purchaseRate: '' as any,
     }
@@ -134,6 +136,7 @@ const RawMaterialMaster = () => {
     setValue('code', material.code);
     setValue('name', material.name);
     setValue('unitId', material.unitId ? material.unitId.toString() : '');
+    setValue('hsnCode', material.hsnCode || '');
     setValue('currentStock', Number(material.currentStock));
     setValue('purchaseRate', Number(material.purchaseRate));
   };
@@ -171,6 +174,16 @@ const RawMaterialMaster = () => {
               className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
             />
             {errors.name && <span className="text-red-500 text-xs mt-1 block">{errors.name.message}</span>}
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-bold text-[#1F2937] mb-1">HSN Code <span className="text-gray-400 font-normal">(Optional)</span></label>
+            <input
+              {...register('hsnCode')}
+              type="text"
+              placeholder="e.g. 6403"
+              className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
+            />
           </div>
 
           <div>
@@ -270,6 +283,7 @@ const RawMaterialMaster = () => {
                 <th className="px-3 py-2 border-r border-[#444] text-center w-8">#</th>
                 <th className="px-3 py-2 border-r border-[#444]">Code</th>
                 <th className="px-3 py-2 border-r border-[#444]">Material Name</th>
+                <th className="px-3 py-2 border-r border-[#444]">HSN Code</th>
                 <th className="px-3 py-2 border-r border-[#444] text-center">Unit</th>
                 <th className="px-3 py-2 border-r border-[#444] text-center">Stock</th>
                 <th className="px-3 py-2 border-r border-[#444] text-right">Pur Rate</th>
@@ -287,6 +301,7 @@ const RawMaterialMaster = () => {
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-center font-bold text-gray-700">{index + 1}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] font-bold text-[#3B82F6]">{material.code}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] font-bold text-[#1F2937]">{material.name}</td>
+                    <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-gray-500">{material.hsnCode || '-'}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-center">{material.unit?.name || '-'}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-center font-bold text-green-700">{material.currentStock}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-right font-medium">{formatCurrency(material.purchaseRate)}</td>
