@@ -166,7 +166,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       let iy = billStartY;
       addText(isEstimation ? 'ESTIMATION DETAILS' : 'INVOICE DETAILS', midX, iy, { size: 8, bold: true, color: '#64748b' }); iy += 5;
       doc.setFontSize(9); doc.setTextColor('#334155');
-      [['Date:', date], ['Payment:', sale?.paymentMode?.name || 'Cash'], ['Status:', sale?.status || 'Completed']]
+      [['Invoice No:', '#' + invoiceNo], ['Date:', date], ['Payment:', sale?.paymentMode?.name || 'Cash']]
         .forEach(([label, val]) => {
           doc.setFont('helvetica', 'bold'); doc.text(label, lx, iy);
           doc.setFont('helvetica', 'normal'); doc.text(val, vx, iy, { align: 'right' }); iy += 5;
@@ -689,12 +689,14 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
           <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3">{isEstimation ? 'Estimation Details' : 'Invoice Details'}</h3>
           <div className="grid grid-cols-[120px_1fr] gap-y-2 text-xs">
+            <span className="font-bold text-slate-600">Invoice No:</span>
+            <span className="text-slate-800">#{invoiceNo}</span>
             <span className="font-bold text-slate-600">Date:</span>
             <span className="text-slate-800">{date}</span>
             <span className="font-bold text-slate-600">Payment Mode:</span>
             <span className="text-slate-800">{sale?.paymentMode?.name || 'Cash'}</span>
-            <span className="font-bold text-slate-600">Status:</span>
-            <span className="text-slate-800">{sale?.status || 'Completed'}</span>
+            {/* <span className="font-bold text-slate-600">Status:</span> */}
+            {/* <span className="text-slate-800">{sale?.status || 'Completed'}</span> */}
             {Number(sale?.customer?.openingBalance) > 0 && (
               <>
                 <span className="font-bold text-slate-600">Pending Amount:</span>
