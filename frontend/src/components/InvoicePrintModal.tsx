@@ -580,6 +580,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                 <td className="py-3 px-4">
                   <span className="font-bold text-slate-800">{item.product?.name || ''}</span>
                   {item.product?.code && <span className="text-slate-500 ml-2">({item.product.code})</span>}
+                  {item.product?.hsnCode && <span className="block text-[10px] text-slate-400 mt-0.5">HSN: {item.product.hsnCode}</span>}
                 </td>
                 <td className="py-3 px-4 text-center text-slate-600 font-medium">{item.quantity} {item.product?.unit?.shortCode || 'Nos'}</td>
                 <td className="py-3 px-4 text-right text-slate-600">{Number(item.rate || 0).toFixed(2)}</td>

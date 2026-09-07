@@ -66,6 +66,10 @@ export class CreateProductDto {
   @Min(0)
   currentStock?: number;
 
+  @IsString()
+  @IsOptional()
+  hsnCode?: string;
+
   @IsBoolean()
   @IsOptional()
   isManufacturingProduct?: boolean;

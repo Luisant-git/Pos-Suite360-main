@@ -219,7 +219,10 @@ const SalesView = () => {
                   {sale.items?.map((item: any, idx: number) => (
                     <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="py-3 px-2 font-medium text-gray-600">{item.product?.code || '-'}</td>
-                      <td className="py-3 px-2 font-bold text-gray-800">{item.product?.name}</td>
+                      <td className="py-3 px-2">
+                        <span className="font-bold text-gray-800">{item.product?.name}</span>
+                        {item.product?.hsnCode && <span className="block text-[11px] text-gray-400">HSN: {item.product.hsnCode}</span>}
+                      </td>
                       <td className="py-3 px-2 text-right">{item.quantity}</td>
                       <td className="py-3 px-2 text-center text-gray-500">{item.product?.unit?.name || 'Nos'}</td>
                       <td className="py-3 px-2 text-right font-medium">{formatCurrency(item.rate)}</td>

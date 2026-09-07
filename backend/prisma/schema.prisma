@@ -194,6 +194,7 @@ model Product {
   supplierId Int?
   supplier   Supplier? @relation(fields: [supplierId], references: [id])
 
+  hsnCode       String?
   purchaseRate  Decimal @default(0)
   sellingRate   Decimal @default(0)
   wholesaleRate Decimal @default(0)
