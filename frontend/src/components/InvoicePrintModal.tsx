@@ -22,7 +22,7 @@ const numberToWords = (num: number): string => {
 import { useSettings } from '../contexts/SettingsContext';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
-import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 
 interface InvoicePrintModalProps {
