@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Printer, Loader2, QrCode } from 'lucide-react';
+import { Printer, Loader2, QrCode, Download } from 'lucide-react';
 
 const numberToWords = (num: number): string => {
   if (!num || num === 0) return 'ZERO';
@@ -38,6 +38,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const { settings } = useSettings();
   const [isSharing, setIsSharing] = useState(false);
   const [isSharingQR, setIsSharingQR] = useState(false);
+  const [isDownloadingQR, setIsDownloadingQR] = useState(false);
 
   // Always fetch full sale data to ensure unit, paymentMode, customer are fully populated
   const { data: fullSale, isLoading } = useQuery({
@@ -225,7 +226,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         doc.text(splitNotes, col, totalsStartY + 5);
       }
 
-      // QR code (left, below terms)
+      // QR code (left, below terms) — styled card embedded in PDF
       // QR click-to-pay text disabled
       // if (settings?.upiId && grandTotal > 0 && qrCanvas) {
       //   const clickUrl = ...;
@@ -235,17 +236,61 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       // }
       const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement | null;
       if (activeUpiId && grandTotal > 0 && qrCanvas) {
-        const clickUrl = `${window.location.origin}/upi-redirect?pa=${encodeURIComponent(activeUpiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
-        const qrDataUrl = qrCanvas.toDataURL('image/png');
-        const qrY = totalsStartY + 22;
-        doc.addImage(qrDataUrl, 'PNG', col, qrY, 22, 22);
-        doc.link(col, qrY, 22, 22, { url: clickUrl });
-        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
-        doc.text('SCAN TO PAY', col + 26, qrY + 5);
-        // doc.link(col, qrY, W / 2 - col, 25, { url: clickUrl });
-        // doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
-        // doc.text(`UPI ID: ${activeUpiId.trim()}`, col + 26, qrY + 11);
-        // doc.text('Scan QR or tap text to pay', col + 26, qrY + 17);
+        await new Promise<void>((resolve) => {
+          const styledCanvas = document.createElement('canvas');
+          const ctx2 = styledCanvas.getContext('2d');
+          if (!ctx2) { resolve(); return; }
+          const sc = 3;
+          const sw = 200 * sc; const sh = 200 * sc;
+          styledCanvas.width = sw; styledCanvas.height = sh;
+          ctx2.imageSmoothingEnabled = true; ctx2.imageSmoothingQuality = 'high';
+          // Background
+          ctx2.fillStyle = '#F8FAFC'; ctx2.fillRect(0, 0, sw, sh);
+          // Header bar
+          ctx2.fillStyle = '#04325E'; ctx2.fillRect(0, 0, sw, 44 * sc);
+          ctx2.textAlign = 'center';
+          ctx2.fillStyle = '#ffffff'; ctx2.font = `bold ${8 * sc}px sans-serif`;
+          ctx2.fillText((settings?.shopName || 'POS Suite 360').toUpperCase(), sw / 2, 18 * sc);
+          ctx2.fillStyle = '#94A3B8'; ctx2.font = `bold ${6 * sc}px sans-serif`;
+          ctx2.fillText('SCAN TO PAY', sw / 2, 32 * sc);
+          // White card
+          ctx2.fillStyle = '#ffffff';
+          ctx2.fillRect(8 * sc, 48 * sc, sw - 16 * sc, 140 * sc);
+          // QR image
+          const qrSz = 80 * sc;
+          ctx2.drawImage(qrCanvas, (sw - qrSz) / 2, 52 * sc, qrSz, qrSz);
+          // Invoice + amount
+          ctx2.fillStyle = '#64748B'; ctx2.font = `bold ${5 * sc}px sans-serif`;
+          ctx2.fillText(`INVOICE: #${invoiceNo}`, sw / 2, 142 * sc);
+          ctx2.fillStyle = '#0F172A'; ctx2.font = `bold ${8 * sc}px sans-serif`;
+          ctx2.fillText(`${currency} ${Number(grandTotal).toFixed(2)}`, sw / 2, 158 * sc);
+          // UPI ID
+          ctx2.fillStyle = '#64748B'; ctx2.font = `${4.5 * sc}px sans-serif`;
+          ctx2.fillText(activeUpiId.trim(), sw / 2, 172 * sc);
+          styledCanvas.toBlob((blob) => {
+            if (!blob) { resolve(); return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+              const dataUrl = reader.result as string;
+              const qrY = totalsStartY + 18;
+              const qrW = 50; const qrH = 50;
+              doc.addImage(dataUrl, 'PNG', col, qrY, qrW, qrH);
+              var iconX = col + qrW / 2;
+              var iconY = qrY + qrH + 3;
+              doc.setDrawColor('#1A63A8'); doc.setLineWidth(0.6);
+              doc.line(iconX, iconY, iconX, iconY + 4);
+              doc.line(iconX - 2, iconY + 2, iconX, iconY + 4);
+              doc.line(iconX + 2, iconY + 2, iconX, iconY + 4);
+              doc.line(iconX - 3, iconY + 5, iconX + 3, iconY + 5);
+              doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
+              doc.text('DOWNLOAD QR', iconX, iconY + 9, { align: 'center' });
+              var dlUrl = window.location.origin + '/upi-redirect?pa=' + encodeURIComponent(activeUpiId.trim()) + '&pn=' + encodeURIComponent((settings && settings.shopName) || 'Shop') + '&tr=' + encodeURIComponent(invoiceNo) + '&am=' + Number(grandTotal).toFixed(2) + '&cu=INR';
+              doc.link(col, qrY, qrW, qrH + 12, { url: dlUrl });
+              resolve();
+            };
+            reader.readAsDataURL(blob);
+          }, 'image/png');
+        });
       }
 
       // Totals (right)
@@ -301,6 +346,93 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       if (err.name !== 'AbortError') console.error('Error generating/sharing PDF:', err);
     } finally {
       setIsSharing(false);
+    }
+  };
+
+  const handleDownloadQR = async () => {
+    const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement;
+    if (!qrCanvas) { toast.error('QR code is not available'); return; }
+    setIsDownloadingQR(true);
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get 2d context');
+      const scale = 3;
+      const width = 400 * scale; const height = 650 * scale;
+      canvas.width = width; canvas.height = height;
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number, fill: string) => {
+        ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill();
+      };
+      ctx.fillStyle = '#F8FAFC'; ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#04325E'; ctx.fillRect(0, 0, width, 180 * scale);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff'; ctx.font = `bold ${22 * scale}px sans-serif`;
+      ctx.fillText((settings?.shopName || 'POS Suite 360').toUpperCase(), width / 2, 70 * scale);
+      ctx.fillStyle = '#94A3B8'; ctx.font = `bold ${13 * scale}px sans-serif`;
+      (ctx as any).letterSpacing = `${2 * scale}px`;
+      ctx.fillText('SCAN TO PAY', width / 2, 105 * scale);
+      (ctx as any).letterSpacing = '0px';
+      const cardMargin = 30 * scale; const cardY = 140 * scale;
+      const cardWidth = width - cardMargin * 2; const cardHeight = 440 * scale;
+      roundRect(ctx, cardMargin, cardY + 8 * scale, cardWidth, cardHeight, 16 * scale, '#E2E8F0');
+      roundRect(ctx, cardMargin, cardY, cardWidth, cardHeight, 16 * scale, '#ffffff');
+      const qrSize = 240 * scale; const qrX = (width - qrSize) / 2; const qrYPos = cardY + 30 * scale;
+      ctx.drawImage(qrCanvas, qrX, qrYPos, qrSize, qrSize);
+      let currentY = qrYPos + qrSize + 45 * scale;
+      ctx.fillStyle = '#64748B'; ctx.font = `bold ${13 * scale}px sans-serif`;
+      ctx.fillText(`INVOICE NO: #${invoiceNo}`, width / 2, currentY);
+      currentY += 40 * scale;
+      ctx.fillStyle = '#0F172A'; ctx.font = `bold ${26 * scale}px sans-serif`;
+      ctx.fillText(`${currency} ${Number(grandTotal).toFixed(2)}`, width / 2, currentY);
+      currentY += 45 * scale;
+      const loadImage = (src: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
+        const img = new Image(); img.crossOrigin = 'Anonymous';
+        img.onload = () => resolve(img); img.onerror = reject; img.src = src;
+      });
+      try {
+        const [gpayImg, phonepeImg, paytmImg, upiImg] = await Promise.all([
+          loadImage('/icons/gpay.png'), loadImage('/icons/phonepe.png'),
+          loadImage('/icons/paytm.png'), loadImage('/icons/upi.png')
+        ]);
+        const drawImageAspect = (img: HTMLImageElement, x: number, y: number, maxW: number, maxH: number) => {
+          const ratio = Math.min(maxW / (img.width || 100), maxH / (img.height || 40));
+          const fw = (img.width || 100) * ratio; const fh = (img.height || 40) * ratio;
+          ctx.drawImage(img, x + (maxW - fw) / 2, y + (maxH - fh) / 2, fw, fh);
+        };
+        const iconSize = 44 * scale; const overlap = 14 * scale;
+        const totalW = 4 * iconSize - 3 * overlap;
+        let startX = (width - totalW) / 2;
+        [gpayImg, phonepeImg, paytmImg, upiImg].forEach((img) => {
+          ctx.beginPath(); ctx.arc(startX + iconSize / 2, currentY, iconSize / 2 + 1.5 * scale, 0, 2 * Math.PI);
+          ctx.fillStyle = '#cbd5e1'; ctx.fill();
+          ctx.beginPath(); ctx.arc(startX + iconSize / 2, currentY, iconSize / 2, 0, 2 * Math.PI);
+          ctx.fillStyle = '#ffffff'; ctx.fill();
+          ctx.save(); ctx.beginPath(); ctx.arc(startX + iconSize / 2, currentY, iconSize / 2, 0, 2 * Math.PI); ctx.clip();
+          const p = 8 * scale;
+          drawImageAspect(img, startX + p, currentY - iconSize / 2 + p, iconSize - p * 2, iconSize - p * 2);
+          ctx.restore(); startX += iconSize - overlap;
+        });
+      } catch { ctx.fillStyle = '#16A34A'; ctx.font = `bold ${13 * scale}px sans-serif`; ctx.fillText('✓ ACCEPTING ALL UPI APPS', width / 2, currentY); }
+      ctx.fillStyle = '#94A3B8'; ctx.font = `bold ${11 * scale}px sans-serif`;
+      ctx.fillText('SECURE PAYMENTS BY POS SUITE 360', width / 2, height - 25 * scale);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = `QR_${invoiceNo}.png`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    } catch (err) {
+      toast.error('Failed to download QR');
+    } finally {
+      setIsDownloadingQR(false);
     }
   };
 
@@ -613,15 +745,23 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             />
           </div>
           
-          {/* QRCodeCanvas always rendered when activeUpiId exists so PDF can always find it */}
+          {/* QR code — visible on bill and used for PDF */}
           {activeUpiId && grandTotal > 0 && (
-            <QRCodeCanvas 
-              id="upi-qr-code-canvas"
-              value={`upi://pay?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
-              size={900}
-              level="M"
-              className="hidden"
-            />
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center gap-3">
+              <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
+                <QRCodeCanvas 
+                  id="upi-qr-code-canvas"
+                  value={`upi://pay?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  size={900}
+                  level="M"
+                  style={{ width: 64, height: 64 }}
+                />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-800 uppercase tracking-widest">Scan to Pay</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">UPI ID: {activeUpiId.trim()}</p>
+              </div>
+            </div>
           )}
           {/* QR click-to-pay link disabled
           {showPaymentInfo && activeUpiId && grandTotal > 0 && (
@@ -780,18 +920,32 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                 )}
               </button>
               {showPaymentInfo && activeUpiId && grandTotal > 0 && (
-                <button 
-                  type="button"
-                  onClick={handleShareQR}
-                  disabled={isSharingQR}
-                  className="bg-[#38BDF8] hover:bg-[#0EA5E9] disabled:opacity-70 text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
-                >
-                  {isSharingQR ? (
-                    <><Loader2 size={14} className="animate-spin" /> <span className="hidden sm:inline">Preparing...</span></>
-                  ) : (
-                    <><QrCode size={14} /> <span className="hidden sm:inline">Share QR</span></>
-                  )}
-                </button>
+                <>
+                  <button 
+                    type="button"
+                    onClick={handleShareQR}
+                    disabled={isSharingQR}
+                    className="bg-[#38BDF8] hover:bg-[#0EA5E9] disabled:opacity-70 text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
+                  >
+                    {isSharingQR ? (
+                      <><Loader2 size={14} className="animate-spin" /> <span className="hidden sm:inline">Preparing...</span></>
+                    ) : (
+                      <><QrCode size={14} /> <span className="hidden sm:inline">Share QR</span></>
+                    )}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleDownloadQR}
+                    disabled={isDownloadingQR}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-70 text-white px-3 py-2 rounded flex items-center gap-2 font-bold text-[12px] transition-colors"
+                  >
+                    {isDownloadingQR ? (
+                      <><Loader2 size={14} className="animate-spin" /> <span className="hidden sm:inline">Downloading...</span></>
+                    ) : (
+                      <><Download size={14} /> <span className="hidden sm:inline">Download QR</span></>
+                    )}
+                  </button>
+                </>
               )}
             </div>
             <div className="flex items-center gap-2">
