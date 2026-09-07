@@ -20,6 +20,7 @@ const storeSettingsSchema = z.object({
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
   gstin: z.string().optional(),
   upiId: z.string().optional(),
+  estimationUpiId: z.string().optional(),
   currencySymbol: z.string().min(1, 'Currency symbol is required'),
   currencyPosition: z.string(),
   invoicePrefix: z.string().min(1, 'Prefix is required'),
@@ -86,6 +87,7 @@ const Settings = () => {
         email: settings.email || '',
         gstin: settings.gstin || '',
         upiId: settings.upiId || '',
+        estimationUpiId: settings.estimationUpiId || '',
         currencySymbol: settings.currencySymbol || 'RM',
         currencyPosition: settings.currencyPosition || 'before',
         invoicePrefix: settings.invoicePrefix || 'INV-',
@@ -331,13 +333,22 @@ const Settings = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[12px] font-bold text-[#334155] mb-1">Company UPI ID</label>
+                  <label className="block text-[12px] font-bold text-[#334155] mb-1">Company UPI ID <span className="text-gray-400 font-normal">(Sales Invoice)</span></label>
                   <input
                     {...registerStore('upiId')}
                     className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
                     placeholder="e.g. yourname@upi"
                   />
                   <p className="text-[11px] text-[#64748B] mt-1">Leave empty to disable QR code on invoices.</p>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-bold text-[#334155] mb-1">Estimation UPI ID <span className="text-gray-400 font-normal">(Estimation Bill)</span></label>
+                  <input
+                    {...registerStore('estimationUpiId')}
+                    className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
+                    placeholder="e.g. personal@upi"
+                  />
+                  <p className="text-[11px] text-[#64748B] mt-1">Separate UPI for estimation bills. Leave empty to use Company UPI.</p>
                 </div>
               </div>
 

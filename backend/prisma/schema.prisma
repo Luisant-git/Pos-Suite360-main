@@ -513,6 +513,7 @@ model Settings {
   state                   String?
   country                 String?
   upiId                   String?
+  estimationUpiId         String?
   enableTax               Boolean @default(false)
   taxType                 String? @default("exclusive")
   enableCustomerWiseRate  Boolean @default(false)

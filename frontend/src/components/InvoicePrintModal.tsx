@@ -51,6 +51,9 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const sale = fullSale || initialSale;
   const invoiceNo = sale?.estimationNo || sale?.invoiceNo || '';
   const showPaymentInfo = !isEstimation || (sale?.stockMaintained ?? settings?.estimationStockMaintain);
+  const activeUpiId = isEstimation
+    ? (settings?.estimationUpiId || settings?.upiId)
+    : settings?.upiId;
 
   useEffect(() => {
     if (autoPrint && !isLoading && sale) {
@@ -224,8 +227,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       // QR code (left, below terms)
       const qrCanvas = document.getElementById('upi-qr-code-canvas') as HTMLCanvasElement | null;
-      if (settings?.upiId && grandTotal > 0 && qrCanvas) {
-        const clickUrl = `${window.location.origin}/upi-redirect?pa=${encodeURIComponent(settings.upiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
+      if (activeUpiId && grandTotal > 0 && qrCanvas) {
+        const clickUrl = `${window.location.origin}/upi-redirect?pa=${encodeURIComponent(activeUpiId.trim())}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`;
         const qrDataUrl = qrCanvas.toDataURL('image/png');
         const qrY = totalsStartY + 22;
         doc.addImage(qrDataUrl, 'PNG', col, qrY, 22, 22);
@@ -234,7 +237,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 5);
         doc.link(col, qrY, W / 2 - col, 25, { url: clickUrl });
         doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
-        doc.text(`UPI ID: ${settings.upiId.trim()}`, col + 26, qrY + 11);
+        doc.text(`UPI ID: ${activeUpiId.trim()}`, col + 26, qrY + 11);
         doc.text('Scan QR or tap text to pay', col + 26, qrY + 17);
       }
 
@@ -603,19 +606,19 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             />
           </div>
           
-          {/* QRCodeCanvas always rendered when upiId exists so PDF can always find it */}
-          {settings?.upiId && grandTotal > 0 && (
+          {/* QRCodeCanvas always rendered when activeUpiId exists so PDF can always find it */}
+          {activeUpiId && grandTotal > 0 && (
             <QRCodeCanvas 
               id="upi-qr-code-canvas"
-              value={`upi://pay?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+              value={`upi://pay?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
               size={900}
               level="M"
               className="hidden"
             />
           )}
-          {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
+          {showPaymentInfo && activeUpiId && grandTotal > 0 && (
             <a 
-              href={`${window.location.origin}/upi-redirect?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+              href={`${window.location.origin}/upi-redirect?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
               target="_blank" 
               rel="noopener noreferrer" 
               className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -623,14 +626,14 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             >
               <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
                 <QRCodeSVG 
-                  value={`upi://pay?pa=${settings.upiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+                  value={`upi://pay?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
                   size={64}
                   level="M"
                 />
               </div>
               <div className="flex flex-col">
                 <h3 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1">Scan or Click to Pay</h3>
-                <p className="text-[10px] text-slate-600 font-medium">UPI ID: {settings.upiId.trim()}</p>
+                <p className="text-[10px] text-slate-600 font-medium">UPI ID: {activeUpiId.trim()}</p>
                 <p className="text-[9px] text-slate-500 mt-1">Scan or tap to open UPI app</p>
               </div>
             </a>
@@ -767,7 +770,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                   <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> <span className="hidden sm:inline">Share Invoice</span></>
                 )}
               </button>
-              {showPaymentInfo && settings?.upiId && grandTotal > 0 && (
+              {showPaymentInfo && activeUpiId && grandTotal > 0 && (
                 <button 
                   type="button"
                   onClick={handleShareQR}

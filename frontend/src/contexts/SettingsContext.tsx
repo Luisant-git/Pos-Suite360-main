@@ -25,6 +25,7 @@ interface Settings {
   state?: string;
   country?: string;
   upiId?: string;
+  estimationUpiId?: string;
   estimationStockMaintain?: boolean;
 }
 
