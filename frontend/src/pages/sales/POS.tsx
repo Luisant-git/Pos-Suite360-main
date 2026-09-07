@@ -199,6 +199,8 @@ const POS = () => {
   const selectedCustomerId = watch('customerId');
 
   const selectedCustomer = customers.find((c: any) => c.id === Number(selectedCustomerId));
+  const watchPaymentModeId = watch('paymentModeId');
+  const isCashMode = paymentModes.find((p: any) => p.id === Number(watchPaymentModeId))?.name?.toLowerCase() === 'cash';
 
   // Calculations
   useEffect(() => {
@@ -539,7 +541,13 @@ const POS = () => {
             </div>
 
             <div className="w-full lg:flex-[2]">
-              <label className="block text-[11px] font-bold text-[#1F2937] mb-1">Customer Name (Searchable Dropdown) *</label>
+              <label className="block text-[11px] font-bold text-[#1F2937] mb-1 flex items-center gap-2">
+                Customer Name
+                {isCashMode
+                  ? <span className="text-[10px] font-bold text-white bg-[#16A34A] px-2 py-0.5 rounded-full">Optional (Cash Sale)</span>
+                  : <span className="text-[10px] font-bold text-white bg-[#EF4444] px-2 py-0.5 rounded-full">Required *</span>
+                }
+              </label>
               <div className="flex flex-col gap-1">
                 <div className="flex-1 w-full">
                   <SearchableSelect
