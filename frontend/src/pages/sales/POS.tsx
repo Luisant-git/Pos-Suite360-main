@@ -541,25 +541,23 @@ const POS = () => {
             </div>
 
             <div className="w-full lg:flex-[2]">
-              <label className="block text-[11px] font-bold text-[#1F2937] mb-1 flex items-center gap-2">
-                Customer Name
-                {isCashMode
-                  ? <span className="text-[10px] font-bold text-white bg-[#16A34A] px-2 py-0.5 rounded-full">Optional (Cash Sale)</span>
-                  : <span className="text-[10px] font-bold text-white bg-[#EF4444] px-2 py-0.5 rounded-full">Required *</span>
-                }
-              </label>
-              <div className="flex flex-col gap-1">
-                <div className="flex-1 w-full">
-                  <SearchableSelect
-                    value={watch('customerId')}
-                    onChange={(val) => setValue('customerId', Number(val))}
-                    options={[
-                      { label: 'Click or type customer name...', value: 0 },
-                      ...customers.map((c: any) => ({ label: `${c.name} - ${c.phone || ''}`, value: c.id }))
-                    ]}
-                  />
+              <div className={`rounded-lg border-l-4 p-3 transition-all ${isCashMode ? 'border-l-[#16A34A] bg-[#F0FDF4]' : 'border-l-[#3B82F6] bg-[#EFF6FF]'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[11px] font-bold text-[#1F2937]">Customer Name</label>
+                  {isCashMode
+                    ? <span className="text-[10px] font-bold text-[#16A34A] bg-[#DCFCE7] border border-[#86EFAC] px-2 py-0.5 rounded-full">✓ Optional — Cash Sale</span>
+                    : <span className="text-[10px] font-bold text-[#DC2626] bg-[#FEE2E2] border border-[#FCA5A5] px-2 py-0.5 rounded-full">✱ Required</span>
+                  }
                 </div>
-                <div className="flex justify-between items-center mt-1">
+                <SearchableSelect
+                  value={watch('customerId')}
+                  onChange={(val) => setValue('customerId', Number(val))}
+                  options={[
+                    { label: 'Click or type customer name...', value: 0 },
+                    ...customers.map((c: any) => ({ label: `${c.name} - ${c.phone || ''}`, value: c.id }))
+                  ]}
+                />
+                <div className="flex justify-between items-center mt-2">
                   <button type="button" onClick={() => setIsCustomerModalOpen(true)} className="bg-[#059669] hover:bg-[#047857] text-white px-2 py-1 rounded transition-colors flex items-center gap-1 text-[11px] font-bold">
                     <UserPlus size={12} /> Add Customer
                   </button>
