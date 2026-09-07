@@ -240,8 +240,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         const qrY = totalsStartY + 22;
         doc.addImage(qrDataUrl, 'PNG', col, qrY, 22, 22);
         doc.link(col, qrY, 22, 22, { url: clickUrl });
-        // doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
-        // doc.text('SCAN OR CLICK TO PAY', col + 26, qrY + 5);
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor('#1A63A8');
+        doc.text('SCAN TO PAY', col + 26, qrY + 5);
         // doc.link(col, qrY, W / 2 - col, 25, { url: clickUrl });
         // doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor('#64748b');
         // doc.text(`UPI ID: ${activeUpiId.trim()}`, col + 26, qrY + 11);
