@@ -24,6 +24,7 @@ const productSchema = z.object({
   wholesaleRate: z.coerce.number().min(0).default(0),
   sellingRate: z.coerce.number().min(0).default(0), // Sale Rate (Retail)
   taxPercent: z.coerce.number().min(0).default(0),  // GST %
+  hsnCode: z.string().optional(),
   minStock: z.coerce.number().min(0).default(0),    // Min Qty (Alert)
   reorderLevel: z.coerce.number().min(0).default(0),
   sqM: z.coerce.number({ message: 'Required' }).min(0.001, 'Required'),
@@ -61,6 +62,7 @@ const Products = () => {
       wholesaleRate: '' as any,
       sellingRate: '' as any,
       taxPercent: '' as any,
+      hsnCode: '',
       minStock: '' as any,
       reorderLevel: '' as any,
       sqM: '' as any,
@@ -200,6 +202,7 @@ const Products = () => {
     setValue('wholesaleRate', Number(product.wholesaleRate));
     setValue('sellingRate', Number(product.sellingRate));
     setValue('taxPercent', Number(product.taxPercent || 0));
+    setValue('hsnCode', product.hsnCode || '');
     setValue('minStock', Number(product.minStock));
     setValue('reorderLevel', Number(product.reorderLevel));
     setValue('sqM', product.sqM || ('' as any));
@@ -397,6 +400,18 @@ const Products = () => {
               </div>
             )}
           </div>
+
+          {settings?.enableTax && (
+            <div>
+              <label className="block text-[12px] font-bold text-[#1F2937] mb-1">HSN Code <span className="text-gray-400 font-normal">(Optional)</span></label>
+              <input
+                {...register('hsnCode')}
+                type="text"
+                placeholder="e.g. 6403"
+                className="w-full px-3 py-1.5 border border-[#ccc] rounded shadow-inner focus:border-[#3B82F6] outline-none text-[13px]"
+              />
+            </div>
+          )}
 
           <h3 className="font-bold text-[13px] text-gray-500 mt-2 uppercase">Pricing Matrix</h3>
           
