@@ -52,7 +52,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const invoiceNo = sale?.estimationNo || sale?.invoiceNo || '';
   const showPaymentInfo = !isEstimation || (sale?.stockMaintained ?? settings?.estimationStockMaintain);
   const activeUpiId = isEstimation
-    ? (settings?.estimationUpiId || settings?.upiId)
+    ? settings?.estimationUpiId
     : settings?.upiId;
 
   useEffect(() => {
