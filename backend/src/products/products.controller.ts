@@ -12,6 +12,11 @@ export class ProductsController {
     return this.productsService.create(createProductDto);
   }
 
+  @Post('import')
+  importProducts(@Body() body: { products: any[]; isManufacturingProduct?: boolean }) {
+    return this.productsService.importProducts(body.products, body.isManufacturingProduct);
+  }
+
   @Get()
   findAll(@Query() query: any) {
     return this.productsService.findAll(query);
