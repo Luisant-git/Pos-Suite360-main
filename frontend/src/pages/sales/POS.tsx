@@ -121,6 +121,7 @@ const POS = () => {
   
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [customerPaid, setCustomerPaid] = useState<string>('');
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printData, setPrintData] = useState<any>(null);
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
@@ -394,6 +395,7 @@ const POS = () => {
     }
 
     setPendingSavePayload(payload);
+    setCustomerPaid('');
     setIsSaveModalOpen(true);
   };
 
@@ -944,11 +946,52 @@ const POS = () => {
               </button>
             </div>
             
-            <div className="flex items-center gap-2 sm:gap-4 w-full md:w-auto justify-between md:justify-end border-t md:border-none border-gray-700 pt-3 md:pt-0">
-              <span className="text-[16px] sm:text-[20px] font-black text-white uppercase tracking-wider">TOTAL NET AMOUNT:</span>
-              <span className="text-[28px] sm:text-[36px] font-black text-[#38BDF8] drop-shadow-md">
-                {formatCurrency(watch('netAmount') || 0)}
-              </span>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-none border-gray-700 pt-3 md:pt-0">
+              {/* Net Amount */}
+              <div className="flex flex-col items-end">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Net Amount</span>
+                <span className="text-[28px] sm:text-[36px] font-black text-[#38BDF8] drop-shadow-md leading-none">
+                  {formatCurrency(watch('netAmount') || 0)}
+                </span>
+              </div>
+
+              {/* Customer Paid */}
+              <div className="flex flex-col items-end">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Customer Paid</span>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-[13px] pointer-events-none">{settings?.currencySymbol || '₹'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={customerPaid}
+                    onChange={(e) => setCustomerPaid(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0.00"
+                    className="w-36 pl-7 pr-2 py-1.5 bg-[#1e293b] border-2 border-[#3B82F6] rounded text-[18px] font-black text-right text-white outline-none focus:border-[#60A5FA]"
+                  />
+                </div>
+              </div>
+
+              {/* Change / Short */}
+              {Number(customerPaid) > 0 && (
+                <div className={`flex flex-col items-end px-3 py-1.5 rounded-lg border ${
+                  Number(customerPaid) >= (watch('netAmount') || 0)
+                    ? 'bg-green-900/40 border-green-500'
+                    : 'bg-red-900/40 border-red-500'
+                }`}>
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${
+                    Number(customerPaid) >= (watch('netAmount') || 0) ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {Number(customerPaid) >= (watch('netAmount') || 0) ? 'Change / Return' : 'Short by'}
+                  </span>
+                  <span className={`text-[24px] font-black leading-none ${
+                    Number(customerPaid) >= (watch('netAmount') || 0) ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {formatCurrency(Math.abs(Number(customerPaid) - (watch('netAmount') || 0)))}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1224,10 +1267,20 @@ const POS = () => {
             </div>
             
             <div className="p-6 text-center">
-              <div className="bg-blue-50 text-blue-800 p-4 rounded-lg mb-6 shadow-sm border border-blue-100">
+              <div className="bg-blue-50 text-blue-800 p-4 rounded-lg mb-4 shadow-sm border border-blue-100">
                 <p className="font-bold text-[15px]">Net Amount: {formatCurrency(pendingSavePayload?.grandTotal || 0)}</p>
                 <p className="text-[13px] mt-1 text-blue-600">Invoice No: {pendingSavePayload?.invoiceNo}</p>
               </div>
+              {Number(customerPaid) > 0 && (
+                <div className={`mb-4 flex justify-between items-center px-4 py-2 rounded-lg font-black text-[15px] ${
+                  Number(customerPaid) >= (pendingSavePayload?.grandTotal || 0)
+                    ? 'bg-green-50 border border-green-200 text-green-700'
+                    : 'bg-red-50 border border-red-200 text-red-600'
+                }`}>
+                  <span>{Number(customerPaid) >= (pendingSavePayload?.grandTotal || 0) ? '💵 Change / Return:' : '⚠️ Short by:'}</span>
+                  <span>{formatCurrency(Math.abs(Number(customerPaid) - (pendingSavePayload?.grandTotal || 0)))}</span>
+                </div>
+              )}
               <p className="text-[#334155] font-medium mb-2">How would you like to proceed?</p>
             </div>
 
