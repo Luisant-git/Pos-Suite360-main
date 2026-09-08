@@ -127,6 +127,56 @@ const POS = () => {
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
   const printAfterSaveRef = useRef(false);
 
+  // ── Keyboard navigation helper ──────────────────────────────────────────
+  // Each interactive cell in the table has data-row and data-col attributes.
+  // Columns: 0=product, 1=qty, 2=rate, 3=discPct, 4=discAmt
+  const focusCell = (row: number, col: number) => {
+    if (col === 0) {
+      const el = document.querySelector<HTMLElement>(`[data-row-product="${row}"]`);
+      if (el) { el.focus(); }
+    } else {
+      const el = document.querySelector<HTMLElement>(`[data-row="${row}"][data-col="${col}"]`);
+      if (el) { el.focus(); (el as HTMLInputElement).select?.(); }
+    }
+  };
+
+  const handleCellKey = (e: React.KeyboardEvent, rowIndex: number, col: number, totalCols: number) => {
+    if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      const nextCol = col + 1;
+      if (nextCol < totalCols) {
+        focusCell(rowIndex, nextCol);
+      } else {
+        // Last col → go to next row product, or add new row
+        const nextRow = rowIndex + 1;
+        if (nextRow < fields.length) {
+          focusCell(nextRow, 0);
+        } else {
+          append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 });
+          setTimeout(() => focusCell(nextRow, 0), 80);
+        }
+      }
+    } else if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault();
+      const prevCol = col - 1;
+      if (prevCol >= 0) focusCell(rowIndex, prevCol);
+      else if (rowIndex > 0) focusCell(rowIndex - 1, totalCols - 1);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusCell(rowIndex + 1, col);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (rowIndex > 0) focusCell(rowIndex - 1, col);
+    } else if (e.key === 'Delete' && e.ctrlKey) {
+      e.preventDefault();
+      if (fields.length > 1) {
+        remove(rowIndex);
+        // focus the same row index (or previous if last row deleted)
+        setTimeout(() => focusCell(Math.min(rowIndex, fields.length - 2), col), 50);
+      }
+    }
+  };
+
   const { register, control, handleSubmit, watch, setValue, getValues, reset } = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema) as any,
     defaultValues: {
@@ -193,7 +243,14 @@ const POS = () => {
   }, [estimationData, setValue]);
 
 
-  // Watch values
+  // Auto-focus first row product search on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const firstProduct = document.querySelector<HTMLElement>('[data-row-product="0"]');
+      firstProduct?.focus();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
   const items = watch('items');
   const watchTotalDiscount = watch('totalDiscount');
   const watchRoundOff = watch('roundOff');
@@ -679,12 +736,18 @@ const POS = () => {
               </tr>
             </thead>
             <tbody>
-              {fields.map((field, index) => (
+              {fields.map((field, index) => {
+                const totalCols = settings?.enableTax ? 5 : 5; // product=0,qty=1,rate=2,discPct=3,discAmt=4
+                return (
                 <tr key={field.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
                   <td data-label="#" className="px-2 py-1 text-center text-[13px] border-r border-[#E5E7EB]">{index + 1}</td>
                   <td data-label="Product" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <SearchableSelect
                       value={watch(`items.${index}.productId`)}
+                      tabIndex={0}
+                      dataAttr={{ 'data-row-product': String(index) }}
+                      autoFocus={index === 0 && fields.length === 1 && watch(`items.${index}.productId`) === 0}
+                      onTabNext={() => focusCell(index, 1)}
                       onChange={(val) => {
                         setValue(`items.${index}.productId`, Number(val));
                         handleProductChange(index, String(val));
@@ -707,16 +770,20 @@ const POS = () => {
                   <td data-label="Qty" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       {...register(`items.${index}.quantity`)} 
+                      data-row={index} data-col={1}
                       type="number" min="1" placeholder="0" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 1, totalCols)}
                       className={`w-full px-2 py-1 border rounded text-[13px] outline-none text-center transition-colors ${watch(`items.${index}.quantity`) > watch(`items.${index}.stock`) ? 'border-red-500 focus:border-red-500 bg-red-100 text-red-700 font-bold' : 'border-[#D1D5DB] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50'}`} 
                     />
                   </td>
                   <td data-label="Rate" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       {...register(`items.${index}.rate`)} 
+                      data-row={index} data-col={2}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 2, totalCols)}
                       className={`w-full px-2 py-1 border rounded text-[13px] outline-none text-right font-bold transition-colors ${(() => {
                         const pId = watch(`items.${index}.productId`);
                         const prod = products.find((p: any) => p.id === Number(pId));
@@ -740,8 +807,10 @@ const POS = () => {
                   <td data-label="Disc %" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       {...register(`items.${index}.discPercent`)} 
+                      data-row={index} data-col={3}
                       type="number" step="0.01" placeholder="0" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 3, totalCols)}
                       onChange={(e) => {
                         register(`items.${index}.discPercent`).onChange(e);
                         const pct = Number(e.target.value) || 0;
@@ -756,8 +825,10 @@ const POS = () => {
                   <td data-label="Disc Amt" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
                       {...register(`items.${index}.discAmt`)} 
+                      data-row={index} data-col={4}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 4, totalCols)}
                       onChange={(e) => {
                         register(`items.${index}.discAmt`).onChange(e);
                         const amt = Number(e.target.value) || 0;
@@ -808,14 +879,15 @@ const POS = () => {
                         onClick={() => remove(index)} 
                         disabled={fields.length === 1} 
                         className="bg-red-50 text-red-500 p-1.5 rounded hover:bg-red-500 hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-red-50 disabled:hover:text-red-500"
-                        title="Remove Row"
+                        title="Remove Row (Ctrl+Delete)"
                       >
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
