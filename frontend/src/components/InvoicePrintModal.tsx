@@ -39,7 +39,23 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const [isSharing, setIsSharing] = useState(false);
   const [isSharingQR, setIsSharingQR] = useState(false);
   const [isDownloadingQR, setIsDownloadingQR] = useState(false);
-  const [printFormat, setPrintFormat] = useState<'a4' | 'a5' | 'thermal'>('a4');
+  const [printFormat, setPrintFormat] = useState<'a4' | 'a5' | 'thermal'>(
+    () => {
+      const saved = (localStorage.getItem('invoicePrintFormat') || 'a4').toLowerCase();
+      return (saved === 'a5' || saved === 'thermal') ? saved as 'a5' | 'thermal' : 'a4';
+    }
+  );
+
+  // Sync from settings when loaded (settings.printFormat wins over localStorage)
+  useEffect(() => {
+    if (settings?.printFormat) {
+      const fmt = settings.printFormat.toLowerCase() as 'a4' | 'a5' | 'thermal';
+      if (fmt === 'a4' || fmt === 'a5' || fmt === 'thermal') {
+        setPrintFormat(fmt);
+        localStorage.setItem('invoicePrintFormat', fmt);
+      }
+    }
+  }, [settings?.printFormat]);
 
   // Always fetch full sale data to ensure unit, paymentMode, customer are fully populated
   const { data: fullSale, isLoading } = useQuery({
@@ -922,7 +938,10 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                 <button
                   key={fmt}
                   type="button"
-                  onClick={() => setPrintFormat(fmt)}
+                  onClick={() => {
+                    setPrintFormat(fmt);
+                    localStorage.setItem('invoicePrintFormat', fmt);
+                  }}
                   className={`px-2 py-1 rounded text-[11px] font-bold transition-colors ${
                     printFormat === fmt
                       ? 'bg-white text-[#04325E]'

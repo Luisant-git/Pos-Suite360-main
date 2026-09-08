@@ -50,6 +50,8 @@ export class SettingsService {
         taxType: data.taxType,
         enableCustomerWiseRate: data.enableCustomerWiseRate === true || data.enableCustomerWiseRate === 'true',
         estimationStockMaintain: data.estimationStockMaintain === true || data.estimationStockMaintain === 'true',
+        printFormat: data.printFormat || 'A4',
+        estimationUpiId: data.estimationUpiId,
       },
       create: {
         id: 1,
@@ -74,6 +76,8 @@ export class SettingsService {
         taxType: data.taxType || 'exclusive',
         enableCustomerWiseRate: data.enableCustomerWiseRate === true || data.enableCustomerWiseRate === 'true',
         estimationStockMaintain: data.estimationStockMaintain === true || data.estimationStockMaintain === 'true',
+        printFormat: data.printFormat || 'A4',
+        estimationUpiId: data.estimationUpiId,
       },
     });
   }
