@@ -87,6 +87,50 @@ const PurchaseEntry = () => {
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
   const printAfterSaveRef = useRef(false);
 
+  const focusCell = (row: number, col: number) => {
+    if (col === 0) {
+      const el = document.querySelector<HTMLElement>(`[data-row-product="${row}"]`);
+      if (el) el.focus();
+    } else {
+      const el = document.querySelector<HTMLElement>(`[data-row="${row}"][data-col="${col}"]`);
+      if (el) { el.focus(); (el as HTMLInputElement).select?.(); }
+    }
+  };
+
+  const handleCellKey = (e: React.KeyboardEvent, rowIndex: number, col: number, totalCols: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextRow = rowIndex + 1;
+      if (nextRow < fields.length) {
+        focusCell(nextRow, 0);
+      } else {
+        append({ productId: 0, quantity: '' as any, unit: 'Nos', pRate: '' as any, wRate: '' as any, sRate: '' as any, mrp: '' as any, discPercent: '' as any, discAmt: '' as any, total: 0 });
+        setTimeout(() => focusCell(nextRow, 0), 80);
+      }
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      const nextCol = col + 1;
+      if (nextCol < totalCols) focusCell(rowIndex, nextCol);
+      else {
+        const nextRow = rowIndex + 1;
+        if (nextRow < fields.length) focusCell(nextRow, 0);
+        else {
+          append({ productId: 0, quantity: '' as any, unit: 'Nos', pRate: '' as any, wRate: '' as any, sRate: '' as any, mrp: '' as any, discPercent: '' as any, discAmt: '' as any, total: 0 });
+          setTimeout(() => focusCell(nextRow, 0), 80);
+        }
+      }
+    } else if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault();
+      const prevCol = col - 1;
+      if (prevCol >= 0) focusCell(rowIndex, prevCol);
+      else if (rowIndex > 0) focusCell(rowIndex - 1, totalCols - 1);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault(); focusCell(rowIndex + 1, col);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); if (rowIndex > 0) focusCell(rowIndex - 1, col);
+    }
+  };
+
   const { register, control, handleSubmit, watch, setValue, reset } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema) as any,
     defaultValues: {
@@ -356,6 +400,15 @@ const PurchaseEntry = () => {
 
 
 
+  // Auto-focus first row product on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const el = document.querySelector<HTMLElement>('[data-row-product="0"]');
+      el?.focus();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
+
   const selectedSupplierId = watch('supplierId');
   const selectedSupplier = suppliers.find((s: any) => s.id === Number(selectedSupplierId));
 
@@ -381,7 +434,7 @@ const PurchaseEntry = () => {
         </button>
       </div>
 
-      <form className="flex flex-col flex-1 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit(onSubmit as any, onError)}>
+      <form className="flex flex-col flex-1 min-h-0 overflow-hidden" onSubmit={handleSubmit(onSubmit as any, onError)}>
         
         {/* Header Section */}
         <div className="bg-white p-3 sm:p-4 border-b border-[#E5E7EB] shrink-0">
@@ -466,38 +519,40 @@ const PurchaseEntry = () => {
           </div>
         </div>
 
+        {/* Action Buttons */}
+        <div className="shrink-0 flex flex-wrap justify-end gap-2 p-2 bg-white border-b border-[#E5E7EB]">
+          <button 
+            type="button"
+            onClick={() => append({ productId: 0, quantity: '' as any, unit: 'Nos', pRate: '' as any, wRate: '' as any, sRate: '' as any, mrp: '' as any, discPercent: '' as any, discAmt: '' as any, total: 0 })}
+            className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <PlusCircle size={14} /> Add Row
+          </button>
+          <button 
+            type="button"
+            onClick={handleClear}
+            className="border border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <RotateCcw size={14} /> Clear (F4)
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/purchase')}
+            className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <List size={14} /> Purchase List
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/reports/purchase')}
+            className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <FileText size={14} /> Purchase Report
+          </button>
+        </div>
+
         {/* Items Grid */}
-        <div className="flex-1 overflow-auto custom-scrollbar bg-white p-2 sm:p-4 border-b border-[#E5E7EB] overflow-x-auto">
-          <div className="flex flex-wrap justify-end gap-2 mb-2 min-w-[300px]">
-            <button 
-              type="button"
-              onClick={() => append({ productId: 0, quantity: '' as any, unit: 'Nos', pRate: '' as any, wRate: '' as any, sRate: '' as any, mrp: '' as any, discPercent: '' as any, discAmt: '' as any, total: 0 })}
-              className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <PlusCircle size={14} /> Add Row
-            </button>
-            <button 
-              type="button"
-              onClick={handleClear}
-              className="border border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <RotateCcw size={14} /> Clear (F4)
-            </button>
-            <button 
-              type="button"
-              onClick={() => navigate('/purchase')}
-              className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <List size={14} /> Purchase List
-            </button>
-            <button 
-              type="button"
-              onClick={() => navigate('/reports/purchase')}
-              className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <FileText size={14} /> Purchase Report
-            </button>
-          </div>
+        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar bg-white border-b border-[#E5E7EB]">
           <table className="w-full border-collapse border border-[#E5E7EB] md:min-w-[1200px] whitespace-nowrap responsive-table">
             <thead>
               <tr className="bg-[#0F172A] text-white">
@@ -528,6 +583,10 @@ const PurchaseEntry = () => {
                   <td data-label="Product" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <SearchableSelect
                       value={watch(`items.${index}.productId`)}
+                      tabIndex={0}
+                      dataAttr={{ 'data-row-product': String(index) }}
+                      autoFocus={index === 0 && fields.length === 1 && watch(`items.${index}.productId`) === 0}
+                      onTabNext={() => focusCell(index, 1)}
                       onChange={(val) => {
                         setValue(`items.${index}.productId`, Number(val));
                         handleProductChange(index, String(val));
@@ -540,9 +599,11 @@ const PurchaseEntry = () => {
                   </td>
                   <td data-label="Stock" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.quantity`)} 
+                      {...register(`items.${index}.quantity`)}
+                      data-row={index} data-col={1}
                       type="number" min="1" placeholder="0" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 1, 8)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-center" 
                     />
                   </td>
@@ -551,41 +612,51 @@ const PurchaseEntry = () => {
                   </td>
                   <td data-label="Qty" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.pRate`)} 
+                      {...register(`items.${index}.pRate`)}
+                      data-row={index} data-col={2}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 2, 8)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
                   <td data-label="Free" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.wRate`)} 
+                      {...register(`items.${index}.wRate`)}
+                      data-row={index} data-col={3}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 3, 8)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
                   <td data-label="Pur Rate" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.sRate`)} 
+                      {...register(`items.${index}.sRate`)}
+                      data-row={index} data-col={4}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 4, 8)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
                   <td data-label="MRP" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.mrp`)} 
+                      {...register(`items.${index}.mrp`)}
+                      data-row={index} data-col={5}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 5, 8)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
                   <td data-label="Disc %" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.discPercent`)} 
+                      {...register(`items.${index}.discPercent`)}
+                      data-row={index} data-col={6}
                       type="number" step="0.01" placeholder="0" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 6, 8)}
                       onChange={(e) => {
                         register(`items.${index}.discPercent`).onChange(e);
                         const pct = Number(e.target.value) || 0;
@@ -599,9 +670,11 @@ const PurchaseEntry = () => {
                   </td>
                   <td data-label="Disc Amt" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.discAmt`)} 
+                      {...register(`items.${index}.discAmt`)}
+                      data-row={index} data-col={7}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 7, 8)}
                       onChange={(e) => {
                         register(`items.${index}.discAmt`).onChange(e);
                         const amt = Number(e.target.value) || 0;
