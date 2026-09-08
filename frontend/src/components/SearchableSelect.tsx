@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-export default function SearchableSelect({ options, value, onChange, placeholder, creatable, onCreate, disabled, tabIndex, onTabNext, autoFocus }: {
+export default function SearchableSelect({ options, value, onChange, placeholder, creatable, onCreate, disabled, tabIndex, onTabNext, autoFocus, dataAttr }: {
   options: { label: string, value: any }[],
   value: any,
   onChange: (val: any) => void,
@@ -13,6 +13,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
   tabIndex?: number,
   onTabNext?: () => void,
   autoFocus?: boolean,
+  dataAttr?: Record<string, string>,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -56,7 +57,6 @@ export default function SearchableSelect({ options, value, onChange, placeholder
     if (isOpen) setHighlightedIndex(0);
   }, [isOpen, search]);
 
-  // Scroll highlighted item into view
   useEffect(() => {
     if (isOpen && listRef.current) {
       const item = listRef.current.children[highlightedIndex] as HTMLElement;
@@ -93,7 +93,6 @@ export default function SearchableSelect({ options, value, onChange, placeholder
     onChange(option.value);
     setIsOpen(false);
     setSearch('');
-    // After selecting, move focus to next field (Qty)
     setTimeout(() => onTabNext?.(), 50);
   };
 
@@ -151,6 +150,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
         onClick={() => { if (!disabled) setIsOpen(!isOpen); }}
         onKeyDown={handleTriggerKeyDown}
         onFocus={handleTriggerFocus}
+        {...(dataAttr ?? {})}
         className={`w-full px-2 py-1.5 border border-[#D1D5DB] rounded flex justify-between items-center outline-none
           ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer'}
           focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]`}
