@@ -21,6 +21,7 @@ const storeSettingsSchema = z.object({
   gstin: z.string().optional(),
   upiId: z.string().optional(),
   estimationUpiId: z.string().optional(),
+  printFormat: z.string().optional(),
   currencySymbol: z.string().min(1, 'Currency symbol is required'),
   currencyPosition: z.string(),
   invoicePrefix: z.string().min(1, 'Prefix is required'),
@@ -88,6 +89,7 @@ const Settings = () => {
         gstin: settings.gstin || '',
         upiId: settings.upiId || '',
         estimationUpiId: settings.estimationUpiId || '',
+        printFormat: settings.printFormat || 'A4',
         currencySymbol: settings.currencySymbol || 'RM',
         currencyPosition: settings.currencyPosition || 'before',
         invoicePrefix: settings.invoicePrefix || 'INV-',
@@ -349,6 +351,21 @@ const Settings = () => {
                     placeholder="e.g. personal@upi"
                   />
                   <p className="text-[11px] text-[#64748B] mt-1">Separate UPI for estimation bills. Leave empty to use Company UPI.</p>
+                </div>
+              </div>
+
+              <div className="border-t border-[#E2E8F0] pt-4 mt-2">
+                <div className="flex items-center gap-2 text-[#475569] font-bold text-[13px] mb-3">
+                  <span>🖨️</span> Invoice Print Format
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {[{value:'A4',label:'A4',desc:'Standard full page (210×297mm)'},{value:'A5',label:'A5',desc:'Half page (148×210mm)'},{value:'Thermal',label:'Thermal',desc:'Receipt roll (80mm width)'}].map((fmt) => (
+                    <label key={fmt.value} className={`cursor-pointer rounded-lg border-2 p-3 flex flex-col gap-1 transition-all ${watchStore('printFormat') === fmt.value ? 'border-[#3B82F6] bg-[#EFF6FF]' : 'border-[#E2E8F0] bg-white hover:border-[#93C5FD]'}`}>
+                      <input type="radio" {...registerStore('printFormat')} value={fmt.value} className="hidden" />
+                      <span className={`text-[13px] font-bold ${watchStore('printFormat') === fmt.value ? 'text-[#1D4ED8]' : 'text-[#1F2937]'}`}>{fmt.label}</span>
+                      <span className="text-[10px] text-[#64748B]">{fmt.desc}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 

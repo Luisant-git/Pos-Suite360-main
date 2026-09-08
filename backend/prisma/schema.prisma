@@ -514,6 +514,7 @@ model Settings {
   country                 String?
   upiId                   String?
   estimationUpiId         String?
+  printFormat             String  @default("A4")
   enableTax               Boolean @default(false)
   taxType                 String? @default("exclusive")
   enableCustomerWiseRate  Boolean @default(false)
