@@ -147,6 +147,7 @@ model PaymentMode {
   supplierPayments     SupplierPayment[]
   customerReceipts     CustomerReceipt[]
   rawMaterialPurchases RawMaterialPurchase[]
+  estimations          Estimation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -643,6 +644,9 @@ model Estimation {
   subtotal   Decimal @default(0)
   discount   Decimal @default(0)
   grandTotal Decimal @default(0)
+
+  paymentModeId Int?  @default(1)
+  paymentMode   PaymentMode? @relation(fields: [paymentModeId], references: [id])
 
   status     String  @default("Pending")
   stockMaintained Boolean @default(false)
