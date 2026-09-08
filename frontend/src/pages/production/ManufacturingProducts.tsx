@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Edit, Trash2, CheckCircle, Package, Grid, Maximize, Minimize, Eye, X } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Package, Grid, Maximize, Minimize, Eye, X, Upload, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import * as XLSX from 'xlsx';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -48,6 +49,52 @@ const Products = () => {
   const [isFullTable, setIsFullTable] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [viewProduct, setViewProduct] = useState<any>(null);
+  const [importPreview, setImportPreview] = useState<any[] | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  const handleDownloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['Product Name', 'Unit', 'Category', 'Brand', 'Opening Stock', 'Purchase Rate', 'Wholesale Rate', 'Sale Rate', 'MRP', 'Tax %', 'HSN Code', 'Min Stock', 'Reorder Level', 'Sq.M', 'No of UPS', 'No of Labels'],
+      ['Sample Mfg Product', 'Nos', 'Labels', 'BrandX', 0, 100, 120, 150, 160, 0, '', 5, 3, 0.5, 4, 100],
+    ]);
+    ws['!cols'] = Array(16).fill({ wch: 18 });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ManufacturingProducts');
+    XLSX.writeFile(wb, 'manufacturing_products_template.xlsx');
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const data = new Uint8Array(ev.target!.result as ArrayBuffer);
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws);
+      if (!rows.length) { toast.error('No data found in file'); return; }
+      setImportPreview(rows);
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return;
+    setIsImporting(true);
+    try {
+      const res = await api.post('/products/import', { products: importPreview, isManufacturingProduct: true });
+      toast.success(`Import done! Created: ${res.data.created}, Updated: ${res.data.updated}, Skipped: ${res.data.skipped}`);
+      queryClient.invalidateQueries({ queryKey: ['manufacturingProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['nextProductCode'] });
+      setImportPreview(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Import failed');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
@@ -182,15 +229,6 @@ const Products = () => {
 
   const handleEdit = (product: any) => {
     setIsFullTable(false);
-    setEditingId(product.id);
-    setValue('code', product.code);
-    setValue('name', product.name);
-    setValue('categoryId', product.categoryId ? product.categoryId.toString() : '');
-    setValue('brandId', product.brandId ? product.brandId.toString() : '');
-    setValue('unitId', product.unitId ? product.unitId.toString() : '');
-    setValue('supplierId', product.supplierId ? product.supplierId.toString() : '');
-    setValue('currentStock', Number(product.currentStock));
-    setValue('purchaseRate', Number(product.purchaseRate));
     setEditingId(product.id);
     setValue('code', product.code);
     setValue('name', product.name);
@@ -560,6 +598,13 @@ const Products = () => {
               {isFullTable ? <Minimize size={14} /> : <Maximize size={14} />}
               {isFullTable ? 'Show Form' : 'View Full Table'}
             </button>
+            <button type="button" onClick={handleDownloadTemplate} className="px-3 py-1.5 border border-[#16A34A] rounded bg-white text-[#16A34A] text-[12px] font-bold hover:bg-green-50 flex items-center gap-1">
+              <Download size={13} /> Template
+            </button>
+            <button type="button" onClick={() => importFileRef.current?.click()} className="px-3 py-1.5 border border-[#7C3AED] rounded bg-white text-[#7C3AED] text-[12px] font-bold hover:bg-purple-50 flex items-center gap-1">
+              <Upload size={13} /> Import Excel
+            </button>
+            <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} />
           </div>
         </div>
 
@@ -657,7 +702,69 @@ const Products = () => {
         onConfirm={() => navigate('/dashboard')} 
       />
 
-      {/* View Product Modal */}
+      {/* Import Preview Modal */}
+      {importPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
+            <div className="bg-[#7C3AED] text-white px-4 py-3 rounded-t-lg flex justify-between items-center shrink-0">
+              <span className="font-bold text-[14px] flex items-center gap-2"><Upload size={16} /> Import Preview — {importPreview.length} rows</span>
+              <button onClick={() => setImportPreview(null)} className="hover:text-red-300"><X size={18} /></button>
+            </div>
+            <div className="overflow-auto flex-1 p-3">
+              <table className="w-full text-[11px] whitespace-nowrap border border-gray-200">
+                <thead className="bg-gray-100 sticky top-0">
+                  <tr>{Object.keys(importPreview[0]).map(k => <th key={k} className="px-2 py-1.5 border border-gray-200 text-left font-bold">{k}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {importPreview.map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      {Object.values(row).map((v: any, j) => <td key={j} className="px-2 py-1 border border-gray-100">{v}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-3 border-t flex justify-end gap-2 shrink-0">
+              <p className="text-[11px] text-gray-500 flex-1 self-center">Existing products (matched by name) will be updated. New ones will be created.</p>
+              <button onClick={() => setImportPreview(null)} className="px-4 py-2 bg-gray-500 text-white font-bold rounded text-[12px]">Cancel</button>
+              <button onClick={handleConfirmImport} disabled={isImporting} className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-70 text-white font-bold rounded text-[12px] flex items-center gap-2">
+                {isImporting ? 'Importing...' : `Confirm Import (${importPreview.length} rows)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {importPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
+            <div className="bg-[#7C3AED] text-white px-4 py-3 rounded-t-lg flex justify-between items-center shrink-0">
+              <span className="font-bold text-[14px] flex items-center gap-2"><Upload size={16} /> Import Preview - {importPreview.length} rows</span>
+              <button onClick={() => setImportPreview(null)} className="hover:text-red-300"><X size={18} /></button>
+            </div>
+            <div className="overflow-auto flex-1 p-3">
+              <table className="w-full text-[11px] whitespace-nowrap border border-gray-200">
+                <thead className="bg-gray-100 sticky top-0">
+                  <tr>{Object.keys(importPreview[0]).map(k => <th key={k} className="px-2 py-1.5 border border-gray-200 text-left font-bold">{k}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {importPreview.map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      {Object.values(row).map((v: any, j) => <td key={j} className="px-2 py-1 border border-gray-100">{v}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-3 border-t flex justify-end gap-2 shrink-0">
+              <p className="text-[11px] text-gray-500 flex-1 self-center">Existing products (matched by name) will be updated. New ones will be created.</p>
+              <button onClick={() => setImportPreview(null)} className="px-4 py-2 bg-gray-500 text-white font-bold rounded text-[12px]">Cancel</button>
+              <button onClick={handleConfirmImport} disabled={isImporting} className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-70 text-white font-bold rounded text-[12px] flex items-center gap-2">
+                {isImporting ? 'Importing...' : `Confirm Import (${importPreview.length} rows)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {viewProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg">
