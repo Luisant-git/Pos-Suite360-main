@@ -426,7 +426,10 @@ const RawMaterialPurchaseEntry = () => {
                       value={item.rawMaterialId}
                       autoFocus={index === 0 && items.length === 1 && item.rawMaterialId === 0}
                       dataAttr={{ 'data-row-product': String(index) }}
-                      onChange={(val) => updateItem(index, 'rawMaterialId', Number(val))}
+                      onChange={(val) => {
+                        updateItem(index, 'rawMaterialId', Number(val));
+                        setTimeout(() => focusCell(index, 1), 50);
+                      }}
                       onCreate={(name) => handleCreateNewMaterial(index, name)}
                       options={[
                         { label: 'Type material name / code...', value: 0 },
