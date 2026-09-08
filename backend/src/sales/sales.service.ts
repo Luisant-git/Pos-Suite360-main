@@ -30,12 +30,24 @@ export class SalesService {
       }
       const finalInvoiceNo = `${prefix}${String(nextNumber).padStart(5, '0')}`;
 
-      // 1. Create Sale and SaleItems
+      // 1. Resolve customerId — if 0 (cash sale), use/create a "Cash Customer"
+      let resolvedCustomerId = createSaleDto.customerId;
+      if (!resolvedCustomerId || resolvedCustomerId === 0) {
+        let cashCustomer = await tx.customer.findFirst({ where: { name: 'Cash Customer' } });
+        if (!cashCustomer) {
+          cashCustomer = await tx.customer.create({
+            data: { name: 'Cash Customer', phone: '0000000000' },
+          });
+        }
+        resolvedCustomerId = cashCustomer.id;
+      }
+
+      // 2. Create Sale and SaleItems
       const sale = await tx.sale.create({
         data: {
           invoiceNo: finalInvoiceNo,
           date: new Date(createSaleDto.date),
-          customerId: createSaleDto.customerId,
+          customerId: resolvedCustomerId,
           userId: userId,
           paymentModeId: createSaleDto.paymentModeId,
           subtotal: createSaleDto.subtotal,
@@ -56,7 +68,7 @@ export class SalesService {
         include: { items: true },
       });
 
-      // 2. Update stock and ledger for each item
+      // 3. Update stock and ledger for each item
       for (const item of createSaleDto.items) {
         const currentProduct = await tx.product.findUnique({ where: { id: item.productId } });
         if (!currentProduct) {

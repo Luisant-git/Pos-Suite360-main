@@ -30,8 +30,9 @@ export class CreateSaleDto {
   @IsDateString()
   date: string;
 
-  @IsNumber()
-  customerId: number;
+  @IsOptional()
+  @IsNumber({}, { message: 'customerId must be a number' })
+  customerId?: number;
 
   @IsNumber()
   paymentModeId: number;
