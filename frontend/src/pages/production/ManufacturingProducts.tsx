@@ -631,6 +631,9 @@ const Products = () => {
             >
               Reset
             </button>
+            <button type="button" onClick={handleDownloadTemplate} className="px-3 py-1.5 border border-[#16A34A] rounded bg-white text-[#16A34A] text-[12px] font-bold hover:bg-green-50 flex items-center gap-1">
+              <Download size={13} /> Template
+            </button>
             <button type="button"
               onClick={() => importFileRef.current?.click()}
               className="px-3 py-1.5 border border-[#7C3AED] rounded bg-white text-[#7C3AED] text-[12px] font-bold hover:bg-[#7C3AED] hover:text-white flex items-center gap-1"
