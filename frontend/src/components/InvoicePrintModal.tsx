@@ -32,9 +32,10 @@ interface InvoicePrintModalProps {
   hiddenRenderer?: boolean;
   isEstimation?: boolean;
   autoPrint?: boolean;
+  forceFormat?: 'a4' | 'a5' | 'thermal';
 }
 
-const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer = false, isEstimation = false, autoPrint = false }: InvoicePrintModalProps) => {
+const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer = false, isEstimation = false, autoPrint = false, forceFormat }: InvoicePrintModalProps) => {
   const { settings } = useSettings();
   const [isSharing, setIsSharing] = useState(false);
   const [isSharingQR, setIsSharingQR] = useState(false);
@@ -46,8 +47,12 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     }
   );
 
-  // Sync from settings when loaded (settings.printFormat wins over localStorage)
+  // Sync from settings when loaded (forceFormat takes priority, then settings.printFormat)
   useEffect(() => {
+    if (forceFormat) {
+      setPrintFormat(forceFormat);
+      return;
+    }
     if (settings?.printFormat) {
       const fmt = settings.printFormat.toLowerCase() as 'a4' | 'a5' | 'thermal';
       if (fmt === 'a4' || fmt === 'a5' || fmt === 'thermal') {
@@ -55,7 +60,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         localStorage.setItem('invoicePrintFormat', fmt);
       }
     }
-  }, [settings?.printFormat]);
+  }, [forceFormat, settings?.printFormat]);
 
   // Always fetch full sale data to ensure unit, paymentMode, customer are fully populated
   const { data: fullSale, isLoading } = useQuery({
@@ -675,8 +680,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       <div className="text-[10px] mb-1">
         <p className="font-bold">{isEstimation ? 'ESTIMATION' : 'INVOICE'}: #{invoiceNo}</p>
         <p>Date: {date}</p>
-        <p>Customer: {customerName}</p>
-        {sale?.customer?.phone && <p>Phone: {sale.customer.phone}</p>}
+        {sale?.customer?.name !== 'Cash Customer' && <p>Customer: {customerName}</p>}
+        {sale?.customer?.phone && sale?.customer?.name !== 'Cash Customer' && <p>Phone: {sale.customer.phone}</p>}
         <p>Payment: {sale?.paymentMode?.name || 'Cash'}</p>
       </div>
       <div className="border-t border-dashed border-black my-1" />
@@ -933,7 +938,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               <Printer size={16} />
               <span>Print {isEstimation ? 'Estimation' : 'Invoice'} - {invoiceNo}</span>
             </div>
-            <div className="flex items-center gap-1 ml-4">
+            {/* <div className="flex items-center gap-1 ml-4">
               {(['a4', 'a5', 'thermal'] as const).map(fmt => (
                 <button
                   key={fmt}
@@ -951,7 +956,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
                   {fmt === 'a4' ? 'A4' : fmt === 'a5' ? 'A5' : '🧾 Thermal'}
                 </button>
               ))}
-            </div>
+            </div> */}
             {/* <button type="button" onClick={onClose} className="hover:text-red-400 transition-colors">
               <X size={20} />
             </button> */}

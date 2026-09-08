@@ -43,15 +43,14 @@ export default function SearchableSelect({ options, value, onChange, placeholder
   const didAutoFocus = useRef(false);
 
   useEffect(() => {
-    if (autoFocus && !disabled && !didAutoFocus.current) {
+    if (autoFocus && !disabled && !didAutoFocus.current && options.length > 1) {
       didAutoFocus.current = true;
       const timer = setTimeout(() => {
-        triggerRef.current?.focus();
         setIsOpen(true);
-      }, 80);
+      }, 50);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [options.length]);
 
   useEffect(() => {
     if (isOpen) setHighlightedIndex(0);
@@ -75,7 +74,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
     function handleScroll(event: Event) {
       const target = event.target as HTMLElement;
       if (target.closest && target.closest('.searchable-select-dropdown')) return;
-      setIsOpen(false);
+      if (wrapperRef.current && wrapperRef.current.contains(target)) return;
     }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
