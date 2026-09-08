@@ -15,6 +15,7 @@ const SalesList = () => {
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [viewSaleId, setViewSaleId] = useState<number | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<string>('All');
 
   // Fetch Sales from API
   const { data: sales = [], isLoading } = useQuery({
@@ -29,14 +30,20 @@ const SalesList = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Collect unique payment mode names for filter buttons
+  const paymentModeNames: string[] = Array.from(
+    new Set(sales.map((s: any) => s.paymentMode?.name).filter(Boolean))
+  ) as string[];
+
   const filteredSales = sales.filter((sale: any) => {
+    const modeMatch = paymentFilter === 'All' || sale.paymentMode?.name === paymentFilter;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const invoiceMatch = sale.invoiceNo?.toLowerCase().includes(term);
       const customerMatch = sale.customer?.name?.toLowerCase().includes(term);
-      return invoiceMatch || customerMatch;
+      return modeMatch && (invoiceMatch || customerMatch);
     }
-    return true;
+    return modeMatch;
   });
 
   const totalPages = Math.ceil(filteredSales.length / entriesPerPage);
@@ -65,36 +72,53 @@ const SalesList = () => {
       <div className="flex flex-col flex-1 overflow-hidden">
         
         {/* Controls / Filters (Hidden on print) */}
-        <div className="bg-white p-3 border-b border-[#E5E7EB] shrink-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
-          <div className="flex items-center gap-2 text-[12px] font-bold text-gray-700">
-            <span>Show</span>
-          <select 
-            className="border border-[#ccc] rounded px-2 py-1 outline-none text-[#1F2937] bg-white"
-            value={entriesPerPage}
-            onChange={(e) => {
-              setEntriesPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-          >
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-            <span>entries</span>
+        <div className="bg-white p-3 border-b border-[#E5E7EB] shrink-0 flex flex-col gap-3 print:hidden">
+          {/* Payment Mode Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            {['All', ...paymentModeNames].map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => { setPaymentFilter(mode); setCurrentPage(1); }}
+                className={`px-4 py-1.5 rounded-full text-[12px] font-bold border transition-colors ${
+                  paymentFilter === mode
+                    ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]'
+                    : 'bg-white text-[#1E3A8A] border-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white'
+                }`}
+              >
+                {mode}
+                <span className="ml-1.5 opacity-70">
+                  ({mode === 'All' ? sales.length : sales.filter((s: any) => s.paymentMode?.name === mode).length})
+                </span>
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <label className="text-[12px] font-bold text-[#1F2937] hidden sm:block">Search:</label>
-            <input 
-              type="text" 
-              placeholder="Search invoices..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full sm:w-64 px-3 py-1.5 border border-[#ccc] rounded outline-none text-[12px] focus:border-[#3B82F6]"
-            />
+          {/* Search & Entries */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div className="flex items-center gap-2 text-[12px] font-bold text-gray-700">
+              <span>Show</span>
+              <select
+                className="border border-[#ccc] rounded px-2 py-1 outline-none text-[#1F2937] bg-white"
+                value={entriesPerPage}
+                onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>entries</span>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <label className="text-[12px] font-bold text-[#1F2937] hidden sm:block">Search:</label>
+              <input
+                type="text"
+                placeholder="Search invoices..."
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full sm:w-64 px-3 py-1.5 border border-[#ccc] rounded outline-none text-[12px] focus:border-[#3B82F6]"
+              />
+            </div>
           </div>
         </div>
 

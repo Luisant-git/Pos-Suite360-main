@@ -134,6 +134,50 @@ const Estimation = () => {
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
   const printAfterSaveRef = useRef(false);
 
+  const focusCell = (row: number, col: number) => {
+    if (col === 0) {
+      const el = document.querySelector<HTMLElement>(`[data-row-product="${row}"]`);
+      if (el) el.focus();
+    } else {
+      const el = document.querySelector<HTMLElement>(`[data-row="${row}"][data-col="${col}"]`);
+      if (el) { el.focus(); (el as HTMLInputElement).select?.(); }
+    }
+  };
+
+  const handleCellKey = (e: React.KeyboardEvent, rowIndex: number, col: number, totalCols: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextRow = rowIndex + 1;
+      if (nextRow < fields.length) {
+        focusCell(nextRow, 0);
+      } else {
+        append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 });
+        setTimeout(() => focusCell(nextRow, 0), 80);
+      }
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      const nextCol = col + 1;
+      if (nextCol < totalCols) focusCell(rowIndex, nextCol);
+      else {
+        const nextRow = rowIndex + 1;
+        if (nextRow < fields.length) focusCell(nextRow, 0);
+        else {
+          append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 });
+          setTimeout(() => focusCell(nextRow, 0), 80);
+        }
+      }
+    } else if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault();
+      const prevCol = col - 1;
+      if (prevCol >= 0) focusCell(rowIndex, prevCol);
+      else if (rowIndex > 0) focusCell(rowIndex - 1, totalCols - 1);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault(); focusCell(rowIndex + 1, col);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); if (rowIndex > 0) focusCell(rowIndex - 1, col);
+    }
+  };
+
   const { register, control, handleSubmit, watch, setValue, getValues, reset } = useForm<EstimationFormValues>({
     resolver: zodResolver(estimationSchema) as any,
     defaultValues: {
@@ -201,13 +245,23 @@ const Estimation = () => {
   }, [nextEstimationData, setValue, editId]);
 
 
-  // Watch values
+  // Auto-focus first row product on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const el = document.querySelector<HTMLElement>('[data-row-product="0"]');
+      el?.focus();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
+
   const items = watch('items');
   const watchTotalDiscount = watch('totalDiscount');
   const watchRoundOff = watch('roundOff');
   const selectedCustomerId = watch('customerId');
 
   const selectedCustomer = customers.find((c: any) => c.id === Number(selectedCustomerId));
+  const watchPaymentModeId = watch('paymentModeId');
+  const isCashMode = paymentModes.find((p: any) => p.id === Number(watchPaymentModeId))?.name?.toLowerCase() === 'cash';
 
   // Calculations
   useEffect(() => {
@@ -321,7 +375,9 @@ const Estimation = () => {
   });
 
   const onSubmit = (data: any) => {
-    if (!data.customerId) {
+    const selectedPaymentMode = paymentModes.find((p: any) => p.id === Number(data.paymentModeId));
+    const isCash = selectedPaymentMode?.name?.toLowerCase() === 'cash';
+    if (!data.customerId && !isCash) {
       toast.error('Please select a Customer before saving.');
       return;
     }
@@ -582,7 +638,7 @@ const Estimation = () => {
         </button>
       </div>
 
-      <form className="flex flex-col flex-1 overflow-y-auto custom-scrollbar print:hidden" onSubmit={handleSubmit(onSubmit as any, onError)}>
+      <form className="flex flex-col flex-1 min-h-0 overflow-hidden print:hidden" onSubmit={handleSubmit(onSubmit as any, onError)}>
         
         {/* Header Section */}
         <div className="bg-white p-3 sm:p-4 border-b border-[#E5E7EB] shrink-0">
@@ -608,7 +664,10 @@ const Estimation = () => {
             </div>
 
             <div className="w-full lg:flex-[2]">
-              <label className="block text-[11px] font-bold text-[#1F2937] mb-1">Customer Name (Searchable Dropdown) *</label>
+              <label className="flex justify-between text-[11px] font-bold text-[#1F2937] mb-1">
+                <span>Customer Name (Searchable Dropdown) {!isCashMode && <span className="text-red-500">*</span>}</span>
+                {isCashMode && <span className="text-[#6B7280] font-bold">(Optional)</span>}
+              </label>
               <div className="flex flex-col gap-1">
                 <div className="flex-1 w-full">
                   <SearchableSelect
@@ -616,7 +675,7 @@ const Estimation = () => {
                     onChange={(val) => setValue('customerId', Number(val))}
                     options={[
                       { label: 'Click or type customer name...', value: 0 },
-                      ...customers.map((c: any) => ({ label: `${c.name} - ${c.phone || ''}`, value: c.id }))
+                      ...customers.filter((c: any) => c.name !== 'Cash Customer').map((c: any) => ({ label: `${c.name} - ${c.phone || ''}`, value: c.id }))
                     ]}
                   />
                 </div>
@@ -625,7 +684,11 @@ const Estimation = () => {
                     <UserPlus size={12} /> Add Customer
                   </button>
                   <span className="text-[11px] text-[#6B7280] text-right flex-1 ml-2 flex flex-col items-end">
-                    <span>{selectedCustomer ? `${selectedCustomer.address || 'Counter Sale'}` : 'Counter Sale'}</span>
+                    {isCashMode && !Number(selectedCustomerId) ? (
+                      <span className="text-[#16A34A] font-bold">Saves to Cash Account</span>
+                    ) : (
+                      <span>{selectedCustomer ? `${selectedCustomer.address || 'Counter Sale'}` : 'Counter Sale'}</span>
+                    )}
                     {selectedCustomer?.state && <span className="font-bold text-[#1F2937]">{selectedCustomer.state}</span>}
                   </span>
                 </div>
@@ -671,6 +734,13 @@ const Estimation = () => {
               <label className="block text-[11px] font-bold text-[#1F2937] mb-1">Payment Mode</label>
               <select
                 {...register('paymentModeId')}
+                onChange={(e) => {
+                  register('paymentModeId').onChange(e);
+                  const selected = paymentModes.find((p: any) => p.id === Number(e.target.value));
+                  if (selected?.name?.toLowerCase() === 'cash') {
+                    setValue('customerId', 0);
+                  }
+                }}
                 className="w-full px-2 py-1.5 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] bg-white"
               >
                 <option value="0">Select Payment Mode...</option>
@@ -683,38 +753,40 @@ const Estimation = () => {
           </div>
         </div>
 
+        {/* Action Buttons */}
+        <div className="shrink-0 flex flex-wrap justify-end gap-2 p-2 bg-white border-b border-[#E5E7EB]">
+          <button 
+            type="button"
+            onClick={() => append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 })}
+            className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <Plus size={14} /> Add Row (F2)
+          </button>
+          <button 
+            type="button"
+            onClick={() => reset()}
+            className="border border-[#713F12] text-[#713F12] hover:bg-[#713F12] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <RefreshCw size={14} /> Clear (F4)
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/sales')}
+            className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <List size={14} /> Sales List
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/reports/sales')}
+            className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <FileText size={14} /> Sales Report
+          </button>
+        </div>
+
         {/* Items Grid */}
-        <div className="flex-1 overflow-auto custom-scrollbar bg-white border-b border-[#E5E7EB] overflow-x-auto">
-          <div className="flex flex-wrap justify-end gap-2 p-2 min-w-[300px]">
-            <button 
-              type="button"
-              onClick={() => append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 })}
-              className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <Plus size={14} /> Add Row (F2)
-            </button>
-            <button 
-              type="button"
-              onClick={() => reset()}
-              className="border border-[#713F12] text-[#713F12] hover:bg-[#713F12] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <RefreshCw size={14} /> Clear (F4)
-            </button>
-            <button 
-              type="button"
-              onClick={() => navigate('/sales')}
-              className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <List size={14} /> Sales List
-            </button>
-            <button 
-              type="button"
-              onClick={() => navigate('/reports/sales')}
-              className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <FileText size={14} /> Sales Report
-            </button>
-          </div>
+        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar bg-white border-b border-[#E5E7EB]">
           <table className="w-full border-collapse md:min-w-[900px] whitespace-nowrap responsive-table">
             <thead>
               <tr className="bg-[#0F172A] text-white">
@@ -739,6 +811,10 @@ const Estimation = () => {
                   <td data-label="Product" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <SearchableSelect
                       value={watch(`items.${index}.productId`)}
+                      tabIndex={0}
+                      dataAttr={{ 'data-row-product': String(index) }}
+                      autoFocus={index === 0 && fields.length === 1 && watch(`items.${index}.productId`) === 0}
+                      onTabNext={() => focusCell(index, 1)}
                       onChange={(val) => {
                         setValue(`items.${index}.productId`, Number(val));
                         handleProductChange(index, String(val));
@@ -760,17 +836,21 @@ const Estimation = () => {
 
                   <td data-label="Qty" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.quantity`)} 
+                      {...register(`items.${index}.quantity`)}
+                      data-row={index} data-col={1}
                       type="number" min="1" placeholder="0" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 1, 5)}
                       className={`w-full px-2 py-1 border rounded text-[13px] outline-none text-center transition-colors ${watch(`items.${index}.quantity`) > watch(`items.${index}.stock`) ? 'border-red-500 focus:border-red-500 bg-red-100 text-red-700 font-bold' : 'border-[#D1D5DB] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50'}`} 
                     />
                   </td>
                   <td data-label="Rate" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.rate`)} 
+                      {...register(`items.${index}.rate`)}
+                      data-row={index} data-col={2}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 2, 5)}
                       className={`w-full px-2 py-1 border rounded text-[13px] outline-none text-right font-bold transition-colors ${(() => {
                         const pId = watch(`items.${index}.productId`);
                         const prod = products.find((p: any) => p.id === Number(pId));
@@ -793,9 +873,11 @@ const Estimation = () => {
                   </td>
                   <td data-label="Disc %" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.discPercent`)} 
+                      {...register(`items.${index}.discPercent`)}
+                      data-row={index} data-col={3}
                       type="number" step="0.01" placeholder="0" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 3, 5)}
                       onChange={(e) => {
                         register(`items.${index}.discPercent`).onChange(e);
                         const pct = Number(e.target.value) || 0;
@@ -809,9 +891,11 @@ const Estimation = () => {
                   </td>
                   <td data-label="Disc Amt" className="px-2 py-1 border-r border-[#E5E7EB]">
                     <input 
-                      {...register(`items.${index}.discAmt`)} 
+                      {...register(`items.${index}.discAmt`)}
+                      data-row={index} data-col={4}
                       type="number" step="0.01" placeholder="0.00" 
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => handleCellKey(e, index, 4, 5)}
                       onChange={(e) => {
                         register(`items.${index}.discAmt`).onChange(e);
                         const amt = Number(e.target.value) || 0;
@@ -1067,7 +1151,67 @@ const Estimation = () => {
       )}
 
       {/* Printable Receipt */}
-      <div id="printable-receipt" className="hidden print:flex flex-col bg-white text-black font-sans text-[12px] w-full max-w-[800px] mx-auto p-8 print:h-[257mm] box-border">
+      <div id="printable-receipt" className={`hidden bg-white text-black font-sans ${settings?.printFormat === 'Thermal' ? 'print:block w-[80mm] text-[11px] p-2' : settings?.printFormat === 'A5' ? 'print:flex flex-col text-[11px] w-full max-w-[560px] mx-auto p-5 print:h-[205mm] box-border' : 'print:flex flex-col text-[12px] w-full max-w-[800px] mx-auto p-8 print:h-[257mm] box-border'}`}>
+    {settings?.printFormat === 'Thermal' ? (
+      /* ── THERMAL LAYOUT ── */
+      <div style={{ fontFamily: "'Inter', sans-serif", width: '80mm' }}>
+        <style>{`@media print { @page { size: 80mm auto; margin: 4mm; } }`}</style>
+        <div className="text-center mb-2">
+          {settings?.logoImage && <img src={settings.logoImage} alt="Logo" className="h-12 mx-auto mb-1 object-contain" />}
+          <div className="font-bold text-[13px] uppercase">{settings?.shopName || 'POS Suite 360'}</div>
+          {settings?.shopAddress && <div className="text-[10px]">{settings.shopAddress}</div>}
+          {settings?.phone && <div className="text-[10px]">Tel: {settings.phone}</div>}
+          {settings?.gstin && <div className="text-[10px]">GSTIN: {settings.gstin}</div>}
+          <div className="font-bold text-[12px] mt-1">ESTIMATION</div>
+          <div className="text-[10px]">Est No: #{watch('estimationNo')}</div>
+          <div className="text-[10px]">Date: {watch('date')}</div>
+        </div>
+        <div className="border-t border-dashed border-black my-1" />
+        {selectedCustomer && selectedCustomer.name !== 'Cash Customer' && (
+          <div className="text-[10px] mb-1">
+            <div className="font-bold">{selectedCustomer.name}</div>
+            {selectedCustomer.phone && <div>Ph: {selectedCustomer.phone}</div>}
+          </div>
+        )}
+        <div className="border-t border-dashed border-black my-1" />
+        <table className="w-full text-[10px]">
+          <thead>
+            <tr className="border-b border-black">
+              <th className="text-left py-0.5">Item</th>
+              <th className="text-center py-0.5">Qty</th>
+              <th className="text-right py-0.5">Rate</th>
+              <th className="text-right py-0.5">Amt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {watch('items').filter((i: any) => Number(i.productId) > 0).map((item: any, idx: number) => {
+              const product = products.find((p: any) => p.id === Number(item.productId));
+              return (
+                <tr key={idx}>
+                  <td className="py-0.5 pr-1">{product?.name || ''}</td>
+                  <td className="text-center py-0.5">{item.quantity}</td>
+                  <td className="text-right py-0.5">{Number(item.rate || 0).toFixed(2)}</td>
+                  <td className="text-right py-0.5">{Number(item.total || 0).toFixed(2)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="border-t border-dashed border-black my-1" />
+        <div className="text-[10px] flex justify-between"><span>Subtotal:</span><span>{Number(watch('grossAmount') || 0).toFixed(2)}</span></div>
+        {Number(watch('totalDiscount')) > 0 && (
+          <div className="text-[10px] flex justify-between"><span>Discount:</span><span>-{Number(watch('totalDiscount') || 0).toFixed(2)}</span></div>
+        )}
+        <div className="border-t border-black my-1" />
+        <div className="text-[12px] font-bold flex justify-between"><span>TOTAL:</span><span>{settings?.currencySymbol || 'RM'} {Number(watch('netAmount') || 0).toFixed(2)}</span></div>
+        <div className="text-[9px] text-center mt-1">{numberToWords(watch('netAmount'))} ONLY</div>
+        <div className="border-t border-dashed border-black my-1" />
+        {settings?.estimationNotes && (
+          <div className="text-[9px] mt-1" dangerouslySetInnerHTML={{ __html: settings.estimationNotes }} />
+        )}
+        <div className="text-[10px] text-center mt-2">Thank you!</div>
+      </div>
+    ) : (
     <div 
       className="flex flex-col flex-1 bg-white text-slate-800 overflow-hidden h-full"
       style={{ fontFamily: "'Inter', sans-serif" }}
@@ -1101,12 +1245,11 @@ const Estimation = () => {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
           <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3">Billed To / Customer Details</h3>
-          <p className="font-bold text-slate-800 text-sm mb-1">{selectedCustomer?.name || 'Counter Sale'}</p>
+          <p className="font-bold text-slate-800 text-sm mb-1">{selectedCustomer?.name !== 'Cash Customer' ? (selectedCustomer?.name || 'Counter Sale') : 'Counter Sale'}</p>
           <div className="text-slate-800 text-xs space-y-1">
-
-            {selectedCustomer?.address && <p>{selectedCustomer.address}</p>}
-            {selectedCustomer?.state && <p>{selectedCustomer.state}</p>}
-            {selectedCustomer?.phone && <p>Phone: {selectedCustomer.phone}</p>}
+            {selectedCustomer?.name !== 'Cash Customer' && selectedCustomer?.address && <p>{selectedCustomer.address}</p>}
+            {selectedCustomer?.name !== 'Cash Customer' && selectedCustomer?.state && <p>{selectedCustomer.state}</p>}
+            {selectedCustomer?.name !== 'Cash Customer' && selectedCustomer?.phone && <p>Phone: {selectedCustomer.phone}</p>}
             {selectedCustomer?.gstNumber && <p>GSTIN: {selectedCustomer.gstNumber}</p>}
           </div>
         </div>
@@ -1117,8 +1260,6 @@ const Estimation = () => {
             <span className="text-slate-800">{watch('date')}</span>
             <span className="font-bold text-slate-600">Payment Mode:</span>
             <span className="text-slate-800">{paymentModes.find((p: any) => p.id === Number(watch('paymentModeId')))?.name || 'Cash'}</span>
-            <span className="font-bold text-slate-600">Status:</span>
-            <span className="text-slate-800">Pending</span>
             {Number(selectedCustomer?.openingBalance) > 0 && (
               <>
                 <span className="font-bold text-slate-600">Pending Amount:</span>
@@ -1227,6 +1368,7 @@ const Estimation = () => {
         <p>Thank you for partnering with {settings?.shopName || 'POS Suite 360'}! | Page 1 of 1</p>
       </div>
     </div>
+    )}
       </div>
 
       {/* Loss Warning Modal */}

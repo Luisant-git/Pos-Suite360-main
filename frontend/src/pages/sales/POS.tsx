@@ -141,13 +141,22 @@ const POS = () => {
   };
 
   const handleCellKey = (e: React.KeyboardEvent, rowIndex: number, col: number, totalCols: number) => {
-    if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Enter always goes to next row
+      const nextRow = rowIndex + 1;
+      if (nextRow < fields.length) {
+        focusCell(nextRow, 0);
+      } else {
+        append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 });
+        setTimeout(() => focusCell(nextRow, 0), 80);
+      }
+    } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       const nextCol = col + 1;
       if (nextCol < totalCols) {
         focusCell(rowIndex, nextCol);
       } else {
-        // Last col → go to next row product, or add new row
         const nextRow = rowIndex + 1;
         if (nextRow < fields.length) {
           focusCell(nextRow, 0);
@@ -574,7 +583,7 @@ const POS = () => {
         </button>
       </div>
 
-      <form className="flex flex-col flex-1 overflow-y-auto custom-scrollbar print:hidden" onSubmit={handleSubmit(onSubmit as any, onError)}>
+      <form className="flex flex-col flex-1 min-h-0 overflow-hidden print:hidden" onSubmit={handleSubmit(onSubmit as any, onError)}>
         
         {/* Header Section */}
         <div className="bg-white p-3 sm:p-4 border-b border-[#E5E7EB] shrink-0">
@@ -600,12 +609,9 @@ const POS = () => {
             </div>
 
             <div className="w-full lg:flex-[2]">
-              <label className="block text-[11px] font-bold text-[#1F2937] mb-1 flex items-center gap-2">
-                Customer Name
-                {isCashMode
-                  ? <span className="text-[10px] font-bold text-white bg-[#16A34A] px-2 py-0.5 rounded-full">Optional (Cash Sale)</span>
-                  : <span className="text-[10px] font-bold text-white bg-[#EF4444] px-2 py-0.5 rounded-full">Required *</span>
-                }
+              <label className="flex justify-between text-[11px] font-bold text-[#1F2937] mb-1">
+                <span>Customer Name (Searchable Dropdown) {!isCashMode && <span className="text-red-500">*</span>}</span>
+                {isCashMode && <span className="text-[#6B7280] font-bold">(Optional)</span>}
               </label>
               <div className="flex flex-col gap-1">
                 <div className="flex-1 w-full">
@@ -614,7 +620,7 @@ const POS = () => {
                     onChange={(val) => setValue('customerId', Number(val))}
                     options={[
                       { label: 'Click or type customer name...', value: 0 },
-                      ...customers.map((c: any) => ({ label: `${c.name} - ${c.phone || ''}`, value: c.id }))
+                      ...customers.filter((c: any) => c.name !== 'Cash Customer').map((c: any) => ({ label: `${c.name} - ${c.phone || ''}`, value: c.id }))
                     ]}
                   />
                 </div>
@@ -623,7 +629,11 @@ const POS = () => {
                     <UserPlus size={12} /> Add Customer
                   </button>
                   <span className="text-[11px] text-[#6B7280] text-right flex-1 ml-2 flex flex-col items-end">
-                    <span>{selectedCustomer ? `${selectedCustomer.address || 'Counter Sale'}` : 'Counter Sale'}</span>
+                    {isCashMode && !Number(selectedCustomerId) ? (
+                      <span className="text-[#16A34A] font-bold">Saves to Cash Account</span>
+                    ) : (
+                      <span>{selectedCustomer ? `${selectedCustomer.address || 'Counter Sale'}` : 'Counter Sale'}</span>
+                    )}
                     {selectedCustomer?.state && <span className="font-bold text-[#1F2937]">{selectedCustomer.state}</span>}
                   </span>
                 </div>
@@ -669,6 +679,13 @@ const POS = () => {
               <label className="block text-[11px] font-bold text-[#1F2937] mb-1">Payment Mode</label>
               <select
                 {...register('paymentModeId')}
+                onChange={(e) => {
+                  register('paymentModeId').onChange(e);
+                  const selected = paymentModes.find((p: any) => p.id === Number(e.target.value));
+                  if (selected?.name?.toLowerCase() === 'cash') {
+                    setValue('customerId', 0);
+                  }
+                }}
                 className="w-full px-2 py-1.5 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] bg-white"
               >
                 <option value="0">Select Payment Mode...</option>
@@ -681,38 +698,40 @@ const POS = () => {
           </div>
         </div>
 
-        {/* Items Grid */}
-        <div className="flex-1 overflow-auto custom-scrollbar bg-white border-b border-[#E5E7EB] overflow-x-auto">
-          <div className="flex flex-wrap justify-end gap-2 p-2 min-w-[300px]">
-            <button 
-              type="button"
-              onClick={() => append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 })}
-              className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <Plus size={14} /> Add Row (F2)
-            </button>
-            <button 
-              type="button"
-              onClick={() => reset()}
-              className="border border-[#713F12] text-[#713F12] hover:bg-[#713F12] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <RefreshCw size={14} /> Clear (F4)
-            </button>
-            <button 
-              type="button"
-              onClick={() => navigate('/sales')}
-              className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <List size={14} /> Sales List
-            </button>
-            <button 
-              type="button"
-              onClick={() => navigate('/reports/sales')}
-              className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-            >
-              <FileText size={14} /> Sales Report
-            </button>
-          </div>
+        {/* Action Buttons - fixed, never scrolls */}
+        <div className="shrink-0 flex flex-wrap justify-end gap-2 p-2 bg-white border-b border-[#E5E7EB]">
+          <button 
+            type="button"
+            onClick={() => append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 })}
+            className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <Plus size={14} /> Add Row (F2)
+          </button>
+          <button 
+            type="button"
+            onClick={() => reset()}
+            className="border border-[#713F12] text-[#713F12] hover:bg-[#713F12] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <RefreshCw size={14} /> Clear (F4)
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/sales')}
+            className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <List size={14} /> Sales List
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/reports/sales')}
+            className="border border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <FileText size={14} /> Sales Report
+          </button>
+        </div>
+
+        {/* Items Grid - only this scrolls */}
+        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar bg-white border-b border-[#E5E7EB]">
           <table className="w-full border-collapse md:min-w-[900px] whitespace-nowrap responsive-table">
             <thead>
               <tr className="bg-[#0F172A] text-white">
@@ -1148,8 +1167,8 @@ const POS = () => {
         </div>
       )}
 
-      {/* Printable Receipt */}
-      <div id="printable-receipt" className="hidden print:flex flex-col bg-white text-black font-sans text-[12px] w-full max-w-[800px] mx-auto p-8 print:h-[257mm] box-border">
+      {/* Printable Receipt - removed */}
+      <div id="printable-receipt" className="hidden">
         <div className="text-center mb-4 print:pt-4">
           <div className="text-xl font-bold uppercase">NASA FRESH MART <span className="text-base font-normal">(001634825-A)</span></div>
           <p className="mt-1">NO 8G, JLN 3/2 PANDAN JAYA, 55100 KUALA LUMPUR.</p>

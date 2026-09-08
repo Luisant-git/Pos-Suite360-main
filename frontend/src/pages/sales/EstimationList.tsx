@@ -13,6 +13,7 @@ const EstimationList = () => {
   const navigate = useNavigate();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('All');
   const [selectedEstimation, setSelectedEstimation] = useState<any>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [viewEstimationId, setViewEstimationId] = useState<number | null>(null);
@@ -30,14 +31,15 @@ const EstimationList = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const paymentModeNames = ['All', ...Array.from(new Set(estimations.map((e: any) => e.paymentMode?.name).filter(Boolean))) as string[]];
+
   const filteredEstimations = estimations.filter((est: any) => {
+    const modeMatch = paymentFilter === 'All' || est.paymentMode?.name === paymentFilter;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      const estMatch = est.estimationNo?.toLowerCase().includes(term);
-      const customerMatch = est.customer?.name?.toLowerCase().includes(term);
-      return estMatch || customerMatch;
+      return modeMatch && (est.estimationNo?.toLowerCase().includes(term) || est.customer?.name?.toLowerCase().includes(term));
     }
-    return true;
+    return modeMatch;
   });
 
   const totalPages = Math.ceil(filteredEstimations.length / entriesPerPage);
@@ -73,6 +75,24 @@ const EstimationList = () => {
 
       <div className="flex flex-col flex-1 overflow-hidden">
         
+        {/* Payment Filter Buttons */}
+        <div className="bg-white px-3 pt-3 border-b border-[#E5E7EB] shrink-0 flex flex-wrap gap-2 print:hidden">
+          {paymentModeNames.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => { setPaymentFilter(mode); setCurrentPage(1); }}
+              className={`px-3 py-1 rounded text-[12px] font-bold border transition-colors ${
+                paymentFilter === mode
+                  ? 'bg-[#0B355B] text-white border-[#0B355B]'
+                  : 'bg-white text-[#0B355B] border-[#0B355B] hover:bg-[#0B355B] hover:text-white'
+              }`}
+            >
+              {mode} ({mode === 'All' ? estimations.length : estimations.filter((e: any) => e.paymentMode?.name === mode).length})
+            </button>
+          ))}
+        </div>
+
         {/* Controls / Filters (Hidden on print) */}
         <div className="bg-white p-3 border-b border-[#E5E7EB] shrink-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
           <div className="flex items-center gap-2 text-[12px] font-bold text-gray-700">
