@@ -39,6 +39,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
   const [isSharing, setIsSharing] = useState(false);
   const [isSharingQR, setIsSharingQR] = useState(false);
   const [isDownloadingQR, setIsDownloadingQR] = useState(false);
+  const [printFormat, setPrintFormat] = useState<'a4' | 'a5' | 'thermal'>('a4');
 
   // Always fetch full sale data to ensure unit, paymentMode, customer are fully populated
   const { data: fullSale, isLoading } = useQuery({
@@ -643,63 +644,132 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
     }
   };
 
+  const ThermalContent = () => (
+    <div className="w-full bg-white text-black text-[11px] p-2" style={{ fontFamily: 'monospace', maxWidth: '80mm' }}>
+      <div className="text-center mb-2">
+        {settings?.logoImage && <img src={settings.logoImage} alt="Logo" className="h-10 mx-auto mb-1 object-contain" />}
+        <p className="font-bold text-[13px] uppercase">{settings?.shopName || 'POS Suite 360'}</p>
+        {settings?.invoiceTitle && <p className="text-[10px]">{settings.invoiceTitle}</p>}
+        {settings?.shopAddress && <p className="text-[10px]">{settings.shopAddress}</p>}
+        {[settings?.city, settings?.state].filter(Boolean).length > 0 && <p className="text-[10px]">{[settings?.city, settings?.state].filter(Boolean).join(', ')}</p>}
+        {settings?.phone && <p className="text-[10px]">Tel: {settings.phone}</p>}
+        {settings?.gstin && <p className="text-[10px]">GSTIN: {settings.gstin}</p>}
+      </div>
+      <div className="border-t border-dashed border-black my-1" />
+      <div className="text-[10px] mb-1">
+        <p className="font-bold">{isEstimation ? 'ESTIMATION' : 'INVOICE'}: #{invoiceNo}</p>
+        <p>Date: {date}</p>
+        <p>Customer: {customerName}</p>
+        {sale?.customer?.phone && <p>Phone: {sale.customer.phone}</p>}
+        <p>Payment: {sale?.paymentMode?.name || 'Cash'}</p>
+      </div>
+      <div className="border-t border-dashed border-black my-1" />
+      <table className="w-full text-[10px]">
+        <thead>
+          <tr className="font-bold">
+            <td className="pb-1">Item</td>
+            <td className="pb-1 text-center">Qty</td>
+            <td className="pb-1 text-right">Rate</td>
+            <td className="pb-1 text-right">Amt</td>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item: any, idx: number) => (
+            <tr key={idx}>
+              <td className="py-0.5 pr-1 max-w-[28mm] break-words">{item.product?.name || ''}</td>
+              <td className="py-0.5 text-center whitespace-nowrap">{item.quantity} {item.product?.unit?.shortCode || ''}</td>
+              <td className="py-0.5 text-right whitespace-nowrap">{Number(item.rate || 0).toFixed(2)}</td>
+              <td className="py-0.5 text-right whitespace-nowrap font-bold">{Number(item.amount || item.total || 0).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="border-t border-dashed border-black my-1" />
+      <div className="text-[10px] space-y-0.5">
+        <div className="flex justify-between"><span>Subtotal:</span><span>{Number(sale?.subtotal || 0).toFixed(2)}</span></div>
+        {settings?.enableTax && Number(sale?.tax) > 0 && (
+          <div className="flex justify-between"><span>Tax:</span><span>{Number(sale.tax).toFixed(2)}</span></div>
+        )}
+        {Number(sale?.discount) > 0 && (
+          <div className="flex justify-between"><span>Discount:</span><span>-{Number(sale.discount).toFixed(2)}</span></div>
+        )}
+      </div>
+      <div className="border-t border-black my-1" />
+      <div className="flex justify-between font-bold text-[13px]">
+        <span>TOTAL:</span>
+        <span>{currency} {Number(grandTotal).toFixed(2)}</span>
+      </div>
+      <p className="text-[9px] mt-0.5">{numberToWords(grandTotal)} ONLY</p>
+      {activeUpiId && grandTotal > 0 && (
+        <div className="flex flex-col items-center mt-2">
+          <QRCodeCanvas
+            id="upi-qr-code-canvas"
+            value={`upi://pay?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
+            size={120}
+            level="M"
+          />
+          <p className="text-[9px] mt-0.5">UPI: {activeUpiId.trim()}</p>
+        </div>
+      )}
+      <div className="border-t border-dashed border-black my-1" />
+      <p className="text-center text-[10px]">Thank you! Visit again.</p>
+    </div>
+  );
+
+  const isA5 = printFormat === 'a5';
+
   const InvoiceContent = () => (
     <div 
-      className={`flex flex-col flex-1 bg-white text-slate-800 ${hiddenRenderer ? 'w-[800px] h-[1100px] box-border p-10 text-[13px]' : 'p-8 text-[12px] print:p-6 print:text-[11px]'} overflow-hidden`}
+      className={`flex flex-col flex-1 bg-white text-slate-800 ${hiddenRenderer ? 'w-[800px] h-[1100px] box-border p-10 text-[13px]' : isA5 ? 'p-4 text-[9px] print:p-3' : 'p-8 text-[12px] print:p-6 print:text-[11px]'} overflow-hidden`}
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className={`flex justify-between items-start ${isA5 ? 'mb-3' : 'mb-8'}`}>
         <div className="flex flex-col gap-3">
           {settings?.logoImage && (
-            <img src={settings.logoImage} alt="Logo" className="max-h-20 max-w-[200px] w-auto h-auto object-contain object-left" />
+            <img src={settings.logoImage} alt="Logo" className={`${isA5 ? 'max-h-10 max-w-[100px]' : 'max-h-20 max-w-[200px]'} w-auto h-auto object-contain object-left`} />
           )}
           <div>
-            <h1 className={`${settings?.logoImage ? 'text-xl' : 'text-2xl'} font-bold text-[#04325E] uppercase tracking-tight`}>{settings?.shopName || 'POS Suite 360'}</h1>
-            {settings?.invoiceTitle && <p className="text-[#1A63A8] font-bold text-sm mt-1">{settings.invoiceTitle}</p>}
-          <div className="mt-2 text-slate-800 text-xs leading-relaxed">
-            {settings?.shopAddress && <p>{settings.shopAddress}</p>}
-            <p className="font-bold text-slate-700">
-              {[settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ')}
-            </p>
-            {settings?.phone && <p>Tel: {settings.phone}</p>}
-            {settings?.gstin && <p>GSTIN: {settings.gstin}</p>}
-          </div>
+            <h1 className={`${isA5 ? 'text-base' : settings?.logoImage ? 'text-xl' : 'text-2xl'} font-bold text-[#04325E] uppercase tracking-tight`}>{settings?.shopName || 'POS Suite 360'}</h1>
+            {settings?.invoiceTitle && <p className={`text-[#1A63A8] font-bold ${isA5 ? 'text-[9px]' : 'text-sm'} mt-0.5`}>{settings.invoiceTitle}</p>}
+            <div className={`${isA5 ? 'mt-1 text-[8px]' : 'mt-2 text-xs'} text-slate-800 leading-relaxed`}>
+              {settings?.shopAddress && <p>{settings.shopAddress}</p>}
+              <p className="font-bold text-slate-700">{[settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ')}</p>
+              {settings?.phone && <p>Tel: {settings.phone}</p>}
+              {settings?.gstin && <p>GSTIN: {settings.gstin}</p>}
+            </div>
           </div>
         </div>
         <div className="text-right">
-          <h2 className="text-3xl font-black text-[#1A63A8] tracking-wider mb-2">{isEstimation ? 'ESTIMATION' : 'TAX INVOICE'}</h2>
-          <p className="font-bold text-slate-700 text-sm">{isEstimation ? 'Est No' : 'Invoice No'}: #{invoiceNo}</p>
+          <h2 className={`${isA5 ? 'text-lg' : 'text-3xl'} font-black text-[#1A63A8] tracking-wider mb-1`}>{isEstimation ? 'ESTIMATION' : 'TAX INVOICE'}</h2>
+          <p className={`font-bold text-slate-700 ${isA5 ? 'text-[9px]' : 'text-sm'}`}>{isEstimation ? 'Est No' : 'Invoice No'}: #{invoiceNo}</p>
         </div>
       </div>
 
       {/* Info Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
-          <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3">Billed To / Customer Details</h3>
-          <p className="font-bold text-slate-800 text-sm mb-1">{customerName}</p>
-          <div className="text-slate-800 text-xs space-y-1">
-
+      <div className={`grid grid-cols-2 gap-2 ${isA5 ? 'mb-2' : 'mb-6'}`}>
+        <div className={`bg-slate-50 border border-slate-100 rounded-lg ${isA5 ? 'p-2' : 'p-4'}`}>
+          <h3 className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">Billed To / Customer Details</h3>
+          <p className={`font-bold text-slate-800 ${isA5 ? 'text-[9px]' : 'text-sm'} mb-0.5`}>{customerName}</p>
+          <div className="text-[8px] text-slate-800 space-y-0.5">
             {sale?.customer?.address && <p>{sale.customer.address}</p>}
             {sale?.customer?.state && <p>{sale.customer.state}</p>}
             {sale?.customer?.phone && <p>Phone: {sale.customer.phone}</p>}
             {sale?.customer?.gstNumber && <p>GSTIN: {sale.customer.gstNumber}</p>}
           </div>
         </div>
-        <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
-          <h3 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-3">{isEstimation ? 'Estimation Details' : 'Invoice Details'}</h3>
-          <div className="grid grid-cols-[120px_1fr] gap-y-2 text-xs">
+        <div className={`bg-slate-50 border border-slate-100 rounded-lg ${isA5 ? 'p-2' : 'p-4'}`}>
+          <h3 className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">{isEstimation ? 'Estimation Details' : 'Invoice Details'}</h3>
+          <div className={`grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 ${isA5 ? 'text-[8px]' : 'text-xs'}`}>
             <span className="font-bold text-slate-600">Invoice No:</span>
             <span className="text-slate-800">#{invoiceNo}</span>
             <span className="font-bold text-slate-600">Date:</span>
             <span className="text-slate-800">{date}</span>
-            <span className="font-bold text-slate-600">Payment Mode:</span>
+            <span className="font-bold text-slate-600">Payment:</span>
             <span className="text-slate-800">{sale?.paymentMode?.name || 'Cash'}</span>
-            {/* <span className="font-bold text-slate-600">Status:</span> */}
-            {/* <span className="text-slate-800">{sale?.status || 'Completed'}</span> */}
             {Number(sale?.customer?.openingBalance) > 0 && (
               <>
-                <span className="font-bold text-slate-600">Pending Amount:</span>
+                <span className="font-bold text-slate-600">Pending:</span>
                 <span className="text-slate-800">{currency} {Number(sale.customer.openingBalance).toFixed(2)}</span>
               </>
             )}
@@ -708,30 +778,30 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       </div>
 
       {/* Table */}
-      <div className="border border-slate-200 mb-6 flex-1 flex flex-col overflow-hidden">
+      <div className={`border border-slate-200 ${isA5 ? 'mb-2' : 'mb-6'} flex-1 flex flex-col overflow-hidden`}>
         <table className="w-full text-left">
-          <thead className="bg-[#2D6AA1] text-white text-[10px] uppercase tracking-wider">
+          <thead className="bg-[#2D6AA1] text-white uppercase tracking-wider" style={{ fontSize: isA5 ? '7px' : '10px' }}>
             <tr>
-              <th className="py-3 px-4 font-bold w-[5%]">#</th>
-              <th className="py-3 px-4 font-bold w-[35%]">Item Description</th>
-              <th className="py-3 px-4 font-bold w-[10%] text-center">HSN</th>
-              <th className="py-3 px-4 font-bold w-[15%] text-center">Quantity</th>
-              <th className="py-3 px-4 font-bold w-[15%] text-right whitespace-nowrap">Unit Rate ({currency})</th>
-              <th className="py-3 px-4 font-bold w-[20%] text-right whitespace-nowrap">Amount ({currency})</th>
+              <th className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} font-bold w-[5%]`}>#</th>
+              <th className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} font-bold w-[35%]`}>Item</th>
+              <th className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} font-bold w-[10%] text-center`}>HSN</th>
+              <th className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} font-bold w-[15%] text-center`}>Qty</th>
+              <th className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} font-bold w-[15%] text-right`}>Rate</th>
+              <th className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} font-bold w-[20%] text-right`}>Amt</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-xs">
+          <tbody className="divide-y divide-slate-100" style={{ fontSize: isA5 ? '8px' : '12px' }}>
             {items.map((item: any, idx: number) => (
               <tr key={idx} className="bg-white">
-                <td className="py-3 px-4 text-slate-500">{idx + 1}</td>
-                <td className="py-3 px-4">
+                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-slate-500`}>{idx + 1}</td>
+                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'}`}>
                   <span className="font-bold text-slate-800">{item.product?.name || ''}</span>
-                  {item.product?.code && <span className="text-slate-500 ml-2">({item.product.code})</span>}
+                  {item.product?.code && <span className="text-slate-500 ml-1">({item.product.code})</span>}
                 </td>
-                <td className="py-3 px-4 text-center text-slate-600 text-[11px]">{item.product?.hsnCode || '-'}</td>
-                <td className="py-3 px-4 text-center text-slate-600 font-medium">{item.quantity} {item.product?.unit?.shortCode || 'Nos'}</td>
-                <td className="py-3 px-4 text-right text-slate-600">{Number(item.rate || 0).toFixed(2)}</td>
-                <td className="py-3 px-4 text-right font-bold text-slate-800">{Number(item.amount || item.total || 0).toFixed(2)}</td>
+                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-center text-slate-600`}>{item.product?.hsnCode || '-'}</td>
+                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-center text-slate-600 font-medium`}>{item.quantity} {item.product?.unit?.shortCode || 'Nos'}</td>
+                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-right text-slate-600`}>{Number(item.rate || 0).toFixed(2)}</td>
+                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-right font-bold text-slate-800`}>{Number(item.amount || item.total || 0).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -739,138 +809,90 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       </div>
 
       {/* Footer Area */}
-      <div className="mt-auto grid grid-cols-[1fr_350px] gap-8">
+      <div className={`mt-auto grid gap-3 ${isA5 ? 'grid-cols-[1fr_160px]' : 'grid-cols-[1fr_350px] gap-8'}`}>
         {/* Left Footer: Notes/Terms & QR */}
-        <div className="flex flex-col gap-4 h-full">
-          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex-1 flex flex-col">
-            <h3 className="text-[10px] font-bold text-[#1A63A8] uppercase tracking-widest mb-2">Terms & Conditions</h3>
+        <div className="flex flex-col gap-2 h-full">
+          <div className={`bg-slate-50 border border-slate-100 rounded-lg ${isA5 ? 'p-2' : 'p-4'} flex-1 flex flex-col`}>
+            <h3 className="text-[9px] font-bold text-[#1A63A8] uppercase tracking-widest mb-1">Terms & Conditions</h3>
             <div 
-              className="text-[11px] text-slate-800 font-bold prose prose-sm max-w-none html-content flex-1"
+              className={`${isA5 ? 'text-[8px]' : 'text-[11px]'} text-slate-800 font-bold prose prose-sm max-w-none html-content flex-1`}
               dangerouslySetInnerHTML={{ __html: (settings?.invoiceNotes !== undefined && settings?.invoiceNotes !== null) ? settings.invoiceNotes : '1. Goods once sold cannot be taken back or exchanged.<br/>2. Subject to Salem jurisdiction.' }}
             />
           </div>
-          
-          {/* QR code — visible on bill and used for PDF */}
           {activeUpiId && grandTotal > 0 && (
-            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center gap-3">
-              <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
+            <div className={`bg-slate-50 border border-slate-100 rounded-lg ${isA5 ? 'p-1.5' : 'p-3'} flex items-center gap-2`}>
+              <div className="bg-white p-1 rounded border border-slate-200 shadow-sm shrink-0">
                 <QRCodeCanvas 
                   id="upi-qr-code-canvas"
                   value={`upi://pay?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
                   size={900}
                   level="M"
-                  style={{ width: 64, height: 64 }}
+                  style={{ width: isA5 ? 40 : 64, height: isA5 ? 40 : 64 }}
                 />
               </div>
               <div>
-                <p className="text-[11px] font-bold text-slate-800 uppercase tracking-widest">Scan to Pay</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">UPI ID: {activeUpiId.trim()}</p>
+                <p className="text-[9px] font-bold text-slate-800 uppercase tracking-widest">Scan to Pay</p>
+                <p className="text-[8px] text-slate-500 mt-0.5">UPI: {activeUpiId.trim()}</p>
               </div>
             </div>
           )}
-          {/* QR click-to-pay link disabled
-          {showPaymentInfo && activeUpiId && grandTotal > 0 && (
-            <a 
-              href={`${window.location.origin}/upi-redirect?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="bg-slate-50 border border-slate-100 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-100 transition-colors cursor-pointer"
-              style={{ textDecoration: 'none' }}
-            >
-              <div className="bg-white p-1.5 rounded border border-slate-200 shadow-sm shrink-0">
-                <QRCodeSVG 
-                  value={`upi://pay?pa=${activeUpiId.trim()}&pn=${encodeURIComponent(settings?.shopName || 'Shop')}&tr=${encodeURIComponent(invoiceNo)}&am=${Number(grandTotal).toFixed(2)}&cu=INR`}
-                  size={64}
-                  level="M"
-                />
-              </div>
-              <div className="flex flex-col">
-                <h3 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1">Scan or Click to Pay</h3>
-                <p className="text-[10px] text-slate-600 font-medium">UPI ID: {activeUpiId.trim()}</p>
-                <p className="text-[9px] text-slate-500 mt-1">Scan or tap to open UPI app</p>
-              </div>
-            </a>
-          )}
-          */}
         </div>
-        
+
         {/* Right Footer: Totals & Signature */}
         <div className="flex flex-col justify-end">
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg pt-4 pb-2 flex flex-col mb-6">
-            <div className="space-y-3 text-[13px] px-4 mb-4">
+          <div className={`bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg ${isA5 ? 'pt-2 pb-1' : 'pt-4 pb-2'} flex flex-col ${isA5 ? 'mb-2' : 'mb-6'}`}>
+            <div className={`${isA5 ? 'space-y-1 text-[9px] px-2 mb-1' : 'space-y-3 text-[13px] px-4 mb-4'}`}>
               <div className="flex justify-between text-[#334155]">
                 <span>Subtotal:</span>
-                <span className="font-semibold tracking-wide">{Number(sale?.subtotal || 0).toFixed(2)}</span>
+                <span className="font-semibold">{Number(sale?.subtotal || 0).toFixed(2)}</span>
               </div>
-              
-              {/* Tax Rendering */}
               {settings?.enableTax && (
                 (() => {
                   const taxNum = Number(sale?.tax || 0);
                   if (isNaN(taxNum) || taxNum === 0) return null;
-
                   const storeState = (settings.state || '').trim().toLowerCase();
                   const custState = (sale?.customer?.state || '').trim().toLowerCase();
-                  
                   if (storeState && custState && storeState === custState) {
                     const splitTax = taxNum / 2;
                     return (
                       <>
-                        <div className="flex justify-between text-[#334155]">
-                          <span>CGST:</span>
-                          <span className="font-semibold tracking-wide">{splitTax.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-[#334155]">
-                          <span>SGST:</span>
-                          <span className="font-semibold tracking-wide">{splitTax.toFixed(2)}</span>
-                        </div>
+                        <div className="flex justify-between text-[#334155]"><span>CGST:</span><span className="font-semibold">{splitTax.toFixed(2)}</span></div>
+                        <div className="flex justify-between text-[#334155]"><span>SGST:</span><span className="font-semibold">{splitTax.toFixed(2)}</span></div>
                       </>
                     );
-                  } else {
-                    return (
-                      <div className="flex justify-between text-[#334155]">
-                        <span>IGST:</span>
-                        <span className="font-semibold tracking-wide">{taxNum.toFixed(2)}</span>
-                      </div>
-                    );
                   }
+                  return <div className="flex justify-between text-[#334155]"><span>IGST:</span><span className="font-semibold">{taxNum.toFixed(2)}</span></div>;
                 })()
               )}
-
               {Number(sale?.discount) > 0 && (
                 <div className="flex justify-between text-[#334155]">
                   <span>Discount:</span>
-                  <span className="font-semibold tracking-wide">{Number(sale?.discount || 0).toFixed(2)}</span>
+                  <span className="font-semibold">{Number(sale?.discount || 0).toFixed(2)}</span>
                 </div>
               )}
             </div>
-            
-            <div className="bg-[#F0F5FA] border-y-2 border-[#1A63A8] px-4 py-3 flex justify-between items-center text-[#04325E] mt-1 mb-1">
-              <span className="font-bold text-[14px]">Total Due:</span>
-              <span className="text-[15px] font-black tracking-tight">{currency} {Number(grandTotal).toFixed(2)}</span>
+            <div className={`bg-[#F0F5FA] border-y-2 border-[#1A63A8] ${isA5 ? 'px-2 py-1' : 'px-4 py-3'} flex justify-between items-center text-[#04325E] mt-1 mb-1`}>
+              <span className={`font-bold ${isA5 ? 'text-[10px]' : 'text-[14px]'}`}>Total Due:</span>
+              <span className={`font-black tracking-tight ${isA5 ? 'text-[10px]' : 'text-[15px]'}`}>{currency} {Number(grandTotal).toFixed(2)}</span>
             </div>
-            <div className="text-right px-4 pb-2 text-[9px] text-[#1A63A8] font-bold uppercase tracking-wider">
+            <div className={`text-right ${isA5 ? 'px-2 pb-1 text-[7px]' : 'px-4 pb-2 text-[9px]'} text-[#1A63A8] font-bold uppercase tracking-wider`}>
               {numberToWords(grandTotal)} ONLY
             </div>
           </div>
 
           {settings?.signatureImage && !isEstimation && (
-            <div className="text-right mt-4 relative">
-              <p className="text-[10px] font-bold text-slate-800 mb-12">For {settings?.shopName || 'POS Suite 360'}</p>
-              <img 
-                src={settings.signatureImage} 
-                alt="Authorised Signature" 
-                className="absolute bottom-6 right-8 h-12 object-contain opacity-80 mix-blend-multiply"
-              />
-              <div className="inline-block border-t border-slate-400 pt-2 px-8 w-48 mt-4">
-                <p className="text-[11px] font-bold text-slate-700 text-center">Authorized Signatory</p>
+            <div className="text-right mt-2 relative">
+              <p className={`${isA5 ? 'text-[8px]' : 'text-[10px]'} font-bold text-slate-800 mb-8`}>For {settings?.shopName || 'POS Suite 360'}</p>
+              <img src={settings.signatureImage} alt="Authorised Signature" className="absolute bottom-5 right-6 h-8 object-contain opacity-80 mix-blend-multiply" />
+              <div className="inline-block border-t border-slate-400 pt-1 px-6 w-36 mt-2">
+                <p className="text-[9px] font-bold text-slate-700 text-center">Authorized Signatory</p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <div className="mt-8 text-center text-[11px] font-medium text-slate-600 border-t border-slate-200 pt-3">
+      <div className={`${isA5 ? 'mt-2' : 'mt-8'} text-center text-[9px] font-medium text-slate-600 border-t border-slate-200 pt-2`}>
         <p>Thank you for partnering with {settings?.shopName || 'POS Suite 360'}! | Page 1 of 1</p>
       </div>
     </div>
@@ -895,16 +917,48 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
               <Printer size={16} />
               <span>Print {isEstimation ? 'Estimation' : 'Invoice'} - {invoiceNo}</span>
             </div>
+            <div className="flex items-center gap-1 ml-4">
+              {(['a4', 'a5', 'thermal'] as const).map(fmt => (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => setPrintFormat(fmt)}
+                  className={`px-2 py-1 rounded text-[11px] font-bold transition-colors ${
+                    printFormat === fmt
+                      ? 'bg-white text-[#04325E]'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  {fmt === 'a4' ? 'A4' : fmt === 'a5' ? 'A5' : '🧾 Thermal'}
+                </button>
+              ))}
+            </div>
             {/* <button type="button" onClick={onClose} className="hover:text-red-400 transition-colors">
               <X size={20} />
             </button> */}
           </div>
         )}
 
+        {/* Print format style injection */}
+        <style>{`
+          @media print {
+            @page {
+              size: ${printFormat === 'thermal' ? '80mm auto' : printFormat === 'a5' ? 'A5 portrait' : 'A4 portrait'};
+              margin: ${printFormat === 'thermal' ? '4mm' : '10mm'};
+            }
+          }
+        `}</style>
+
         {/* Printable Area */}
         <div id="printable-invoice" className="flex-1 min-h-0 overflow-auto bg-gray-200 p-2 sm:p-8 print:p-0 print:bg-white flex justify-center print:overflow-visible">
-          <div className="bg-white shadow-sm w-full max-w-[210mm] min-h-[297mm] print:w-full print:max-w-none print:shadow-none print:min-h-[100vh] flex flex-col">
-            <InvoiceContent />
+          <div className={`bg-white shadow-sm flex flex-col print:w-full print:max-w-none print:shadow-none ${
+            printFormat === 'thermal'
+              ? 'w-[80mm] min-h-0 print:min-h-0'
+              : printFormat === 'a5'
+              ? 'w-full max-w-[148mm] min-h-[210mm] print:min-h-[100vh]'
+              : 'w-full max-w-[210mm] min-h-[297mm] print:min-h-[100vh]'
+          }`}>
+            {printFormat === 'thermal' ? <ThermalContent /> : <InvoiceContent />}
           </div>
         </div>
 
