@@ -38,6 +38,7 @@ export class EstimationsService {
           date: new Date(createEstimationDto.date),
           customerId: createEstimationDto.customerId,
           userId: userId,
+          paymentModeId: createEstimationDto.paymentModeId || 1,
           subtotal: createEstimationDto.subtotal,
           discount: createEstimationDto.discount || 0,
           grandTotal: createEstimationDto.grandTotal,
@@ -105,6 +106,7 @@ export class EstimationsService {
       where,
       include: {
         customer: true,
+        paymentMode: true,
         user: { select: { id: true, name: true } },
       },
       orderBy: { date: 'desc' },
@@ -134,6 +136,7 @@ export class EstimationsService {
       where: { id },
       include: {
         customer: true,
+        paymentMode: true,
         user: { select: { id: true, name: true } },
         items: {
           include: {
@@ -214,6 +217,7 @@ export class EstimationsService {
         where: { id },
         data: {
           customerId: updateEstimationDto.customerId,
+          paymentModeId: updateEstimationDto.paymentModeId || 1,
           date: new Date(updateEstimationDto.date),
           subtotal: updateEstimationDto.subtotal,
           discount: updateEstimationDto.discount || 0,

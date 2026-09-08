@@ -40,6 +40,10 @@ export class CreateEstimationDto {
   @IsNumber()
   grandTotal: number;
 
+  @IsNumber()
+  @IsOptional()
+  paymentModeId?: number;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => EstimationItemDto)
