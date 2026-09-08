@@ -106,8 +106,10 @@ export default function SearchableSelect({ options, value, onChange, placeholder
     }
   };
 
+  const isMouseClick = useRef(false);
+
   const handleTriggerFocus = () => {
-    if (!disabled) setIsOpen(true);
+    if (!disabled && !isMouseClick.current) setIsOpen(true);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -147,7 +149,8 @@ export default function SearchableSelect({ options, value, onChange, placeholder
       <div
         ref={triggerRef}
         tabIndex={disabled ? -1 : (tabIndex ?? 0)}
-        onClick={() => { if (!disabled) setIsOpen(!isOpen); }}
+        onMouseDown={() => { isMouseClick.current = true; setTimeout(() => { isMouseClick.current = false; }, 200); }}
+        onClick={() => { if (!disabled) setIsOpen(o => !o); }}
         onKeyDown={handleTriggerKeyDown}
         onFocus={handleTriggerFocus}
         {...(dataAttr ?? {})}
