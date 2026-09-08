@@ -438,6 +438,7 @@ const RawMaterialPurchaseEntry = () => {
                     <input 
                       type="number" value={item.widthMm} onChange={e => updateItem(index, 'widthMm', e.target.value)}
                       placeholder="0" onFocus={e => e.target.select()}
+                      data-row={index} data-col={1} onKeyDown={e => handleCellKey(e, index, 1, 5)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
@@ -445,6 +446,7 @@ const RawMaterialPurchaseEntry = () => {
                     <input 
                       type="number" value={item.lengthM} onChange={e => updateItem(index, 'lengthM', e.target.value)}
                       placeholder="0" onFocus={e => e.target.select()}
+                      data-row={index} data-col={2} onKeyDown={e => handleCellKey(e, index, 2, 5)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
@@ -455,6 +457,7 @@ const RawMaterialPurchaseEntry = () => {
                     <input 
                       type="number" value={item.quantity} onChange={e => updateItem(index, 'quantity', e.target.value)}
                       placeholder="0" onFocus={e => e.target.select()}
+                      data-row={index} data-col={3} onKeyDown={e => handleCellKey(e, index, 3, 5)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
@@ -462,6 +465,7 @@ const RawMaterialPurchaseEntry = () => {
                     <input 
                       type="number" step="0.01" value={item.price} onChange={e => updateItem(index, 'price', e.target.value)}
                       placeholder="0.00" onFocus={e => e.target.select()}
+                      data-row={index} data-col={4} onKeyDown={e => handleCellKey(e, index, 4, 5)}
                       className="w-full px-2 py-1 border border-[#D1D5DB] rounded text-[13px] outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:bg-blue-50 transition-colors text-right" 
                     />
                   </td>
