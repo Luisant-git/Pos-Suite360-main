@@ -51,14 +51,16 @@ const Products = () => {
   const [viewProduct, setViewProduct] = useState<any>(null);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: any[] } | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const handleDownloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
-      ['Product Name', 'Unit', 'Category', 'Brand', 'Opening Stock', 'Purchase Rate', 'Wholesale Rate', 'Sale Rate', 'MRP', 'Tax %', 'HSN Code', 'Min Stock', 'Reorder Level', 'Sq.M', 'No of UPS', 'No of Labels'],
-      ['Sample Mfg Product', 'Nos', 'Labels', 'BrandX', 0, 100, 120, 150, 160, 0, '', 5, 3, 0.5, 4, 100],
+      ['Product Name', 'Unit', 'Category', 'Brand', 'Opening Stock', 'Purchase Rate', 'Wholesale Rate', 'Sale Rate', 'Tax %', 'HSN Code'],
+      ['Sample Mfg Product', 'Nos', 'Labels', 'BrandX', 0, 100, 120, 150, 0, ''],
     ]);
-    ws['!cols'] = Array(16).fill({ wch: 18 });
+    ws['!cols'] = Array(10).fill({ wch: 18 });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'ManufacturingProducts');
     XLSX.writeFile(wb, 'manufacturing_products_template.xlsx');
@@ -74,7 +76,24 @@ const Products = () => {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows: any[] = XLSX.utils.sheet_to_json(ws);
       if (!rows.length) { toast.error('No data found in file'); return; }
-      setImportPreview(rows);
+
+      const allowedColumns = ['Product Name', 'Unit', 'Category', 'Brand', 'Opening Stock', 'Purchase Rate', 'Wholesale Rate', 'Sale Rate', 'Tax %', 'HSN Code'];
+      const filteredRows = rows.map(row => {
+        const filteredRow: any = {};
+        allowedColumns.forEach(col => {
+          if (row[col] !== undefined) {
+            filteredRow[col] = row[col];
+          }
+        });
+        return filteredRow;
+      });
+
+      if (filteredRows.length > 0 && Object.keys(filteredRows[0]).length === 0) {
+        toast.error('No valid columns found in the uploaded file');
+        return;
+      }
+
+      setImportPreview(filteredRows);
     };
     reader.readAsArrayBuffer(file);
     e.target.value = '';
@@ -83,17 +102,31 @@ const Products = () => {
   const handleConfirmImport = async () => {
     if (!importPreview) return;
     setIsImporting(true);
+    setImportProgress(0);
+    setImportResult(null);
     try {
-      const res = await api.post('/products/import', { products: importPreview, isManufacturingProduct: true });
-      toast.success(`Import done! Created: ${res.data.created}, Updated: ${res.data.updated}, Skipped: ${res.data.skipped}`);
+      const res = await api.post('/products/import', { products: importPreview, isManufacturingProduct: true }, {
+        onUploadProgress: (e) => {
+          if (e.total) setImportProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+      setImportProgress(100);
+      setImportResult({ created: res.data.created, updated: res.data.updated, skipped: res.data.skipped, errors: res.data.errors || [] });
       queryClient.invalidateQueries({ queryKey: ['manufacturingProducts'] });
       queryClient.invalidateQueries({ queryKey: ['nextProductCode'] });
-      setImportPreview(null);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Import failed');
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const handleDownloadErrorReport = () => {
+    if (!importResult?.errors?.length) return;
+    const ws = XLSX.utils.json_to_sheet(importResult.errors);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Errors');
+    XLSX.writeFile(wb, 'import_error_report.xlsx');
   };
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductFormValues>({
@@ -545,8 +578,17 @@ const Products = () => {
             <Grid size={16} className="text-[#3B82F6]" />
             <h2 className="font-bold text-[14px]">MASTER PRODUCT LIST BY CATEGORY & BRAND</h2>
           </div>
-          <div className="bg-gray-500 text-white text-[11px] font-bold px-2 py-1 rounded-xl">
-            {filteredProducts.length} Products
+          <div className="flex items-center gap-2">
+            <button type="button"
+              onClick={() => setIsFullTable(!isFullTable)}
+              className="text-[#3B82F6] hover:bg-[#EFF6FF] px-3 py-1 rounded text-[12px] font-bold flex items-center gap-1 transition-colors border border-[#3B82F6]"
+            >
+              {isFullTable ? <Minimize size={13} /> : <Maximize size={13} />}
+              {isFullTable ? 'Show Form' : 'Full Table'}
+            </button>
+            <div className="bg-gray-500 text-white text-[11px] font-bold px-2 py-1 rounded-xl">
+              {filteredProducts.length} Products
+            </div>
           </div>
         </div>
         
@@ -572,37 +614,28 @@ const Products = () => {
               {brands.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
-          <div className="md:col-span-2 flex items-end gap-2">
-            <div className="flex-1">
+          <div className="md:col-span-2 flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[120px]">
               <label className="block text-[12px] font-bold text-[#1F2937] mb-1">Search:</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Filter by name / code..."
-                  className="w-full px-3 py-1.5 border border-[#ccc] rounded outline-none text-[12px]"
-                />
-              </div>
+              <input 
+                type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Filter by name / code..."
+                className="w-full px-3 py-1.5 border border-[#ccc] rounded outline-none text-[12px]"
+              />
             </div>
             <button type="button" 
               onClick={() => { setFilterCategory(''); setFilterBrand(''); setSearchTerm(''); }}
-              className="px-4 py-1.5 border border-[#ccc] rounded bg-white text-gray-700 text-[12px] font-bold hover:bg-gray-100"
+              className="px-3 py-1.5 border border-[#ccc] rounded bg-white text-gray-700 text-[12px] font-bold hover:bg-gray-100"
             >
               Reset
             </button>
-            <button type="button" 
-              onClick={() => setIsFullTable(!isFullTable)}
-              className="justify-center text-[#3B82F6] hover:bg-[#EFF6FF] px-3 py-1.5 rounded text-[12px] font-bold flex items-center gap-2 transition-colors border border-[#3B82F6]"
+            <button type="button"
+              onClick={() => importFileRef.current?.click()}
+              className="px-3 py-1.5 border border-[#7C3AED] rounded bg-white text-[#7C3AED] text-[12px] font-bold hover:bg-[#7C3AED] hover:text-white flex items-center gap-1"
             >
-              {isFullTable ? <Minimize size={14} /> : <Maximize size={14} />}
-              {isFullTable ? 'Show Form' : 'View Full Table'}
-            </button>
-            <button type="button" onClick={handleDownloadTemplate} className="px-3 py-1.5 border border-[#16A34A] rounded bg-white text-[#16A34A] text-[12px] font-bold hover:bg-green-50 flex items-center gap-1">
-              <Download size={13} /> Template
-            </button>
-            <button type="button" onClick={() => importFileRef.current?.click()} className="px-3 py-1.5 border border-[#7C3AED] rounded bg-white text-[#7C3AED] text-[12px] font-bold hover:bg-purple-50 flex items-center gap-1">
-              <Upload size={13} /> Import Excel
+              <Upload size={13} /> Import
             </button>
             <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} />
           </div>
@@ -614,7 +647,7 @@ const Products = () => {
               <tr className="bg-[#2A2A2A] text-white font-bold">
                 <th className="px-3 py-2 border-r border-[#444] text-center w-8">#</th>
                 <th className="px-3 py-2 border-r border-[#444]">Code</th>
-                <th className="px-3 py-2 border-r border-[#444]">Product Description</th>
+                <th className="px-3 py-2 border-r border-[#444] whitespace-normal min-w-[200px] max-w-[300px]">Product Description</th>
                 <th className="px-3 py-2 border-r border-[#444]">Category</th>
                 <th className="px-3 py-2 border-r border-[#444]">Brand</th>
                 <th className="px-3 py-2 border-r border-[#444] text-center">Stock</th>
@@ -635,7 +668,11 @@ const Products = () => {
                   <tr key={product.id} className={`border-b border-[#E5E7EB] ${index % 2 === 0 ? 'bg-white' : 'bg-[#F9F9F9]'} hover:bg-blue-50`}>
                     <td data-label="#" className="px-3 py-2.5 border-r border-[#E5E7EB] text-center font-bold text-gray-700">{index + 1}</td>
                     <td data-label="Code" className="px-3 py-2.5 border-r border-[#E5E7EB] font-bold text-[#3B82F6]">{product.code}</td>
-                    <td data-label="Product Description" className="px-3 py-2.5 border-r border-[#E5E7EB] font-bold text-[#1F2937]">{product.name}</td>
+                    <td data-label="Product Description" className="px-3 py-2.5 border-r border-[#E5E7EB] font-bold text-[#1F2937]">
+                      <div className="whitespace-normal min-w-[150px] max-w-[250px] break-words">
+                        {product.name}
+                      </div>
+                    </td>
                     <td data-label="Category" className="px-3 py-2.5 border-r border-[#E5E7EB]">
                       <span className="text-[10px] font-bold text-[#16A34A] uppercase bg-[#DCFCE7] px-2 py-0.5 rounded">{product.category?.name || '-'}</span>
                     </td>
@@ -708,60 +745,69 @@ const Products = () => {
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
             <div className="bg-[#7C3AED] text-white px-4 py-3 rounded-t-lg flex justify-between items-center shrink-0">
               <span className="font-bold text-[14px] flex items-center gap-2"><Upload size={16} /> Import Preview — {importPreview.length} rows</span>
-              <button onClick={() => setImportPreview(null)} className="hover:text-red-300"><X size={18} /></button>
+              {!isImporting && <button onClick={() => { setImportPreview(null); setImportResult(null); setImportProgress(0); }} className="hover:text-red-300"><X size={18} /></button>}
             </div>
-            <div className="overflow-auto flex-1 p-3">
-              <table className="w-full text-[11px] whitespace-nowrap border border-gray-200">
-                <thead className="bg-gray-100 sticky top-0">
-                  <tr>{Object.keys(importPreview[0]).map(k => <th key={k} className="px-2 py-1.5 border border-gray-200 text-left font-bold">{k}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {importPreview.map((row, i) => (
-                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      {Object.values(row).map((v: any, j) => <td key={j} className="px-2 py-1 border border-gray-100">{v}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t flex justify-end gap-2 shrink-0">
-              <p className="text-[11px] text-gray-500 flex-1 self-center">Existing products (matched by name) will be updated. New ones will be created.</p>
-              <button onClick={() => setImportPreview(null)} className="px-4 py-2 bg-gray-500 text-white font-bold rounded text-[12px]">Cancel</button>
-              <button onClick={handleConfirmImport} disabled={isImporting} className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-70 text-white font-bold rounded text-[12px] flex items-center gap-2">
-                {isImporting ? 'Importing...' : `Confirm Import (${importPreview.length} rows)`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {importPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
-            <div className="bg-[#7C3AED] text-white px-4 py-3 rounded-t-lg flex justify-between items-center shrink-0">
-              <span className="font-bold text-[14px] flex items-center gap-2"><Upload size={16} /> Import Preview - {importPreview.length} rows</span>
-              <button onClick={() => setImportPreview(null)} className="hover:text-red-300"><X size={18} /></button>
-            </div>
-            <div className="overflow-auto flex-1 p-3">
-              <table className="w-full text-[11px] whitespace-nowrap border border-gray-200">
-                <thead className="bg-gray-100 sticky top-0">
-                  <tr>{Object.keys(importPreview[0]).map(k => <th key={k} className="px-2 py-1.5 border border-gray-200 text-left font-bold">{k}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {importPreview.map((row, i) => (
-                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      {Object.values(row).map((v: any, j) => <td key={j} className="px-2 py-1 border border-gray-100">{v}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-3 border-t flex justify-end gap-2 shrink-0">
-              <p className="text-[11px] text-gray-500 flex-1 self-center">Existing products (matched by name) will be updated. New ones will be created.</p>
-              <button onClick={() => setImportPreview(null)} className="px-4 py-2 bg-gray-500 text-white font-bold rounded text-[12px]">Cancel</button>
-              <button onClick={handleConfirmImport} disabled={isImporting} className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-70 text-white font-bold rounded text-[12px] flex items-center gap-2">
-                {isImporting ? 'Importing...' : `Confirm Import (${importPreview.length} rows)`}
-              </button>
-            </div>
+
+            {isImporting ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
+                <p className="font-bold text-[#7C3AED] text-[15px]">Uploading & Importing... {importProgress}%</p>
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div className="bg-[#7C3AED] h-4 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }} />
+                </div>
+                <p className="text-[12px] text-gray-500">Please wait, do not close this window.</p>
+              </div>
+            ) : importResult ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
+                <p className="font-bold text-[15px] text-[#16A34A]">✅ Import Complete!</p>
+                <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+                  <div className="bg-green-50 border border-green-200 rounded p-3 text-center">
+                    <p className="text-[22px] font-bold text-green-700">{importResult.created}</p>
+                    <p className="text-[11px] text-green-600 font-bold">CREATED</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-center">
+                    <p className="text-[22px] font-bold text-blue-700">{importResult.updated}</p>
+                    <p className="text-[11px] text-blue-600 font-bold">UPDATED</p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded p-3 text-center">
+                    <p className="text-[22px] font-bold text-gray-600">{importResult.skipped}</p>
+                    <p className="text-[11px] text-gray-500 font-bold">SKIPPED</p>
+                  </div>
+                </div>
+                {importResult.errors.length > 0 && (
+                  <div className="w-full max-w-md bg-red-50 border border-red-200 rounded p-3 text-center">
+                    <p className="text-[14px] font-bold text-red-600">{importResult.errors.length} Errors found</p>
+                    <button onClick={handleDownloadErrorReport} className="mt-2 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-[12px] flex items-center gap-1 mx-auto">
+                      <Download size={13} /> Download Error Report
+                    </button>
+                  </div>
+                )}
+                <button onClick={() => { setImportPreview(null); setImportResult(null); setImportProgress(0); }} className="px-6 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold rounded text-[12px]">Close</button>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-auto flex-1 p-3">
+                  <table className="w-full text-[11px] whitespace-nowrap border border-gray-200">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>{Object.keys(importPreview[0]).map(k => <th key={k} className="px-2 py-1.5 border border-gray-200 text-left font-bold">{k}</th>)}</tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.map((row, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          {Object.values(row).map((v: any, j) => <td key={j} className="px-2 py-1 border border-gray-100">{v}</td>)}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="p-3 border-t flex justify-end gap-2 shrink-0">
+                  <p className="text-[11px] text-gray-500 flex-1 self-center">Existing products (matched by name) will be updated. New ones will be created.</p>
+                  <button onClick={() => { setImportPreview(null); setImportResult(null); }} className="px-4 py-2 bg-gray-500 text-white font-bold rounded text-[12px]">Cancel</button>
+                  <button onClick={handleConfirmImport} className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold rounded text-[12px] flex items-center gap-2">
+                    <Upload size={13} /> Confirm Import ({importPreview.length} rows)
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
