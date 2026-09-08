@@ -4,11 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store, Save, X, Settings as SettingsIcon, AlertTriangle } from 'lucide-react';
+import { Store, Save, X, Settings as SettingsIcon, AlertTriangle, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Select from 'react-select';
+import InvoicePrintModal from '../components/InvoicePrintModal';
 
 const storeSettingsSchema = z.object({
   shopName: z.string().min(1, 'Shop name is required'),
@@ -62,6 +63,24 @@ const Settings = () => {
   const [isDevUnlocked, setIsDevUnlocked] = useState(false);
   const [devPasswordInput, setDevPasswordInput] = useState('');
   const [resetType, setResetType] = useState<'transactions' | 'master' | 'full' | ''>('');
+  const [sampleBillFormat, setSampleBillFormat] = useState<string | null>(null);
+
+  const sampleSale = {
+    id: 0,
+    invoiceNo: 'SAMPLE-001',
+    date: new Date().toISOString(),
+    grandTotal: 600,
+    subtotal: 650,
+    discount: 50,
+    tax: 0,
+    paymentMode: { name: 'Cash' },
+    customer: { name: 'John Doe', phone: '9876543210', address: '123 Sample Street', state: '33 - Tamil Nadu' },
+    items: [
+      { product: { name: 'Product A', code: 'PRD001', unit: { shortCode: 'Nos' } }, quantity: 2, rate: 150, amount: 300 },
+      { product: { name: 'Product B', code: 'PRD002', unit: { shortCode: 'Pcs' } }, quantity: 1, rate: 200, amount: 200 },
+      { product: { name: 'Product C', code: 'PRD003', unit: { shortCode: 'Kg' } }, quantity: 3, rate: 50, amount: 150 },
+    ]
+  };
 
   // Fetch Settings
   const { data: settings, isLoading } = useQuery({
@@ -360,11 +379,23 @@ const Settings = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   {[{value:'A4',label:'A4',desc:'Standard full page (210×297mm)'},{value:'A5',label:'A5',desc:'Half page (148×210mm)'},{value:'Thermal',label:'Thermal',desc:'Receipt roll (80mm width)'}].map((fmt) => (
-                    <label key={fmt.value} className={`cursor-pointer rounded-lg border-2 p-3 flex flex-col gap-1 transition-all ${watchStore('printFormat') === fmt.value ? 'border-[#3B82F6] bg-[#EFF6FF]' : 'border-[#E2E8F0] bg-white hover:border-[#93C5FD]'}`}>
-                      <input type="radio" {...registerStore('printFormat')} value={fmt.value} className="hidden" />
-                      <span className={`text-[13px] font-bold ${watchStore('printFormat') === fmt.value ? 'text-[#1D4ED8]' : 'text-[#1F2937]'}`}>{fmt.label}</span>
-                      <span className="text-[10px] text-[#64748B]">{fmt.desc}</span>
-                    </label>
+                    <div key={fmt.value} className="flex flex-col gap-1">
+                      <label className={`cursor-pointer rounded-lg border-2 p-3 flex flex-col gap-1 transition-all ${watchStore('printFormat') === fmt.value ? 'border-[#3B82F6] bg-[#EFF6FF]' : 'border-[#E2E8F0] bg-white hover:border-[#93C5FD]'}`}>
+                        <input type="radio" {...registerStore('printFormat')} value={fmt.value} className="hidden" />
+                        <span className={`text-[13px] font-bold ${watchStore('printFormat') === fmt.value ? 'text-[#1D4ED8]' : 'text-[#1F2937]'}`}>{fmt.label}</span>
+                        <span className="text-[10px] text-[#64748B]">{fmt.desc}</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.setItem('invoicePrintFormat', fmt.value.toLowerCase());
+                          setSampleBillFormat(fmt.value);
+                        }}
+                        className="w-full flex items-center justify-center gap-1 text-[11px] font-bold text-[#2563EB] border border-[#BFDBFE] bg-[#EFF6FF] hover:bg-[#DBEAFE] rounded py-1 transition-colors"
+                      >
+                        <Download size={11} /> Sample Bill
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -699,6 +730,17 @@ const Settings = () => {
 
         </div>
       </form>
+
+      {/* Sample Bill Modal */}
+      {sampleBillFormat && (
+        <InvoicePrintModal
+          isOpen={true}
+          onClose={() => setSampleBillFormat(null)}
+          sale={sampleSale}
+          isEstimation={false}
+          forceFormat={sampleBillFormat.toLowerCase() as 'a4' | 'a5' | 'thermal'}
+        />
+      )}
 
       {/* Reset Confirmation Modal */}
       {showResetModal && (
