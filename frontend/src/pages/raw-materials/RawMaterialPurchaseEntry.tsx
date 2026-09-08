@@ -79,6 +79,47 @@ const RawMaterialPurchaseEntry = () => {
     }
   };
 
+  const focusCell = (row: number, col: number) => {
+    if (col === 0) {
+      const el = document.querySelector<HTMLElement>(`[data-row-product="${row}"]`);
+      if (el) el.focus();
+    } else {
+      const el = document.querySelector<HTMLElement>(`[data-row="${row}"][data-col="${col}"]`);
+      if (el) { el.focus(); (el as HTMLInputElement).select?.(); }
+    }
+  };
+
+  const handleCellKey = (e: React.KeyboardEvent, rowIndex: number, col: number, totalCols: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextRow = rowIndex + 1;
+      if (nextRow < items.length) {
+        focusCell(nextRow, 0);
+      } else {
+        addItem();
+        setTimeout(() => focusCell(nextRow, 0), 80);
+      }
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      const nextCol = col + 1;
+      if (nextCol < totalCols) focusCell(rowIndex, nextCol);
+      else {
+        const nextRow = rowIndex + 1;
+        if (nextRow < items.length) focusCell(nextRow, 0);
+        else { addItem(); setTimeout(() => focusCell(nextRow, 0), 80); }
+      }
+    } else if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault();
+      const prevCol = col - 1;
+      if (prevCol >= 0) focusCell(rowIndex, prevCol);
+      else if (rowIndex > 0) focusCell(rowIndex - 1, totalCols - 1);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault(); focusCell(rowIndex + 1, col);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); if (rowIndex > 0) focusCell(rowIndex - 1, col);
+    }
+  };
+
   const addItem = () => {
     setItems([...items, { rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
   };
@@ -218,6 +259,15 @@ const RawMaterialPurchaseEntry = () => {
     addSupplierMutation.mutate(newSupplier);
   };
   
+  // Auto-focus first row product on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const el = document.querySelector<HTMLElement>('[data-row-product="0"]');
+      el?.focus();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
+
   const selectedSupplier = suppliers.find((s: any) => s.id === Number(supplierId));
 
   return (
@@ -246,7 +296,7 @@ const RawMaterialPurchaseEntry = () => {
         </button>
       </div>
 
-      <form className="flex flex-col flex-1 overflow-y-auto custom-scrollbar" onSubmit={handleSubmit}>
+      <form className="flex flex-col flex-1 min-h-0 overflow-hidden" onSubmit={handleSubmit}>
         
         {/* Header Section */}
         <div className="bg-white p-4 sm:p-5 border-b border-[#E5E7EB] shrink-0 shadow-sm">
@@ -314,43 +364,44 @@ const RawMaterialPurchaseEntry = () => {
           </div>
         </div>
 
-        {/* Items Grid */}
-        <div className="flex-1 overflow-auto custom-scrollbar bg-white p-2 sm:p-4 border-b border-[#E5E7EB] overflow-x-auto">
-          <div className="flex flex-wrap justify-between gap-2 mb-2 min-w-[300px]">
-            <div className="flex gap-2">
-              <button 
-                type="button"
-                onClick={() => navigate('/raw-materials/purchase-list')}
-                className="border border-[#10B981] text-[#10B981] hover:bg-[#10B981] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-              >
-                <List size={14} /> List
-              </button>
-              <button 
-                type="button"
-                onClick={() => navigate('/reports/raw-material-purchase')}
-                className="border border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-              >
-                <FileText size={14} /> Report
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                type="button"
-                onClick={addItem}
-                className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-              >
-                <PlusCircle size={14} /> Add Row
-              </button>
-              <button 
-                type="button"
-                onClick={handleClear}
-                className="border border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
-              >
-                <RotateCcw size={14} /> Clear (F4)
-              </button>
-            </div>
+        {/* Action Buttons */}
+        <div className="shrink-0 flex flex-wrap justify-between gap-2 p-2 bg-white border-b border-[#E5E7EB]">
+          <div className="flex gap-2">
+            <button 
+              type="button"
+              onClick={() => navigate('/raw-materials/purchase-list')}
+              className="border border-[#10B981] text-[#10B981] hover:bg-[#10B981] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+            >
+              <List size={14} /> List
+            </button>
+            <button 
+              type="button"
+              onClick={() => navigate('/reports/raw-material-purchase')}
+              className="border border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+            >
+              <FileText size={14} /> Report
+            </button>
           </div>
-          
+          <div className="flex gap-2">
+            <button 
+              type="button"
+              onClick={addItem}
+              className="border border-[#0B355B] text-[#0B355B] hover:bg-[#0B355B] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+            >
+              <PlusCircle size={14} /> Add Row
+            </button>
+            <button 
+              type="button"
+              onClick={handleClear}
+              className="border border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+            >
+              <RotateCcw size={14} /> Clear (F4)
+            </button>
+          </div>
+        </div>
+
+        {/* Items Grid */}
+        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar bg-white border-b border-[#E5E7EB]">
           <table className="w-full border-collapse border border-[#E5E7EB] md:min-w-[1200px] whitespace-nowrap responsive-table shadow-sm">
             <thead>
               <tr className="bg-[#1E293B] text-white">
@@ -373,6 +424,8 @@ const RawMaterialPurchaseEntry = () => {
                     <SearchableSelect
                       creatable={true}
                       value={item.rawMaterialId}
+                      autoFocus={index === 0 && items.length === 1 && item.rawMaterialId === 0}
+                      dataAttr={{ 'data-row-product': String(index) }}
                       onChange={(val) => updateItem(index, 'rawMaterialId', Number(val))}
                       onCreate={(name) => handleCreateNewMaterial(index, name)}
                       options={[
