@@ -470,11 +470,11 @@ const MainLayout = () => {
           <div className="flex items-center gap-2 sm:gap-4 h-full shrink-0">
             <Link 
               to="/quick-start"
-              className={`hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-1.5 sm:py-2 rounded-md font-bold transition-all shadow-lg shadow-orange-500/40 text-[12px] sm:text-[13px] transform hover:-translate-y-0.5 shrink-0 ${showBackButton ? 'px-2 sm:px-3' : 'px-4 sm:px-5'}`}
+              className={`hidden md:flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-1.5 sm:py-2 rounded-md font-bold transition-all shadow-lg shadow-orange-500/40 text-[12px] sm:text-[13px] transform hover:-translate-y-0.5 shrink-0 ${showBackButton || isCrowded ? 'px-2 sm:px-3' : 'px-4 sm:px-5'}`}
               title="Quick Start"
             >
               <Zap size={14} fill="currentColor" className="shrink-0" /> 
-              {!showBackButton && <span className="hidden xl:inline whitespace-nowrap">Quick Start</span>}
+              {!showBackButton && !isCrowded && <span className="hidden xl:inline whitespace-nowrap">Quick Start</span>}
             </Link>
             
             {/* {!showBackButton && (
