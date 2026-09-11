@@ -210,17 +210,19 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
 
       // Table rows
       items.forEach((item: any, idx: number) => {
-        const splitName = doc.splitTextToSize(
-          `${item.product?.name || ''}${item.product?.code ? ` (${item.product.code})` : ''}`, 80
-        );
+        const displayName = item.isService 
+          ? (item.itemName || item.serviceItem?.name || '')
+          : `${item.product?.name || ''}${item.product?.code ? ` (${item.product.code})` : ''}`;
+
+        const splitName = doc.splitTextToSize(displayName, 80);
         const rowH = Math.max(lineH + 2, splitName.length * 4 + 2);
         if (idx % 2 === 0) { doc.setFillColor('#f8fafc'); doc.rect(col, y - 4, W - margin * 2, rowH, 'F'); }
         doc.setFontSize(9); doc.setTextColor('#1e293b');
         doc.setFont('helvetica', 'normal'); doc.text(String(idx + 1), col + 2, y);
         doc.setFont('helvetica', 'bold'); doc.text(splitName, col + 10, y);
         doc.setFont('helvetica', 'normal');
-        if (item.product?.hsnCode) { doc.setFontSize(8); doc.text(item.product.hsnCode, col + 88, y, { align: 'center' }); doc.setFontSize(9); }
-        doc.text(`${item.quantity} ${item.product?.unit?.shortCode || 'Nos'}`, col + 105, y, { align: 'center' });
+        if (!item.isService && item.product?.hsnCode) { doc.setFontSize(8); doc.text(item.product.hsnCode, col + 88, y, { align: 'center' }); doc.setFontSize(9); }
+        doc.text(`${item.quantity} ${item.isService ? 'Svc' : (item.product?.unit?.shortCode || 'Nos')}`, col + 105, y, { align: 'center' });
         doc.text(Number(item.rate || 0).toFixed(2), col + 138, y, { align: 'right' });
         doc.setFont('helvetica', 'bold');
         doc.text(Number(item.amount || item.total || 0).toFixed(2), W - margin - 2, y, { align: 'right' });
@@ -697,8 +699,8 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
         <tbody>
           {items.map((item: any, idx: number) => (
             <tr key={idx}>
-              <td className="py-0.5 pr-1 max-w-[28mm] break-words">{item.product?.name || ''}</td>
-              <td className="py-0.5 text-center whitespace-nowrap">{item.quantity} {item.product?.unit?.shortCode || ''}</td>
+              <td className="py-0.5 pr-1 max-w-[28mm] break-words">{item.isService ? (item.itemName || item.serviceItem?.name || '') : (item.product?.name || '')}</td>
+              <td className="py-0.5 text-center whitespace-nowrap">{item.quantity} {item.isService ? 'Svc' : (item.product?.unit?.shortCode || '')}</td>
               <td className="py-0.5 text-right whitespace-nowrap">{Number(item.rate || 0).toFixed(2)}</td>
               <td className="py-0.5 text-right whitespace-nowrap font-bold">{Number(item.amount || item.total || 0).toFixed(2)}</td>
             </tr>
@@ -812,19 +814,24 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100" style={{ fontSize: isA5 ? '8px' : '12px' }}>
-            {items.map((item: any, idx: number) => (
-              <tr key={idx} className="bg-white">
-                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-slate-500`}>{idx + 1}</td>
-                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'}`}>
-                  <span className="font-bold text-slate-800">{item.product?.name || ''}</span>
-                  {item.product?.code && <span className="text-slate-500 ml-1">({item.product.code})</span>}
-                </td>
-                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-center text-slate-600`}>{item.product?.hsnCode || '-'}</td>
-                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-center text-slate-600 font-medium`}>{item.quantity} {item.product?.unit?.shortCode || 'Nos'}</td>
-                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-right text-slate-600`}>{Number(item.rate || 0).toFixed(2)}</td>
-                <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-right font-bold text-slate-800`}>{Number(item.amount || item.total || 0).toFixed(2)}</td>
-              </tr>
-            ))}
+            {items.map((item: any, idx: number) => {
+              const displayName = item.isService 
+                ? (item.itemName || item.serviceItem?.name || '')
+                : (item.product?.name || '');
+              return (
+                <tr key={idx} className="bg-white">
+                  <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-slate-500`}>{idx + 1}</td>
+                  <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'}`}>
+                    <span className="font-bold text-slate-800">{displayName}</span>
+                    {!item.isService && item.product?.code && <span className="text-slate-500 ml-1">({item.product.code})</span>}
+                  </td>
+                  <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-center text-slate-600`}>{!item.isService ? (item.product?.hsnCode || '-') : '-'}</td>
+                  <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-center text-slate-600 font-medium`}>{item.quantity} {item.isService ? 'Svc' : (item.product?.unit?.shortCode || 'Nos')}</td>
+                  <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-right text-slate-600`}>{Number(item.rate || 0).toFixed(2)}</td>
+                  <td className={`${isA5 ? 'py-1 px-1' : 'py-3 px-4'} text-right font-bold text-slate-800`}>{Number(item.amount || item.total || 0).toFixed(2)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

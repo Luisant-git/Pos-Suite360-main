@@ -60,8 +60,11 @@ const saleItemSchema = z.object({
   tax: z.coerce.number().optional(),
   total: z.coerce.number(),
   isEstimationItem: z.boolean().optional(),
+  isService: z.boolean().optional(),
+  serviceItemId: z.coerce.number().optional(),
+  itemName: z.string().optional(),
 }).superRefine((data, ctx) => {
-  if (data.productId > 0) {
+  if (data.productId > 0 || (data.serviceItemId && data.serviceItemId > 0)) {
     if (data.quantity <= 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -210,9 +213,25 @@ const POS = () => {
 
   // Fetch Masters & Next Invoice
   const { data: customers = [] } = useQuery({ queryKey: ['customers'], queryFn: async () => (await api.get('/customers')).data });
-  const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: async () => (await api.get('/products')).data });
+  const { data: productsData = [] } = useQuery({ queryKey: ['products'], queryFn: async () => (await api.get('/products')).data });
+  const { data: serviceItemsData = [] } = useQuery({ queryKey: ['service-items'], queryFn: async () => (await api.get('/service-items?isActive=true')).data });
   const { data: paymentModes = [] } = useQuery({ queryKey: ['paymentModes'], queryFn: async () => (await api.get('/payment-modes')).data });
   const { data: nextInvoiceData } = useQuery({ queryKey: ['nextInvoiceNo'], queryFn: async () => (await api.get('/sales/next-invoice-no')).data });
+
+  const products = [
+    ...productsData.map((p: any) => ({ ...p, isService: false })),
+    ...(settings?.enableUnifiedPOS ? serviceItemsData.map((s: any) => ({
+      ...s,
+      id: s.id + 1000000,
+      originalServiceId: s.id,
+      isService: true,
+      currentStock: 999999, // Bypass stock validation
+      unit: { shortCode: 'Svc' },
+      sellingRate: s.rate,
+      purchaseRate: 0,
+      code: s.code || `SVC-${s.id}`
+    })) : [])
+  ];
 
   const { data: estimationData } = useQuery({
     queryKey: ['estimation', estimationId],
@@ -321,20 +340,30 @@ const POS = () => {
   }, [JSON.stringify(items), watchTotalDiscount, watchRoundOff, setValue, settings?.enableTax, products]);
 
   // Product change handler
-  const handleProductChange = async (index: number, productId: string) => {
-    const product = products.find((p: any) => p.id === Number(productId));
-    if (product) {
-      setValue(`items.${index}.stock`, product.currentStock || 0);
-      setValue(`items.${index}.unit`, product.unit?.shortCode || product.unit?.name || 'Nos');
+  const handleProductChange = async (index: number, id: string) => {
+    const item = products.find((p: any) => p.id === Number(id));
+    if (item) {
+      if (item.isService) {
+        setValue(`items.${index}.isService`, true);
+        setValue(`items.${index}.serviceItemId`, item.originalServiceId);
+        setValue(`items.${index}.itemName`, item.name);
+      } else {
+        setValue(`items.${index}.isService`, false);
+        setValue(`items.${index}.serviceItemId`, undefined);
+        setValue(`items.${index}.itemName`, undefined);
+      }
+
+      setValue(`items.${index}.stock`, item.currentStock || 0);
+      setValue(`items.${index}.unit`, item.unit?.shortCode || item.unit?.name || 'Nos');
       
       const rateType = getValues('rateType');
-      let rate = Number(product.sellingRate) || 0;
-      if (rateType === 'Wholesale Rate') rate = Number(product.wholesaleRate) || 0;
-      else if (rateType === 'MRP') rate = Number(product.mrp) || 0;
+      let rate = Number(item.sellingRate) || 0;
+      if (rateType === 'Wholesale Rate') rate = Number(item.wholesaleRate) || 0;
+      else if (rateType === 'MRP') rate = Number(item.mrp) || 0;
       
       // Override with custom customer rate if enabled
-      if (settings?.enableCustomerWiseRate && selectedCustomer?.productRates) {
-        const customRate = selectedCustomer.productRates.find((pr: any) => pr.productId === product.id);
+      if (settings?.enableCustomerWiseRate && selectedCustomer?.productRates && !item.isService) {
+        const customRate = selectedCustomer.productRates.find((pr: any) => pr.productId === item.id);
         if (customRate && customRate.rate > 0) {
           rate = Number(customRate.rate);
         }
@@ -425,9 +454,9 @@ const POS = () => {
       return;
     }
     
-    const validItems = data.items.filter(item => item.productId > 0);
+    const validItems = data.items.filter(item => item.productId > 0 || item.serviceItemId);
     if (validItems.length === 0) {
-      toast.error('Please add at least one product before saving.');
+      toast.error('Please add at least one product or service before saving.');
       return;
     }
 
@@ -440,7 +469,10 @@ const POS = () => {
       tax: Number(data.tax || 0),
       grandTotal: Number(data.netAmount),
       items: validItems.map(item => ({
-        productId: Number(item.productId),
+        productId: !item.isService && item.productId > 0 ? Number(item.productId) : undefined,
+        serviceItemId: item.isService && item.serviceItemId ? Number(item.serviceItemId) : undefined,
+        isService: item.isService || false,
+        itemName: item.itemName,
         quantity: Number(item.quantity),
         rate: Number(item.rate),
         discount: Number(item.discAmt || 0),
@@ -450,6 +482,7 @@ const POS = () => {
     };
 
     const hasLowRate = validItems.some(item => {
+      if (item.isService) return false;
       const p = products.find((prod: any) => prod.id === Number(item.productId));
       return p && Number(item.rate) > 0 && Number(item.rate) <= Number(p.purchaseRate);
     });
@@ -773,7 +806,10 @@ const POS = () => {
                       }}
                       options={[
                         { label: 'Type product name / code...', value: 0 },
-                        ...products.map((p: any) => ({ label: `${p.code} - ${p.name}`, value: p.id }))
+                        ...products.map((p: any) => ({ 
+                          label: p.isService ? `[Service] ${p.code} - ${p.name}` : `${p.code} - ${p.name}`, 
+                          value: p.id 
+                        }))
                       ]}
                     />
                   </td>

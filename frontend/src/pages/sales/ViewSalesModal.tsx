@@ -204,20 +204,25 @@ export default function ViewSalesModal({ saleId, onClose }: Props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {sale.items?.map((item: any, idx: number) => (
+                      {sale.items?.map((item: any, idx: number) => {
+                        const displayName = item.isService 
+                          ? (item.itemName || item.serviceItem?.name || '')
+                          : (item.product?.name || '');
+                        return (
                         <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                          <td className="py-3 px-2 font-medium text-gray-600">{item.product?.code || '-'}</td>
+                          <td className="py-3 px-2 font-medium text-gray-600">{!item.isService ? (item.product?.code || '-') : '-'}</td>
                           <td className="py-3 px-2">
-                            <span className="font-bold text-gray-800">{item.product?.name}</span>
-                            {item.product?.hsnCode && <span className="block text-[11px] text-gray-400">HSN: {item.product.hsnCode}</span>}
+                            <span className="font-bold text-gray-800">{displayName}</span>
+                            {!item.isService && item.product?.hsnCode && <span className="block text-[11px] text-gray-400">HSN: {item.product.hsnCode}</span>}
                           </td>
                           <td className="py-3 px-2 text-right">{item.quantity}</td>
-                          <td className="py-3 px-2 text-center text-gray-500">{item.product?.unit?.name || 'Nos'}</td>
+                          <td className="py-3 px-2 text-center text-gray-500">{item.isService ? 'Svc' : (item.product?.unit?.name || 'Nos')}</td>
                           <td className="py-3 px-2 text-right font-medium">{formatCurrency(item.rate)}</td>
                           <td className="py-3 px-2 text-right text-red-500">{item.discount > 0 ? formatCurrency(item.discount) : '-'}</td>
                           <td className="py-3 px-2 text-right font-bold text-gray-900">{formatCurrency(item.amount)}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

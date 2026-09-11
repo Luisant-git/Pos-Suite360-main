@@ -56,7 +56,10 @@ export class SalesService {
           grandTotal: createSaleDto.grandTotal,
           items: {
             create: createSaleDto.items.map((item) => ({
-              productId: item.productId,
+              productId: item.productId || null,
+              serviceItemId: item.serviceItemId || null,
+              isService: item.isService || false,
+              itemName: item.itemName || null,
               quantity: item.quantity,
               rate: item.rate,
               discount: item.discount || 0,
@@ -70,6 +73,15 @@ export class SalesService {
 
       // 3. Update stock and ledger for each item
       for (const item of createSaleDto.items) {
+        if (item.isService) {
+          // Skip stock updates for service items
+          continue;
+        }
+
+        if (!item.productId) {
+          throw new BadRequestException('Product ID is required for physical products.');
+        }
+
         const currentProduct = await tx.product.findUnique({ where: { id: item.productId } });
         if (!currentProduct) {
           throw new BadRequestException(`Product not found: ${item.productId}`);
@@ -134,7 +146,8 @@ export class SalesService {
         paymentMode: true,
         items: {
           include: {
-            product: true
+            product: true,
+            serviceItem: true,
           }
         }
       },
@@ -161,6 +174,7 @@ export class SalesService {
                 unit: true
               }
             },
+            serviceItem: true,
           },
         },
       },
@@ -201,6 +215,8 @@ export class SalesService {
 
       // 1. Reverse stock and ledger
       for (const item of sale.items) {
+        if (item.isService || !item.productId) continue;
+
         const updatedProduct = await tx.product.update({
           where: { id: item.productId },
           data: {

@@ -1,9 +1,22 @@
 import { Type } from 'class-transformer';
-import { IsString, IsNumber, IsArray, ValidateNested, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsArray, ValidateNested, IsOptional, IsDateString, IsBoolean } from 'class-validator';
 
 class SaleItemDto {
   @IsNumber()
-  productId: number;
+  @IsOptional()
+  productId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  serviceItemId?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isService?: boolean;
+
+  @IsString()
+  @IsOptional()
+  itemName?: string;
 
   @IsNumber()
   quantity: number;
