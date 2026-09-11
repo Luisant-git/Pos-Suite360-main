@@ -31,6 +31,7 @@ interface Settings {
   enableService?: boolean;
   serviceInvoicePrefix?: string;
   servicePrintFormat?: string;
+  enableUnifiedPOS?: boolean;
 }
 
 interface SettingsContextType {

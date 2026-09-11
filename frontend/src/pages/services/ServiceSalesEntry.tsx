@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2, Save, RefreshCw, List, Printer, Scissors, FileText } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, List, Scissors, FileText } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -250,10 +250,6 @@ const ServiceSalesEntry = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSubmit, onSubmit, onFormError, append, navigate, defaultItem]);
 
-  const gross = watch('grossAmount');
-  const disc = watch('totalDiscount');
-  const tax = watch('totalTax');
-  const grand = watch('grandTotal');
 
   const serviceOptions = serviceItems.map((s: any) => ({
     value: s.id, label: `${s.name} — ${formatCurrency(s.rate)}`, data: s,

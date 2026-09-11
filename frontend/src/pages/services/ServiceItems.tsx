@@ -30,7 +30,7 @@ const ServiceItems = () => {
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ServiceItemValues>({
-    resolver: zodResolver(serviceItemSchema),
+    resolver: zodResolver(serviceItemSchema) as any,
     defaultValues: {
       name: '',
       code: '',
@@ -104,7 +104,7 @@ const ServiceItems = () => {
     mutation.mutate(data);
   };
 
-  const onFormError = (errs: any) => {
+  const onFormError = () => {
     toast.error('Please fill all required fields correctly.');
   };
 
