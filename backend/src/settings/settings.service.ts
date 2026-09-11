@@ -52,6 +52,9 @@ export class SettingsService {
         estimationStockMaintain: data.estimationStockMaintain === true || data.estimationStockMaintain === 'true',
         printFormat: data.printFormat || 'A4',
         estimationUpiId: data.estimationUpiId,
+        enableService: data.enableService === true || data.enableService === 'true',
+        serviceInvoicePrefix: data.serviceInvoicePrefix || 'SRV-',
+        servicePrintFormat: data.servicePrintFormat || 'thermal',
       },
       create: {
         id: 1,
@@ -78,6 +81,9 @@ export class SettingsService {
         estimationStockMaintain: data.estimationStockMaintain === true || data.estimationStockMaintain === 'true',
         printFormat: data.printFormat || 'A4',
         estimationUpiId: data.estimationUpiId,
+        enableService: data.enableService === true || data.enableService === 'true',
+        serviceInvoicePrefix: data.serviceInvoicePrefix || 'SRV-',
+        servicePrintFormat: data.servicePrintFormat || 'thermal',
       },
     });
   }
@@ -86,6 +92,7 @@ export class SettingsService {
     try {
       const truncateTransactions = async () => {
         const tables = [
+          'ServiceSaleItem', 'ServiceSale',
           'SaleItem', 'Sale', 'SalesReturnItem', 'SalesReturn',
           'PurchaseItem', 'Purchase', 'PurchaseReturnItem', 'PurchaseReturn',
           'StockTransaction', 'Expense', 'SupplierPayment', 'CustomerReceipt',

@@ -33,6 +33,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 import { EstimationsModule } from './estimations/estimations.module';
+import { ServiceItemsModule } from './service-items/service-items.module';
+import { ServiceSalesModule } from './service-sales/service-sales.module';
 
 @Module({
   imports: [
@@ -71,7 +73,9 @@ import { EstimationsModule } from './estimations/estimations.module';
     RawMaterialPurchasesModule,
     RawMaterialsModule,
     RolesModule,
-    EstimationsModule
+    EstimationsModule,
+    ServiceItemsModule,
+    ServiceSalesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

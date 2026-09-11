@@ -22,6 +22,7 @@ model User {
   salesReturns     SalesReturn[]
   supplierPayments SupplierPayment[]
   customerReceipts CustomerReceipt[]
+  serviceSales     ServiceSale[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   estimations      Estimation[]
@@ -120,6 +121,7 @@ model Customer {
   salesReturns       SalesReturn[]
   receipts           CustomerReceipt[]
   productRates       CustomerProductRate[]
+  serviceSales       ServiceSale[]
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -148,6 +150,7 @@ model PaymentMode {
   customerReceipts     CustomerReceipt[]
   rawMaterialPurchases RawMaterialPurchase[]
   estimations          Estimation[]
+  serviceSales         ServiceSale[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -336,8 +339,14 @@ model SaleItem {
   saleId Int
   sale   Sale @relation(fields: [saleId], references: [id])
 
-  productId Int
-  product   Product @relation(fields: [productId], references: [id])
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  serviceItemId Int?
+  serviceItem   ServiceItem? @relation(fields: [serviceItemId], references: [id])
+
+  isService Boolean @default(false)
+  itemName  String? // Store the name snapshot (useful for services)
 
   quantity Int
   rate     Decimal
@@ -520,6 +529,10 @@ model Settings {
   taxType                 String? @default("exclusive")
   enableCustomerWiseRate  Boolean @default(false)
   estimationStockMaintain Boolean @default(false)
+  enableService           Boolean @default(false)
+  serviceInvoicePrefix    String  @default("SRV-")
+  servicePrintFormat      String  @default("thermal")
+  enableUnifiedPOS        Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -669,4 +682,66 @@ model EstimationItem {
   rate     Decimal
   discount Decimal @default(0)
   amount   Decimal
+}
+
+// ------------------------------------------------------
+// Service Module Models
+// ------------------------------------------------------
+
+model ServiceItem {
+  id          Int     @id @default(autoincrement())
+  name        String
+  code        String  @unique
+  description String?
+  rate        Decimal @default(0)
+  taxPercent  Decimal @default(0)
+  isActive    Boolean @default(true)
+
+  serviceSaleItems ServiceSaleItem[]
+  saleItems        SaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceSale {
+  id        Int      @id @default(autoincrement())
+  invoiceNo String   @unique
+  date      DateTime @default(now())
+
+  customerId Int?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  subtotal   Decimal @default(0)
+  tax        Decimal @default(0)
+  discount   Decimal @default(0)
+  grandTotal Decimal @default(0)
+  notes      String?
+
+  paymentModeId Int
+  paymentMode   PaymentMode @relation(fields: [paymentModeId], references: [id])
+
+  items ServiceSaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceSaleItem {
+  id            Int         @id @default(autoincrement())
+  serviceSaleId Int
+  serviceSale   ServiceSale @relation(fields: [serviceSaleId], references: [id], onDelete: Cascade)
+
+  serviceItemId Int?
+  serviceItem   ServiceItem? @relation(fields: [serviceItemId], references: [id])
+
+  serviceName String  // Snapshot of service name at time of sale
+  quantity    Decimal @default(1)
+  rate        Decimal
+  discount    Decimal @default(0)
+  tax         Decimal @default(0)
+  amount      Decimal
 }
