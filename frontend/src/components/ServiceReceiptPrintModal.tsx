@@ -229,7 +229,9 @@ const ServiceReceiptPrintModal = ({ isOpen, onClose, sale, autoPrint = false }: 
 
       <div id="service-receipt-portal">
         {/* Print-only receipt */}
-        {receiptContent}
+        <div className="hidden print:block w-full">
+          {receiptContent}
+        </div>
 
         {/* Screen view modal */}
         <div className="no-print bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh', width: '360px' }}>
