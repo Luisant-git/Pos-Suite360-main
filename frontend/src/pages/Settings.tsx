@@ -512,8 +512,8 @@ const Settings = () => {
                           className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#7C3AED]"
                         >
                           <option value="thermal">Thermal (3-inch / 80mm)</option>
-                          <option value="a4">A4 Page</option>
-                          <option value="a5">A5 Page</option>
+                          {/* <option value="a4">A4 Page</option>
+                          <option value="a5">A5 Page</option> */}
                         </select>
                       </div>
                     </div>
