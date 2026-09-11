@@ -36,6 +36,7 @@ const storeSettingsSchema = z.object({
   enableCustomerWiseRate: z.boolean().optional().default(false),
   estimationStockMaintain: z.boolean().optional().default(false),
   enableService: z.boolean().optional().default(false),
+  enableUnifiedPOS: z.boolean().optional().default(false),
   serviceInvoicePrefix: z.string().optional(),
   servicePrintFormat: z.string().optional(),
 });
@@ -125,6 +126,7 @@ const Settings = () => {
         enableCustomerWiseRate: settings.enableCustomerWiseRate || false,
         estimationStockMaintain: settings.estimationStockMaintain || false,
         enableService: settings.enableService || false,
+        enableUnifiedPOS: settings.enableUnifiedPOS || false,
         serviceInvoicePrefix: settings.serviceInvoicePrefix || 'SRV-',
         servicePrintFormat: settings.servicePrintFormat || 'thermal',
       });
@@ -485,12 +487,12 @@ const Settings = () => {
                   </label>
                   <p className="text-xs text-gray-500 italic ml-6 -mt-3">Activates a dedicated module for managing and billing non-inventory services. Ideal for consulting, labor charges, and service-oriented businesses.</p>
                   
-                  {watchStore('enableService') && (
+                  {/* {watchStore('enableService') && (
                     <label className="flex items-center gap-2 cursor-pointer ml-6">
                       <input type="checkbox" {...registerStore('enableUnifiedPOS')} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
                       <span className="text-[13px] font-bold text-[#334155]">Enable Unified POS (Mix Products and Services)</span>
                     </label>
-                  )}
+                  )} */}
 
                   {watchStore('enableService') && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-0">
