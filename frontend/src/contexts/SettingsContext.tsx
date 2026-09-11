@@ -28,6 +28,9 @@ interface Settings {
   estimationUpiId?: string;
   printFormat?: string;
   estimationStockMaintain?: boolean;
+  enableService?: boolean;
+  serviceInvoicePrefix?: string;
+  servicePrintFormat?: string;
 }
 
 interface SettingsContextType {

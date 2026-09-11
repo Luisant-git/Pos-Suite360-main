@@ -70,6 +70,16 @@ const MODULES = [
     ]
   },
   {
+    id: 'services',
+    name: 'Services',
+    icon: <Shield size={18} />,
+    permissions: [
+      { id: 'services_items', name: 'Service Items' },
+      { id: 'services_sales', name: 'Service Sales Entry' },
+      { id: 'services_sales_list', name: 'Service Bills List' },
+    ]
+  },
+  {
     id: 'reports',
     name: 'Reports',
     icon: <Shield size={18} />,
@@ -84,6 +94,7 @@ const MODULES = [
       { id: 'reports_batch_pnl', name: 'Batch P&L Report' },
       { id: 'reports_stock', name: 'Stock As On Date' },
       { id: 'reports_profit_ledger', name: 'Profit / Ledger' },
+      { id: 'reports_service_sales', name: 'Service Sales Report' },
     ]
   },
   {

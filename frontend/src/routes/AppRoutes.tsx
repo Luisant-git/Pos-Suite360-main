@@ -67,6 +67,12 @@ import ProfitLossReport from '../pages/reports/ProfitLossReport';
 import RawMaterialPurchaseReport from '../pages/reports/RawMaterialPurchaseReport';
 import ProductionReport from '../pages/reports/ProductionReport';
 import BatchPnlReport from '../pages/reports/BatchPnlReport';
+import ServiceSalesReport from '../pages/reports/ServiceSalesReport';
+
+// Services
+import ServiceItems from '../pages/services/ServiceItems';
+import ServiceSalesEntry from '../pages/services/ServiceSalesEntry';
+import ServiceSalesList from '../pages/services/ServiceSalesList';
 
 // Settings
 import Settings from '../pages/Settings';
@@ -145,6 +151,12 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute requiredPerms="reports_rm_purchase" />}><Route path="/reports/raw-material-purchase" element={<RawMaterialPurchaseReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_production" />}><Route path="/reports/production" element={<ProductionReport />} /></Route>
         <Route element={<ProtectedRoute requiredPerms="reports_batch_pnl" />}><Route path="/reports/batch-pnl" element={<BatchPnlReport />} /></Route>
+        <Route path="/reports/service-sales" element={<ServiceSalesReport />} />
+
+        {/* Service Module Routes */}
+        <Route path="/services/items" element={<ServiceItems />} />
+        <Route path="/services/sales" element={<ServiceSalesEntry />} />
+        <Route path="/services/sales-list" element={<ServiceSalesList />} />
 
         {/* Manufacturing & Raw Materials */}
         <Route element={<ProtectedRoute requiredPerms="mfg_rm_master" />}><Route path="/raw-materials/master" element={<RawMaterialMaster />} /></Route>

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store, Save, X, Settings as SettingsIcon, AlertTriangle, Download } from 'lucide-react';
+import { Store, Save, X, Settings as SettingsIcon, AlertTriangle, Download, Briefcase } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -35,6 +35,9 @@ const storeSettingsSchema = z.object({
   taxType: z.string().optional().default('exclusive'),
   enableCustomerWiseRate: z.boolean().optional().default(false),
   estimationStockMaintain: z.boolean().optional().default(false),
+  enableService: z.boolean().optional().default(false),
+  serviceInvoicePrefix: z.string().optional(),
+  servicePrintFormat: z.string().optional(),
 });
 
 type StoreSettingsValues = z.infer<typeof storeSettingsSchema>;
@@ -121,6 +124,9 @@ const Settings = () => {
         taxType: settings.taxType || 'exclusive',
         enableCustomerWiseRate: settings.enableCustomerWiseRate || false,
         estimationStockMaintain: settings.estimationStockMaintain || false,
+        enableService: settings.enableService || false,
+        serviceInvoicePrefix: settings.serviceInvoicePrefix || 'SRV-',
+        servicePrintFormat: settings.servicePrintFormat || 'thermal',
       });
     }
   }, [settings, resetStoreForm]);
@@ -460,12 +466,56 @@ const Settings = () => {
                     <span className="text-[13px] font-bold text-[#334155]">Enable Customer-Wise Product Rates</span>
                   </label>
                   <p className="text-xs text-gray-500 italic ml-6 -mt-3">If enabled, you can define custom product rates per customer in the Customer Master, which overrides standard retail rates during POS billing.</p>
-                  
-                  <label className="flex items-center gap-2 cursor-pointer">
+                          <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" {...registerStore('estimationStockMaintain')} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                     <span className="text-[13px] font-bold text-[#334155]">Maintain Stock on Estimation</span>
                   </label>
                   <p className="text-xs text-gray-500 italic ml-6 -mt-3">If enabled, creating an estimation will dynamically deduct from product inventory exactly like a regular sale.</p>
+                </div>
+              </div>
+
+              <div className="border-t border-[#E2E8F0] pt-4 mt-2">
+                <div className="flex items-center gap-2 text-[#475569] font-bold text-[13px] mb-2">
+                  <span className="text-[#64748B]"><Briefcase size={14} /></span> Service Management Settings
+                </div>
+                <div className="flex flex-col gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" {...registerStore('enableService')} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                    <span className="text-[13px] font-bold text-[#334155]">Enable Service Management Module</span>
+                  </label>
+                  <p className="text-xs text-gray-500 italic ml-6 -mt-3">Activates a dedicated module for managing and billing non-inventory services. Ideal for consulting, labor charges, and service-oriented businesses.</p>
+                  
+                  {watchStore('enableService') && (
+                    <label className="flex items-center gap-2 cursor-pointer ml-6">
+                      <input type="checkbox" {...registerStore('enableUnifiedPOS')} className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                      <span className="text-[13px] font-bold text-[#334155]">Enable Unified POS (Mix Products and Services)</span>
+                    </label>
+                  )}
+
+                  {watchStore('enableService') && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-0">
+                      <div>
+                        <label className="block text-[12px] font-bold text-[#334155] mb-1">Service Invoice Prefix</label>
+                        <input
+                          {...registerStore('serviceInvoicePrefix')}
+                          placeholder="e.g. SRV-"
+                          className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#7C3AED]"
+                        />
+                        <p className="text-[11px] text-[#64748B] mt-1">Service bills will use this prefix (e.g. SRV-00001)</p>
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-bold text-[#334155] mb-1">Service Print Format</label>
+                        <select
+                          {...registerStore('servicePrintFormat')}
+                          className="w-full px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#7C3AED]"
+                        >
+                          <option value="thermal">Thermal (3-inch / 80mm)</option>
+                          <option value="a4">A4 Page</option>
+                          <option value="a5">A5 Page</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
