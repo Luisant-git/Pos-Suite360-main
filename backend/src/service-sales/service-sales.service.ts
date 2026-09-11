@@ -39,13 +39,19 @@ export class ServiceSalesService {
         resolvedCustomerId = cashCustomer.id;
       }
 
+      let actualUserId = userId;
+      if (actualUserId < 1) {
+        const firstUser = await tx.user.findFirst();
+        actualUserId = firstUser ? firstUser.id : 1;
+      }
+
       // 3. Create ServiceSale (no stock update)
       const sale = await tx.serviceSale.create({
         data: {
           invoiceNo,
           date: new Date(dto.date),
           customerId: resolvedCustomerId,
-          userId,
+          userId: actualUserId,
           paymentModeId: dto.paymentModeId,
           subtotal: dto.subtotal,
           tax: dto.tax || 0,

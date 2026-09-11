@@ -376,6 +376,8 @@ const ServiceSalesEntry = () => {
                   <td className="px-2 py-1 border-r border-[#E5E7EB]" style={{ minWidth: 220 }}>
                     <Select
                       inputId={`service-select-${index}`}
+                      autoFocus={index === 0}
+                      openMenuOnFocus={true}
                       options={serviceOptions}
                       onChange={(opt: any) => { 
                         if (opt) {

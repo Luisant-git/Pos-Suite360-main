@@ -25,7 +25,7 @@ export class ServiceSalesController {
 
   @Post()
   create(@Body() dto: CreateServiceSaleDto, @Request() req: any) {
-    return this.serviceSalesService.create(dto, req.user.id);
+    return this.serviceSalesService.create(dto, req.user.userId);
   }
 
   @Delete(':id')
