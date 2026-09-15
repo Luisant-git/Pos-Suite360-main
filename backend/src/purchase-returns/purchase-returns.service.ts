@@ -34,7 +34,7 @@ export class PurchaseReturnsService {
         if (item.returnQty > 0) {
           const product = await tx.product.findUnique({ where: { id: item.productId } });
           if (!product) throw new BadRequestException(`Product not found: ${item.productId}`);
-          if (product.currentStock < item.returnQty) {
+          if (Number(product.currentStock) < item.returnQty) {
             throw new BadRequestException(`Insufficient stock for product ${product.name}`);
           }
           
@@ -49,7 +49,7 @@ export class PurchaseReturnsService {
               productId: item.productId,
               type: 'PURCHASE_RETURN',
               quantityOut: item.returnQty,
-              balance: product.currentStock - item.returnQty,
+              balance: Number(product.currentStock) - item.returnQty,
               reference: createPurchaseReturnDto.returnNo
             }
           });

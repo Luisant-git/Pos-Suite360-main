@@ -47,7 +47,7 @@ export class SalesReturnsService {
               productId: item.productId,
               type: 'SALE_RETURN',
               quantityIn: item.returnQty,
-              balance: product.currentStock + item.returnQty,
+              balance: Number(product.currentStock) + item.returnQty,
               reference: createSalesReturnDto.returnNo
             }
           });

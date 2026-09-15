@@ -207,7 +207,7 @@ model Product {
   minStock      Int     @default(0) // Used as Min Qty (Alert)
   reorderLevel  Int     @default(0)
 
-  currentStock Int @default(0) // Usually computed, but caching it for quick access is common in POS
+  currentStock Decimal @default(0) // Usually computed, but caching it for quick access is common in POS
 
   purchaseItems              PurchaseItem[]
   purchaseReturnItems        PurchaseReturnItem[]
@@ -348,7 +348,7 @@ model SaleItem {
   isService Boolean @default(false)
   itemName  String? // Store the name snapshot (useful for services)
 
-  quantity Int
+  quantity Decimal
   rate     Decimal
   discount Decimal @default(0)
   tax      Decimal @default(0)
@@ -481,9 +481,9 @@ model StockTransaction {
   product   Product @relation(fields: [productId], references: [id])
 
   type        TransactionType // PURCHASE, SALE, ADJUSTMENT, RETURN
-  quantityIn  Int             @default(0)
-  quantityOut Int             @default(0)
-  balance     Int // Snapshot of stock balance after this transaction
+  quantityIn  Decimal             @default(0)
+  quantityOut Decimal             @default(0)
+  balance     Decimal // Snapshot of stock balance after this transaction
 
   reference String? // Could be Invoice No or Adjustment ID
 
