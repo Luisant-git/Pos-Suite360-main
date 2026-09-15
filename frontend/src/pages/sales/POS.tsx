@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2, Save, X, Printer, RefreshCw, List, UserPlus, AlertTriangle, FileText } from 'lucide-react';
+import { Plus, Trash2, Save, X, Printer, RefreshCw, List, UserPlus, AlertTriangle, FileText, Clock } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -108,6 +108,28 @@ const saleSchema = z.object({
 
 type SaleFormValues = z.infer<typeof saleSchema>;
 
+const DRAFTS_KEY = 'pos_drafts';
+const getDrafts = (): any[] => {
+  try { return JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]'); } catch (e) { return []; }
+};
+const persistDrafts = (drafts: any[]) => {
+  try { localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts)); } catch (e) { console.error(e); }
+};
+
+const freshFormValues = (invoiceNo: string = 'Generating...') => ({
+  date: new Date().toISOString().split('T')[0],
+  invoiceNo,
+  customerId: 0,
+  rateType: 'Retail Rate',
+  paymentModeId: 0,
+  items: [{ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, tax: 0, total: 0 }],
+  grossAmount: 0,
+  totalDiscountPercent: '' as any,
+  totalDiscount: '' as any,
+  roundOff: '' as any,
+  netAmount: 0
+});
+
 const POS = () => {
   const { settings, formatCurrency } = useSettings();
   const navigate = useNavigate();
@@ -129,6 +151,11 @@ const POS = () => {
   const [printData, setPrintData] = useState<any>(null);
   const [pendingSavePayload, setPendingSavePayload] = useState<any>(null);
   const printAfterSaveRef = useRef(false);
+
+  const [drafts, setDrafts] = useState<any[]>(getDrafts);
+  const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<any>(null);
+  const activeDraftIdRef = useRef<string | null>(null);
 
   // ── Keyboard navigation helper ──────────────────────────────────────────
   // Each interactive cell in the table has data-row and data-col attributes.
@@ -424,7 +451,13 @@ const POS = () => {
             console.error("Failed to fetch sale for printing", err);
           }
         }
-        reset();
+        reset(freshFormValues());
+        
+        // Remove the loaded draft after successful save
+        if (activeDraftIdRef.current) {
+          removeDraftById(activeDraftIdRef.current);
+          activeDraftIdRef.current = null;
+        }
         
         // Manually fetch and inject the new invoice number for the next sale
         const nextInvoiceRes = await api.get('/sales/next-invoice-no');
@@ -564,6 +597,95 @@ const POS = () => {
     addCustomerMutation.mutate(newCustomer);
   };
 
+  const handleSaveDraft = () => {
+    const values = getValues();
+    const validItems = (values.items || []).filter((i: any) => Number(i.productId) > 0 || i.serviceItemId);
+    if (validItems.length === 0) {
+      toast.error('Add at least one product before saving a draft.');
+      return;
+    }
+    const customer = customers.find((c: any) => c.id === Number(values.customerId));
+    const customerName = customer?.name || (Number(values.customerId) ? `Customer #${values.customerId}` : 'Counter / Cash Sale');
+    const draft = {
+      id: activeDraftIdRef.current || String(Date.now()),
+      savedAt: new Date().toISOString(),
+      customerId: values.customerId,
+      customerName,
+      customerPhone: customer?.phone || '',
+      customerAddress: customer?.address || '',
+      customerState: customer?.state || '',
+      itemCount: validItems.length,
+      qtyCount: validItems.reduce((s: number, it: any) => s + (Number(it.quantity) || 0), 0),
+      netAmount: Number(values.netAmount) || 0,
+      data: {
+        ...values,
+        items: validItems.map((i: any) => ({ ...i })),
+        invoiceNo: ''
+      }
+    };
+    const next = [...drafts.filter((d: any) => d.id !== draft.id), draft];
+    setDrafts(next);
+    persistDrafts(next);
+    activeDraftIdRef.current = null;
+    // Clear the entry form so the next customer starts fresh
+    reset(freshFormValues());
+    setCustomerPaid('');
+    api.get('/sales/next-invoice-no').then((res) => {
+      if (res.data?.invoiceNo) setValue('invoiceNo', res.data.invoiceNo);
+    }).catch(() => {});
+    toast.success(`Sale saved as draft for ${customerName}. Entry cleared for the next customer.`);
+  };
+
+  const removeDraftById = (id: string | null) => {
+    if (!id) return;
+    setDrafts(prev => {
+      const next = prev.filter((d: any) => d.id !== id);
+      persistDrafts(next);
+      return next;
+    });
+  };
+
+  const handleLoadDraft = (draft: any) => {
+    const data = draft.data || {};
+    const currentInvoice = getValues('invoiceNo');
+    const loadedItems = (data.items || []).map((item: any) => {
+      const product = products.find((p: any) => p.id === Number(item.productId));
+      return {
+        ...item,
+        stock: product?.currentStock ?? item.stock ?? 0,
+        unit: product?.unit?.shortCode || product?.unit?.name || item.unit || 'Nos',
+      };
+    });
+    reset({
+      ...data,
+      invoiceNo: currentInvoice,
+      items: loadedItems.length ? loadedItems : [{ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, tax: 0, total: 0 }],
+    }, { keepDefaultValues: true });
+    setValue('customerId', Number(data.customerId) || 0);
+    setValue('paymentModeId', Number(data.paymentModeId) || 0);
+    setValue('rateType', data.rateType || 'Retail Rate');
+    setCustomerPaid('');
+    activeDraftIdRef.current = draft.id;
+    setIsDraftsModalOpen(false);
+    setSelectedDraft(null);
+    toast.success(`Draft loaded for ${draft.customerName}.`);
+  };
+
+  const handleDeleteDraft = (id: string) => {
+    if (activeDraftIdRef.current === id) activeDraftIdRef.current = null;
+    removeDraftById(id);
+    toast.success('Draft deleted.');
+  };
+
+  const handleClear = () => {
+    reset(freshFormValues());
+    setCustomerPaid('');
+    if (activeDraftIdRef.current) {
+      removeDraftById(activeDraftIdRef.current);
+      activeDraftIdRef.current = null;
+    }
+  };
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -583,7 +705,7 @@ const POS = () => {
         }
       } else if (e.key === 'F4') {
         e.preventDefault();
-        reset();
+        handleClear();
       } else if (e.key === 'F2') {
         e.preventDefault();
         append({ productId: 0, quantity: '' as any, stock: 0, rate: '' as any, unit: 'Nos', discPercent: '' as any, discAmt: '' as any, total: 0 });
@@ -591,7 +713,7 @@ const POS = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSubmit, isCustomerModalOpen, showLossWarning, isSaveModalOpen, isLeaveModalOpen, reset, append, navigate, onSubmit, onError]);
+  }, [handleSubmit, isCustomerModalOpen, showLossWarning, isSaveModalOpen, isLeaveModalOpen, handleClear, append, navigate, onSubmit, onError]);
 
   return (
     <div className="absolute inset-0 bg-[#F3F4F6] flex flex-col font-sans overflow-hidden z-10 print:static print:block print:overflow-visible print:h-auto print:bg-white">
@@ -605,6 +727,23 @@ const POS = () => {
             className="bg-[#10B981] hover:bg-[#059669] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
           >
             <Printer size={16} /> SAVE & PRINT (F10)
+          </button>
+          <button 
+            type="button"
+            onClick={handleSaveDraft}
+            className="bg-[#D97706] hover:bg-[#B45309] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
+          >
+            <Save size={16} /> Save Draft
+          </button>
+          <button 
+            type="button"
+            onClick={() => setIsDraftsModalOpen(true)}
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors relative"
+          >
+            <Clock size={16} /> Drafts
+            {drafts.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-white text-[#7C3AED] text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full shadow">{drafts.length}</span>
+            )}
           </button>
         </div>
         <button 
@@ -742,10 +881,27 @@ const POS = () => {
           </button>
           <button 
             type="button"
-            onClick={() => reset()}
+            onClick={handleClear}
             className="border border-[#713F12] text-[#713F12] hover:bg-[#713F12] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
           >
             <RefreshCw size={14} /> Clear (F4)
+          </button>
+          <button 
+            type="button"
+            onClick={handleSaveDraft}
+            className="border border-[#D97706] text-[#D97706] hover:bg-[#D97706] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold"
+          >
+            <Save size={14} /> Save Draft
+          </button>
+          <button 
+            type="button"
+            onClick={() => setIsDraftsModalOpen(true)}
+            className="border border-[#7C3AED] text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold relative"
+          >
+            <Clock size={14} /> Drafts
+            {drafts.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-[#7C3AED] text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full shadow">{drafts.length}</span>
+            )}
           </button>
           <button 
             type="button"
@@ -1425,6 +1581,143 @@ const POS = () => {
                 className="flex-1 bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white py-2.5 rounded-lg font-bold text-[14px] transition-all shadow-md flex items-center justify-center gap-2"
               >
                 <Printer size={16} /> Save & Print
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drafts Modal */}
+      {isDraftsModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded shadow-lg w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="bg-[#7C3AED] text-white px-4 py-3 flex justify-between items-center">
+              <div className="flex items-center gap-2 font-bold text-[15px]">
+                <Clock size={18} /> Saved Drafts
+              </div>
+              <button type="button" onClick={() => setIsDraftsModalOpen(false)} className="hover:text-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {drafts.length === 0 ? (
+                <p className="text-[13px] text-gray-500 italic py-6 text-center">No saved drafts. Click "Save Draft" while filling a sale to save it temporarily.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {drafts.sort((a: any,b: any) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()).map((draft: any) => (
+                    <div key={draft.id} onClick={() => setSelectedDraft(draft)} className="border border-gray-200 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-gray-50 hover:border-[#7C3AED]/40 cursor-pointer transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-[14px] text-[#1F2937] truncate">{draft.customerName}{(draft.customerPhone || customers.find((c: any) => c.id === Number(draft.customerId))?.phone) ? <span className="text-[12px] font-medium text-gray-400 ml-2">- {(draft.customerPhone || customers.find((c: any) => c.id === Number(draft.customerId))?.phone)}</span> : null}{draft.customerId ? <span className="text-[11px] font-bold text-[#7C3AED] ml-2">ID: {draft.customerId}</span> : null}</div>
+                        <div className="text-[12px] text-gray-500 mt-0.5 flex flex-wrap gap-2">
+                          <span>Items: {draft.itemCount} ({draft.qtyCount} qty)</span>
+                          <span>Net: {formatCurrency(draft.netAmount)}</span>
+                          <span>Saved: {new Date(draft.savedAt).toLocaleTimeString()} {new Date(draft.savedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedDraft(draft); }}
+                          className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded text-[12px] font-bold flex items-center gap-1 transition-colors border border-blue-100"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteDraft(draft.id); }}
+                          className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded text-[12px] font-bold flex items-center gap-1 transition-colors"
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Preview Modal */}
+      {selectedDraft && (
+        <div className="fixed inset-0 bg-black/50 z-[120] flex items-center justify-center p-4" onClick={() => setSelectedDraft(null)}>
+          <div className="bg-white rounded shadow-lg w-full max-w-xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#7C3AED] text-white px-4 py-3 flex justify-between items-center">
+              <div className="flex items-center gap-2 font-bold text-[15px]">
+                <FileText size={18} /> Draft Details
+              </div>
+              <button type="button" onClick={() => setSelectedDraft(null)} className="hover:text-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[65vh]">
+              <div className="border border-gray-200 rounded-lg p-3 mb-4 bg-[#F9FAFB]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Customer</span>
+                  <span className="text-[11px] text-gray-400">Saved {new Date(selectedDraft.savedAt).toLocaleString()}</span>
+                </div>
+                <div className="font-black text-[18px] text-[#1F2937]">{selectedDraft.customerName || customers.find((c: any) => c.id === Number(selectedDraft.customerId))?.name || 'Counter / Cash Sale'}</div>
+                {(() => {
+                  const live = customers.find((c: any) => c.id === Number(selectedDraft.customerId));
+                  const phone = selectedDraft.customerPhone || live?.phone || '';
+                  const address = selectedDraft.customerAddress || live?.address || '';
+                  const state = selectedDraft.customerState || live?.state || '';
+                  if (phone || address || state) {
+                    return (
+                      <div className="text-[13px] text-gray-600 mt-1 flex flex-col gap-0.5">
+                        {phone && <span>Mobile: <span className="font-bold text-[#1F2937]">{phone}</span></span>}
+                        {address && <span>{address}</span>}
+                        {state && <span className="font-bold text-[#1F2937]">{state}</span>}
+                      </div>
+                    );
+                  }
+                  return <div className="text-[12px] text-gray-500 italic mt-1">No customer contact details saved.</div>;
+                })()}
+              </div>
+
+              <div className="flex flex-col gap-1 mb-4">
+                <div className="flex justify-between items-center px-3 py-2 bg-gray-50 rounded border border-gray-200">
+                  <span className="text-[12px] font-bold text-gray-500">Items</span>
+                  <span className="text-[12px] font-bold text-gray-500">Qty &times; Rate &minus; Disc = Total</span>
+                </div>
+                {((selectedDraft.data?.items || []).length === 0 ? [{ productId: 0, quantity: 0, rate: 0, discAmt: 0, total: 0 }] : selectedDraft.data.items).map((item: any, idx: number) => {
+                  const product = products.find((p: any) => p.id === Number(item.productId));
+                  const name = item.isService ? (item.itemName || 'Service') : (product?.name || item.itemName || `#${item.productId || 0}`);
+                  return (
+                    <div key={idx} className="flex justify-between items-center px-3 py-1.5 border-b border-gray-100 text-[13px]">
+                      <span className="text-[#1F2937] font-medium truncate mr-3">{name}</span>
+                      <span className="text-gray-600 shrink-0 tabular-nums">{Number(item.quantity) || 0} &times; {formatCurrency(Number(item.rate) || 0)} {Number(item.discAmt) > 0 && <span className="text-red-500"> (-{formatCurrency(Number(item.discAmt))})</span>} = <span className="font-bold">{formatCurrency(Number(item.total) || 0)}</span></span>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-between items-center px-3 py-2 bg-[#ECFDF5] rounded border border-green-200 mt-2">
+                  <span className="text-[13px] font-black text-[#065F46] uppercase">Net Amount</span>
+                  <span className="text-[16px] font-black text-[#059669]">{formatCurrency(selectedDraft.netAmount)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="px-4 pb-4 flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => { setSelectedDraft(null); }}
+                className="flex-1 bg-white border-2 border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#334155] py-2.5 rounded font-bold text-[13px] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteDraft(selectedDraft.id)}
+                className="flex-1 bg-red-50 border-2 border-red-200 hover:bg-red-500 hover:text-white text-red-500 py-2.5 rounded font-bold text-[13px] transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 size={15} /> Delete Draft
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLoadDraft(selectedDraft)}
+                className="flex-1 bg-[#7C3AED] hover:bg-[#6D28D9] text-white py-2.5 rounded font-bold text-[13px] transition-colors flex items-center justify-center gap-2 shadow"
+              >
+                <Clock size={15} /> Load & Continue Entry
               </button>
             </div>
           </div>

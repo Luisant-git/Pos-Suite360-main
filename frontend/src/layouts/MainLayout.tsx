@@ -41,9 +41,10 @@ const NavDropdown = ({ title, icon, children, isActive, rightAligned, compact, i
   );
 };
 
-const DropdownItem = ({ to, icon, title, isDanger = false, isWarning = false, onClick }: { to: string, icon: string, title: string, isDanger?: boolean, isWarning?: boolean, onClick?: () => void }) => (
+const DropdownItem = ({ to, icon, title, isDanger = false, isWarning = false, onClick, end = false }: { to: string, icon: string, title: string, isDanger?: boolean, isWarning?: boolean, onClick?: () => void, end?: boolean }) => (
   <NavLink
     to={to}
+    end={end}
     onClick={onClick}
     className={({ isActive }) => `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isActive ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600 border-l-4 border-transparent'}`}
   >
@@ -78,9 +79,10 @@ const MobileNavDropdown = ({ title, icon, children, isActive }: { title: string,
   );
 };
 
-const MobileDropdownItem = ({ to, icon, title, onClick, isDanger = false, isWarning = false }: { to: string, icon: string, title: string, onClick?: () => void, isDanger?: boolean, isWarning?: boolean }) => (
+const MobileDropdownItem = ({ to, icon, title, onClick, isDanger = false, isWarning = false, end = false }: { to: string, icon: string, title: string, onClick?: () => void, isDanger?: boolean, isWarning?: boolean, end?: boolean }) => (
   <NavLink
     to={to}
+    end={end}
     onClick={onClick}
     className={({ isActive }) => `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isActive ? 'text-white font-bold bg-[#1E3A8A]/30 border-l-2 border-blue-400' : 'text-blue-200 hover:text-white hover:bg-[#1E40AF]/50 border-l-2 border-transparent'}`}
   >
@@ -265,6 +267,7 @@ const MainLayout = () => {
 
             <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive && location.pathname !== '/sales/estimation'}>
               <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />
+              <MobileDropdownItem to="/sales" icon="fa-list" title="Sales List" end />
               <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />
               <MobileDropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />
             </MobileNavDropdown>
@@ -400,6 +403,7 @@ const MainLayout = () => {
               {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
               <NavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive && location.pathname !== '/sales/estimation'} compact={showBackButton} isCrowded={isCrowded}>
                 {hasPerm('sales_pos') && <DropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" />}
+                {hasPerm('sales_pos') && <DropdownItem to="/sales" icon="fa-list" title="Sales List" end />}
                 {hasPerm('sales_return') && <DropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger />}
                 <div className="h-px bg-gray-100 my-1 mx-4"></div>
                 {hasPerm('sales_receipts') && <DropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" />}
@@ -615,6 +619,7 @@ const MainLayout = () => {
               {hasAnyPerm(['sales_pos', 'sales_return', 'sales_receipts']) && (
               <MobileNavDropdown title="Sales" icon="fa-shopping-cart" isActive={isSalesActive}>
                 {hasPerm('sales_pos') && <MobileDropdownItem to="/sales/pos" icon="fa-th-large" title="Sales Entry (POS)" onClick={closeMobileMenu} />}
+                {hasPerm('sales_pos') && <MobileDropdownItem to="/sales" icon="fa-list" title="Sales List" end onClick={closeMobileMenu} />}
                 {hasPerm('sales_pos') && <MobileDropdownItem to="/sales/estimation" icon="fa-file-invoice" title="Estimation" onClick={closeMobileMenu} />}
                 {hasPerm('sales_return') && <MobileDropdownItem to="/sales/return" icon="fa-reply" title="Sales Return" isDanger onClick={closeMobileMenu} />}
                 {hasPerm('sales_receipts') && <MobileDropdownItem to="/sales/receipts" icon="fa-money" title="Customer Receipts" onClick={closeMobileMenu} />}
