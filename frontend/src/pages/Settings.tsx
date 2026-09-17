@@ -37,6 +37,8 @@ const storeSettingsSchema = z.object({
   estimationStockMaintain: z.boolean().optional().default(false),
   enableService: z.boolean().optional().default(false),
   enableUnifiedPOS: z.boolean().optional().default(false),
+  enableInvoiceEdit: z.boolean().optional().default(false),
+  invoiceEditDays: z.coerce.number().min(1, 'Days must be at least 1').optional().default(30),
   serviceInvoicePrefix: z.string().optional(),
   servicePrintFormat: z.string().optional(),
 });
@@ -95,7 +97,7 @@ const Settings = () => {
     }
   });
 
-  const { register: registerStore, handleSubmit: handleSubmitStore, reset: resetStoreForm, setValue: setValueStore, watch: watchStore, control: controlStore, formState: { errors: storeErrors } } = useForm<StoreSettingsValues>({
+  const { register: registerStore, handleSubmit: handleSubmitStore, reset: resetStoreForm, setValue: setValueStore, watch: watchStore, control: controlStore, getValues: getStoreValues, formState: { errors: storeErrors } } = useForm<StoreSettingsValues>({
     resolver: zodResolver(storeSettingsSchema) as any,
   });
 
@@ -127,6 +129,8 @@ const Settings = () => {
         estimationStockMaintain: settings.estimationStockMaintain || false,
         enableService: settings.enableService || false,
         enableUnifiedPOS: settings.enableUnifiedPOS || false,
+        enableInvoiceEdit: settings.enableInvoiceEdit || false,
+        invoiceEditDays: settings.invoiceEditDays || 30,
         serviceInvoicePrefix: settings.serviceInvoicePrefix || 'SRV-',
         servicePrintFormat: settings.servicePrintFormat || 'thermal',
       });
@@ -473,6 +477,31 @@ const Settings = () => {
                     <span className="text-[13px] font-bold text-[#334155]">Maintain Stock on Estimation</span>
                   </label>
                   <p className="text-xs text-gray-500 italic ml-6 -mt-3">If enabled, creating an estimation will dynamically deduct from product inventory exactly like a regular sale.</p>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox"
+                      checked={!!watchStore('enableInvoiceEdit')}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setValueStore('enableInvoiceEdit', checked, { shouldDirty: true });
+                        updateSettingsMutation.mutate({ ...getStoreValues(), enableInvoiceEdit: checked } as any);
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    <span className="text-[13px] font-bold text-[#334155]">Enable Invoice Editing</span>
+                  </label>
+                  <p className="text-xs text-gray-500 italic ml-6 -mt-3">If enabled, users can edit a sale invoice within {watchStore('invoiceEditDays') || 30} days of its sale date.</p>
+                  
+                  {watchStore('enableInvoiceEdit') && (
+                    <div className="ml-6 -mt-2">
+                      <label className="block text-[12px] font-bold text-[#334155] mb-1">Invoice Edit Window (Days)</label>
+                      <input
+                        type="number"
+                        {...registerStore('invoiceEditDays')}
+                        className="w-32 px-2 py-1.5 border border-[#CBD5E1] rounded text-[13px] outline-none focus:border-[#3B82F6]"
+                        min="1"
+                      />
+                      {storeErrors.invoiceEditDays && <p className="text-red-500 text-xs mt-1">{(storeErrors.invoiceEditDays as any).message}</p>}
+                    </div>
+                  )}
                 </div>
               </div>
 

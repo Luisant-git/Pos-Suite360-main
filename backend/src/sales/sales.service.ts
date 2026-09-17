@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionType } from '@prisma/client';
@@ -184,6 +184,135 @@ export class SalesService {
           },
         },
       },
+    });
+  }
+
+  async update(id: number, updateSaleDto: any, userId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Locate the existing sale
+      const existing = await tx.sale.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+      if (!existing) throw new BadRequestException('Sale not found');
+
+      // 2. Enforce "Invoice Edit Permission" setting
+      const settings = await tx.settings.findUnique({ where: { id: 1 } });
+      if (!settings?.enableInvoiceEdit) {
+        throw new ForbiddenException('Invoice editing is disabled in Settings.');
+      }
+
+      // 3. Enforce dynamic edit window based on the sale date
+      const saleDate = new Date(existing.date).getTime();
+      const invoiceEditDays = settings?.invoiceEditDays || 30;
+      const cutoff = Date.now() - invoiceEditDays * 24 * 60 * 60 * 1000;
+      if (saleDate < cutoff) {
+        throw new ForbiddenException(`Invoices can only be edited within ${invoiceEditDays} days of the sale date.`);
+      }
+
+      // 4. Reverse previous stock and ledger entries
+      for (const item of existing.items) {
+        if (item.isService || !item.productId) continue;
+
+        const updatedProduct = await tx.product.update({
+          where: { id: item.productId },
+          data: { currentStock: { increment: item.quantity } },
+        });
+
+        await tx.stockTransaction.create({
+          data: {
+            date: new Date(),
+            productId: item.productId,
+            type: TransactionType.SALE_RETURN,
+            quantityIn: item.quantity,
+            quantityOut: 0,
+            balance: updatedProduct.currentStock,
+            reference: `Reverted during edit ${existing.invoiceNo}`,
+          },
+        });
+      }
+
+      // 5. Delete old sale items
+      await tx.saleItem.deleteMany({ where: { saleId: id } });
+
+      // 6. Resolve customerId — if 0 (cash sale), use/create a "Cash Customer"
+      let resolvedCustomerId = updateSaleDto.customerId;
+      if (!resolvedCustomerId || resolvedCustomerId === 0) {
+        let cashCustomer = await tx.customer.findFirst({ where: { name: 'Cash Customer' } });
+        if (!cashCustomer) {
+          cashCustomer = await tx.customer.create({
+            data: { name: 'Cash Customer', phone: '0000000000' },
+          });
+        }
+        resolvedCustomerId = cashCustomer.id;
+      }
+
+      let actualUserId = userId;
+      if (actualUserId < 1) {
+        const firstUser = await tx.user.findFirst();
+        actualUserId = firstUser ? firstUser.id : 1;
+      }
+
+      // 7. Update sale + rebuilt items
+      const updated = await tx.sale.update({
+        where: { id },
+        data: {
+          date: new Date(updateSaleDto.date),
+          customerId: resolvedCustomerId,
+          userId: actualUserId,
+          paymentModeId: updateSaleDto.paymentModeId,
+          subtotal: updateSaleDto.subtotal,
+          tax: updateSaleDto.tax || 0,
+          discount: updateSaleDto.discount || 0,
+          grandTotal: updateSaleDto.grandTotal,
+          items: {
+            create: updateSaleDto.items.map((item: any) => ({
+              productId: item.productId || null,
+              serviceItemId: item.serviceItemId || null,
+              isService: item.isService || false,
+              itemName: item.itemName || null,
+              quantity: item.quantity,
+              rate: item.rate,
+              discount: item.discount || 0,
+              tax: item.tax || 0,
+              amount: item.amount,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      // 8. Apply new stock deductions and ledger entries
+      for (const item of updateSaleDto.items) {
+        if (item.isService || !item.productId) continue;
+
+        const currentProduct = await tx.product.findUnique({ where: { id: item.productId } });
+        if (!currentProduct) throw new BadRequestException(`Product not found: ${item.productId}`);
+
+        const dataToUpdate: any = { currentStock: { decrement: item.quantity } };
+        if (item.rate > Number(currentProduct.sellingRate)) {
+          dataToUpdate.sellingRate = item.rate;
+        }
+
+        const updatedProduct = await tx.product.update({
+          where: { id: item.productId },
+          data: dataToUpdate,
+        });
+
+        await tx.stockTransaction.create({
+          data: {
+            date: new Date(updateSaleDto.date),
+            productId: item.productId,
+            type: TransactionType.SALE,
+            quantityIn: 0,
+            quantityOut: item.quantity,
+            balance: updatedProduct.currentStock,
+            reference: existing.invoiceNo,
+          },
+        });
+      }
+
+      return updated;
     });
   }
 

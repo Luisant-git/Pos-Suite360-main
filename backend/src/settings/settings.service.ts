@@ -56,6 +56,8 @@ export class SettingsService {
         enableUnifiedPOS: data.enableUnifiedPOS === true || data.enableUnifiedPOS === 'true',
         serviceInvoicePrefix: data.serviceInvoicePrefix || 'SRV-',
         servicePrintFormat: data.servicePrintFormat || 'thermal',
+        enableInvoiceEdit: data.enableInvoiceEdit === true || data.enableInvoiceEdit === 'true',
+        invoiceEditDays: data.invoiceEditDays ? Number(data.invoiceEditDays) : 30,
       },
       create: {
         id: 1,
@@ -86,6 +88,8 @@ export class SettingsService {
         enableUnifiedPOS: data.enableUnifiedPOS === true || data.enableUnifiedPOS === 'true',
         serviceInvoicePrefix: data.serviceInvoicePrefix || 'SRV-',
         servicePrintFormat: data.servicePrintFormat || 'thermal',
+        enableInvoiceEdit: data.enableInvoiceEdit === true || data.enableInvoiceEdit === 'true',
+        invoiceEditDays: data.invoiceEditDays ? Number(data.invoiceEditDays) : 30,
       },
     });
   }

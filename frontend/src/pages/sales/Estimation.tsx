@@ -67,7 +67,7 @@ const estimationItemSchema = z.object({
   quantity: z.coerce.number().min(0),
   stock: z.coerce.number(),
   rate: z.coerce.number().min(0),
-  unit: z.string().optional(),
+  unit: z.string().optional().nullable(),
   discPercent: z.coerce.number().min(0).max(100),
   discAmt: z.coerce.number().min(0),
   total: z.coerce.number(),

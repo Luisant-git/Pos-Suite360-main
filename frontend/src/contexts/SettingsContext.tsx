@@ -32,6 +32,8 @@ interface Settings {
   serviceInvoicePrefix?: string;
   servicePrintFormat?: string;
   enableUnifiedPOS?: boolean;
+  enableInvoiceEdit?: boolean;
+  invoiceEditDays?: number;
 }
 
 interface SettingsContextType {

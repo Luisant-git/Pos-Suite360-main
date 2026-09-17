@@ -54,7 +54,7 @@ const saleItemSchema = z.object({
   quantity: z.coerce.number().min(0),
   stock: z.coerce.number(),
   rate: z.coerce.number().min(0),
-  unit: z.string().optional(),
+  unit: z.string().optional().nullable(),
   discPercent: z.coerce.number().min(0).max(100),
   discAmt: z.coerce.number().min(0),
   tax: z.coerce.number().optional(),
@@ -62,7 +62,7 @@ const saleItemSchema = z.object({
   isEstimationItem: z.boolean().optional(),
   isService: z.boolean().optional(),
   serviceItemId: z.coerce.number().optional(),
-  itemName: z.string().optional(),
+  itemName: z.string().optional().nullable(),
 }).superRefine((data, ctx) => {
   if (data.productId > 0 || (data.serviceItemId && data.serviceItemId > 0)) {
     if (data.quantity <= 0) {
@@ -135,6 +135,7 @@ const POS = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const estimationId = searchParams.get('estimationId');
+  const editId = searchParams.get('editId');
   const queryClient = useQueryClient();
   
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -156,6 +157,8 @@ const POS = () => {
   const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
   const [selectedDraft, setSelectedDraft] = useState<any>(null);
   const activeDraftIdRef = useRef<string | null>(null);
+  const editPrefilledRef = useRef<string | null>(null);
+  const editPrefilledWithProductsRef = useRef(false);
 
   // ── Keyboard navigation helper ──────────────────────────────────────────
   // Each interactive cell in the table has data-row and data-col attributes.
@@ -266,12 +269,18 @@ const POS = () => {
     enabled: !!estimationId,
   });
 
+  const { data: editSaleData } = useQuery({
+    queryKey: ['sale', editId],
+    queryFn: async () => (await api.get(`/sales/${editId}`)).data,
+    enabled: !!editId,
+  });
+
   // Update default invoice no
   useEffect(() => {
-    if (nextInvoiceData?.invoiceNo) {
+    if (nextInvoiceData?.invoiceNo && !editId) {
       setValue('invoiceNo', nextInvoiceData.invoiceNo);
     }
-  }, [nextInvoiceData, setValue]);
+  }, [nextInvoiceData, setValue, editId]);
 
   // Pre-fill from estimation
   useEffect(() => {
@@ -296,6 +305,52 @@ const POS = () => {
       setValue('items', posItems);
     }
   }, [estimationData, setValue]);
+
+  // Pre-fill from an existing sale (edit mode)
+  useEffect(() => {
+    if (editSaleData && editId) {
+      if (editPrefilledRef.current === editId && editPrefilledWithProductsRef.current) return; // never overwrite user edits
+      editPrefilledRef.current = editId;
+      editPrefilledWithProductsRef.current = products.length > 0;
+      setValue('invoiceNo', editSaleData.invoiceNo);
+      setValue('date', new Date(editSaleData.date).toISOString().split('T')[0]);
+      setValue('customerId', Number(editSaleData.customerId) || 0);
+      setValue('paymentModeId', Number(editSaleData.paymentModeId) || 0);
+      setValue('rateType', 'Retail Rate');
+      setValue('grossAmount', Number(editSaleData.subtotal));
+      setValue('tax', Number(editSaleData.tax || 0));
+      setValue('totalDiscount', Number(editSaleData.discount || 0));
+      setValue('netAmount', Number(editSaleData.grandTotal));
+
+      const posItems = (editSaleData.items || []).map((item: any) => {
+        const isService = !!item.isService;
+        let productId = Number(item.productId || 0);
+        let serviceItemId: number | undefined;
+        if (isService) {
+          serviceItemId = Number(item.serviceItemId || 0);
+          productId = (serviceItemId || 0) + 1000000;
+        }
+        const product = products.find((p: any) => p.id === Number(productId));
+        const qty = Number(item.quantity);
+        return {
+          productId,
+          quantity: qty,
+          stock: Math.max(product?.currentStock ?? qty, qty),
+          rate: Number(item.rate),
+          unit: item.product?.unit?.shortCode || 'Nos',
+          discPercent: 0,
+          discAmt: Number(item.discount || 0),
+          tax: Number(item.tax || 0),
+          total: Number(item.amount),
+          isService,
+          serviceItemId,
+          itemName: item.itemName,
+          isEstimationItem: false,
+        };
+      });
+      setValue('items', posItems);
+    }
+  }, [editSaleData, editId, setValue, products]);
 
 
   // Auto-focus first row product search on mount
@@ -403,6 +458,7 @@ const POS = () => {
   // Recalculate rates if rateType or selectedCustomer changes
   const watchRateType = watch('rateType');
   useEffect(() => {
+    if (editId) return; // In edit mode, preserve the originally billed rates (the Rate Type select recomputes on change)
     const currentItems = getValues('items');
     currentItems.forEach((item, index) => {
       if (item.isEstimationItem) return; // Preserve original estimation rates
@@ -428,11 +484,13 @@ const POS = () => {
   }, [watchRateType, selectedCustomerId, settings?.enableCustomerWiseRate, selectedCustomer]);
 
   const createMutation = useMutation({
-    mutationFn: (data: SaleFormValues) => api.post('/sales', data),
+    mutationFn: (data: SaleFormValues) => editId
+      ? api.put(`/sales/${editId}`, data)
+      : api.post('/sales', data),
     onSuccess: async (res) => {
-      toast.success('Sale recorded successfully!');
+      toast.success(editId ? 'Sale updated successfully!' : 'Sale recorded successfully!');
 
-      if (estimationId) {
+      if (estimationId && !editId) {
         try {
           await api.patch(`/estimations/${estimationId}/status`, { status: 'Converted' });
         } catch (e) {
@@ -451,6 +509,17 @@ const POS = () => {
             console.error("Failed to fetch sale for printing", err);
           }
         }
+
+        queryClient.invalidateQueries({ queryKey: ['sales'] });
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+
+        if (editId) {
+          if (!printAfterSaveRef.current) {
+            navigate('/sales');
+          }
+          return;
+        }
+        
         reset(freshFormValues());
         
         // Remove the loaded draft after successful save
@@ -465,13 +534,16 @@ const POS = () => {
            setValue('invoiceNo', nextInvoiceRes.data.invoiceNo);
         }
         
-        queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['nextInvoiceNo'] });
       }, 100);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error(error);
-      toast.error('Failed to record sale. Please check your inputs.');
+      const msg = error?.response?.data?.message;
+      toast.error(typeof msg === 'string' && msg ? msg : 'Failed to record sale. Please check your inputs.');
+      if (editId) {
+        queryClient.invalidateQueries({ queryKey: ['sales'] });
+      }
     }
   });
 
@@ -550,26 +622,22 @@ const POS = () => {
   };
 
   const onError = (errors: any) => {
-    let errorMessage = 'Validation failed. Please ensure all items have a Rate and Quantity > 0.';
-    
-    if (errors.items && Array.isArray(errors.items)) {
-      for (const item of errors.items) {
-        if (item?.quantity?.message === 'Qty > Stock') {
-          errorMessage = 'Validation failed: Quantity exceeds available stock.';
-          break;
-        }
-        if (item?.quantity?.message === 'Quantity must be > 0') {
-          errorMessage = 'Validation failed: Quantity must be greater than 0.';
-          break;
-        }
-        if (item?.rate?.message === 'Rate is required') {
-          errorMessage = 'Validation failed: Rate is required for all items.';
-          break;
-        }
+    const messages: string[] = [];
+    const seen = new Set<string>();
+    const walk = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return;
+      if (typeof obj.message === 'string' && obj.message && !seen.has(obj.message)) {
+        seen.add(obj.message);
+        messages.push(obj.message);
       }
+      for (const key of Object.keys(obj)) walk(obj[key]);
+    };
+    walk(errors);
+    if (messages.length && messages[0] !== 'At least one item is required') {
+      toast.error(`Validation failed: ${messages[0]}`);
+    } else {
+      toast.error(messages.length ? 'Validation failed: At least one item is required.' : 'Validation failed. Please ensure all items have a Rate and Quantity > 0.');
     }
-    
-    toast.error(errorMessage);
     console.error(errors);
   };
 
@@ -678,6 +746,7 @@ const POS = () => {
   };
 
   const handleClear = () => {
+    if (editId) return;
     reset(freshFormValues());
     setCustomerPaid('');
     if (activeDraftIdRef.current) {
@@ -726,25 +795,29 @@ const POS = () => {
             onClick={handleSubmit(onSubmit as any, onError)}
             className="bg-[#10B981] hover:bg-[#059669] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
           >
-            <Printer size={16} /> SAVE & PRINT (F10)
+            <Printer size={16} /> {editId ? 'UPDATE & PRINT' : 'SAVE & PRINT'} (F10)
           </button>
-          <button 
-            type="button"
-            onClick={handleSaveDraft}
-            className="bg-[#D97706] hover:bg-[#B45309] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
-          >
-            <Save size={16} /> Save Draft
-          </button>
-          <button 
-            type="button"
-            onClick={() => setIsDraftsModalOpen(true)}
-            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors relative"
-          >
-            <Clock size={16} /> Drafts
-            {drafts.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-white text-[#7C3AED] text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full shadow">{drafts.length}</span>
-            )}
-          </button>
+          {!editId && (
+            <>
+              <button 
+                type="button"
+                onClick={handleSaveDraft}
+                className="bg-[#D97706] hover:bg-[#B45309] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors"
+              >
+                <Save size={16} /> Save Draft
+              </button>
+              <button 
+                type="button"
+                onClick={() => setIsDraftsModalOpen(true)}
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-1.5 rounded flex items-center gap-2 font-bold text-[13px] transition-colors relative"
+              >
+                <Clock size={16} /> Drafts
+                {drafts.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-white text-[#7C3AED] text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full shadow">{drafts.length}</span>
+                )}
+              </button>
+            </>
+          )}
         </div>
         <button 
           type="button"
@@ -754,6 +827,12 @@ const POS = () => {
           <X size={16} /> Close (Esc)
         </button>
       </div>
+
+      {editId && (
+        <div className="bg-amber-100 border-b border-amber-300 text-amber-800 px-4 py-1.5 text-[12px] font-bold flex items-center gap-2 shrink-0 print:hidden">
+          <FileText size={14} /> Editing Invoice {editSaleData?.invoiceNo || `#${editId}`} — changes will reverse and re-apply the stock automatically.
+        </div>
+      )}
 
       <form className="flex flex-col flex-1 min-h-0 overflow-hidden print:hidden" onSubmit={handleSubmit(onSubmit as any, onError)}>
         

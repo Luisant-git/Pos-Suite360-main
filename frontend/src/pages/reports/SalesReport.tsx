@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, Search, Calendar, FileDigit, Users, CreditCard, RotateCcw, Plus, Printer, Eye } from 'lucide-react';
+import { Download, FileText, Search, Calendar, FileDigit, Users, CreditCard, RotateCcw, Plus, Printer, Eye, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../../contexts/SettingsContext';
 import api from '../../services/api';
@@ -10,9 +10,11 @@ import InvoicePrintModal from '../../components/InvoicePrintModal';
 import ViewSalesModal from '../sales/ViewSalesModal';
 import PaginationControls from '../../components/PaginationControls';
 
+
+
 const SalesReport = () => {
   const navigate = useNavigate();
-  const { formatCurrency } = useSettings();
+  const { settings, formatCurrency } = useSettings();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -290,6 +292,15 @@ const SalesReport = () => {
                         >
                           <Eye size={14} />
                         </button>
+                        {settings?.enableInvoiceEdit && new Date(s.date).getTime() >= Date.now() - ((settings?.invoiceEditDays || 30) * 24 * 60 * 60 * 1000) && (
+                        <button type="button" 
+                          onClick={() => navigate(`/sales/pos?editId=${s.id}`)}
+                          className="text-[#64748B] border border-[#64748B] rounded p-1 hover:bg-[#64748B] hover:text-white transition-colors"
+                          title="Edit Invoice"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        )}
                         <button type="button" 
                           onClick={() => {
                             setSelectedSale({ id: s.id });

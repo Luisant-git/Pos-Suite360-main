@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Eye, Printer } from 'lucide-react';
+import { Plus, Eye, Printer, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import InvoicePrintModal from '../../components/InvoicePrintModal';
@@ -8,8 +8,10 @@ import { useSettings } from '../../contexts/SettingsContext';
 import ViewSalesModal from './ViewSalesModal';
 import PaginationControls from '../../components/PaginationControls';
 
+
+
 const SalesList = () => {
-  const { formatCurrency } = useSettings();
+  const { settings, formatCurrency } = useSettings();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSale, setSelectedSale] = useState<any>(null);
@@ -152,7 +154,9 @@ const SalesList = () => {
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-medium">{sale.customer?.name || 'Counter Sale'}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-[#333] font-bold text-right">{formatCurrency(sale.grandTotal)}</td>
                     <td className="px-3 py-2.5 border-r border-[#E5E7EB] text-center">
-                      <span className="bg-[#22C55E] text-white px-2 py-0.5 rounded text-[11px] font-bold tracking-wide">PAID</span>
+                      <span className="bg-[#22C55E] text-white px-2 py-0.5 rounded text-[11px] font-bold tracking-wide">
+                        {sale.paymentMode?.name || '-'}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <div className="flex justify-center gap-2">
@@ -173,6 +177,15 @@ const SalesList = () => {
                         >
                           <Eye size={14} />
                         </button>
+                        {settings?.enableInvoiceEdit && new Date(sale.date).getTime() >= Date.now() - ((settings?.invoiceEditDays || 30) * 24 * 60 * 60 * 1000) && (
+                          <button type="button" 
+                            onClick={() => navigate(`/sales/pos?editId=${sale.id}`)}
+                            className="text-[#64748B] border border-[#64748B] rounded p-1 hover:bg-[#64748B] hover:text-white transition-colors"
+                            title="Edit Invoice"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

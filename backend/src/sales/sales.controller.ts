@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, Delete, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, UseGuards, Request, Query, Delete, BadRequestException } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
+import { UpdateSaleDto } from './dto/update-sale.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('sales')
@@ -33,5 +34,12 @@ export class SalesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.salesService.remove(+id);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() updateSaleDto: UpdateSaleDto, @Request() req: any) {
+    if (isNaN(+id)) throw new BadRequestException('Invalid ID');
+    const userId = (req.user?.userId && req.user.userId > 0) ? req.user.userId : 1;
+    return this.salesService.update(+id, updateSaleDto, userId);
   }
 }

@@ -533,6 +533,8 @@ model Settings {
   serviceInvoicePrefix    String  @default("SRV-")
   servicePrintFormat      String  @default("thermal")
   enableUnifiedPOS        Boolean @default(false)
+  enableInvoiceEdit       Boolean @default(false)
+  invoiceEditDays         Int     @default(30)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
