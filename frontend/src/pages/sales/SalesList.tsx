@@ -133,7 +133,7 @@ const SalesList = () => {
                 <th className="px-3 py-2.5 border-r border-[#444] relative">Invoice No</th>
                 <th className="px-3 py-2.5 border-r border-[#444] relative">Customer</th>
                 <th className="px-3 py-2.5 border-r border-[#444] relative text-right">Total Amount (₹)</th>
-                <th className="px-3 py-2.5 border-r border-[#444] relative text-center">Payment</th>
+                <th className="px-3 py-2.5 border-r border-[#444] relative text-center">Payment Mode</th>
                 <th className="px-3 py-2.5 text-center w-32">Actions</th>
               </tr>
             </thead>
