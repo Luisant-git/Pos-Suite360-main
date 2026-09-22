@@ -10,7 +10,6 @@ import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
-import AddCustomRateModal from '../../components/AddCustomRateModal';
 import ShortcutHelpButton from '../../components/ShortcutHelp';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 import Select from 'react-select';

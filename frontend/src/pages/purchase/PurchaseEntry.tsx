@@ -10,7 +10,6 @@ import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
-import AddCustomRateModal from '../../components/AddCustomRateModal';
 import ShortcutHelpButton from '../../components/ShortcutHelp';
 import Select from 'react-select';
 

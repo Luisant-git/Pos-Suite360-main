@@ -104,7 +104,7 @@ const SupplierPayments = () => {
 
   const createMutation = useMutation({
     mutationFn: (data: PaymentFormValues) => api.post('/supplier-payments', data),
-    onSuccess: (res) => {
+    onSuccess: () => {
       toast.success('Payment recorded successfully!');
       
       // Setup print data
