@@ -64,6 +64,14 @@ export class CreatePurchaseDto {
   discount?: number;
 
   @IsNumber()
+  @IsOptional()
+  transportCharge?: number;
+
+  @IsNumber()
+  @IsOptional()
+  begersCharge?: number;
+
+  @IsNumber()
   grandTotal: number;
 
   @IsArray()

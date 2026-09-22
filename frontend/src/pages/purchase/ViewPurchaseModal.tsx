@@ -127,6 +127,14 @@ export default function ViewPurchaseModal({ purchaseId, onClose }: Props) {
                 <span className="text-gray-600 font-medium">Discount</span>
                 <span className="font-bold text-red-500">-{formatCurrency(purchase.discount)}</span>
               </div>
+              <div className="flex justify-between py-1 text-[13px]">
+                <span className="text-gray-600 font-medium">Transport Chg.</span>
+                <span className="font-bold text-[#F59E0B]">{formatCurrency(purchase.transportCharge || 0)}</span>
+              </div>
+              <div className="flex justify-between py-1 text-[13px]">
+                <span className="text-gray-600 font-medium">Begers Chg.</span>
+                <span className="font-bold text-[#F59E0B]">{formatCurrency(purchase.begersCharge || 0)}</span>
+              </div>
               <div className="flex justify-between py-3 mt-2 border-t border-gray-300 text-[16px] font-bold">
                 <span className="text-[#1E3A8A]">Grand Total</span>
                 <span className="text-[#1E3A8A]">{formatCurrency(purchase.grandTotal)}</span>

@@ -53,6 +53,8 @@ const PurchaseReport = () => {
         mode: p.paymentMode?.name || '-',
         totalAmount: formatCurrency(p.subtotal),
         taxAmount: formatCurrency(p.tax),
+        transportCharge: formatCurrency(p.transportCharge || 0),
+        begersCharge: formatCurrency(p.begersCharge || 0),
         netAmount: formatCurrency(p.grandTotal),
       }));
     },
@@ -234,6 +236,8 @@ const PurchaseReport = () => {
                   'Payment Mode': p.mode,
                   'Total Amount': p.totalAmount,
                   'Tax Amount': p.taxAmount,
+                  'Transport': p.transportCharge,
+                  'Begers': p.begersCharge,
                   'Net Amount': p.netAmount
                 }));
                 exportToExcel(exportData, `Purchase_Report_${fromDate}_to_${toDate}`);
@@ -262,6 +266,8 @@ const PurchaseReport = () => {
                 <th className="px-4 py-3 border-r border-[#1E293B]">Mode</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Total Amount</th>
                 {settings?.enableTax && <th className="px-4 py-3 border-r border-[#1E293B] text-right">Tax Amount</th>}
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Transport</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Begers</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Net Amount</th>
                 <th className="px-4 py-3 text-center">Actions</th>
               </tr>
@@ -274,10 +280,10 @@ const PurchaseReport = () => {
               ) : (
                 paginatedPurchases.map((p: any, index: number) => (
                   <tr key={p.id} className={`border-b border-[#E2E8F0] ${index % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'} hover:bg-[#EFF6FF]`}>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#64748B]">{p.entryNo}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-[#1E293B]">{p.invoiceNo}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#475569]">{p.date}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#334155]">{p.supplierName}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-black font-medium">{p.entryNo}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-black">{p.invoiceNo}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-black font-medium">{p.date}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-black">{p.supplierName}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0]">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         p.mode === 'Cash' ? 'bg-[#06B6D4] text-white' : 
@@ -287,8 +293,10 @@ const PurchaseReport = () => {
                         {p.mode}
                       </span>
                     </td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-[#475569]">{p.totalAmount}</td>
-                    {settings?.enableTax && <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-[#475569]">{p.taxAmount}</td>}
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.totalAmount}</td>
+                    {settings?.enableTax && <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.taxAmount}</td>}
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.transportCharge}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.begersCharge}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#10B981]">{p.netAmount}</td>
                     <td className="px-4 py-3 text-center">
                       <button type="button" 
