@@ -67,7 +67,7 @@ const purchaseSchema = z.object({
   totalDiscount: z.coerce.number(),
   totalDiscountPercent: z.coerce.number().optional(),
   transportCharge: z.coerce.number().optional(),
-  begersCharge: z.coerce.number().optional(),
+  wages: z.coerce.number().optional(),
   tax: z.coerce.number().optional(),
   roundOff: z.coerce.number(),
   netAmount: z.coerce.number(),
@@ -154,7 +154,7 @@ const PurchaseEntry = () => {
       totalDiscountPercent: '' as any,
       totalDiscount: '' as any,
       transportCharge: '' as any,
-      begersCharge: '' as any,
+      wages: '' as any,
       tax: 0,
       roundOff: '' as any,
       netAmount: 0
@@ -183,7 +183,7 @@ const PurchaseEntry = () => {
   const items = watch('items');
   const watchTotalDiscount = watch('totalDiscount');
   const watchTransportCharge = watch('transportCharge');
-  const watchBegersCharge = watch('begersCharge');
+  const watchwages = watch('wages');
   const watchRoundOff = watch('roundOff');
   
   // Calculations
@@ -229,7 +229,7 @@ const PurchaseEntry = () => {
 
     const d = Number(watchTotalDiscount) || 0;
     const tc = Number(watchTransportCharge) || 0;
-    const bc = Number(watchBegersCharge) || 0;
+    const bc = Number(watchwages) || 0;
     const r = Number(watchRoundOff) || 0;
     const netAmount = totalAmount + totalTax - d + tc + bc + r;
 
@@ -237,7 +237,7 @@ const PurchaseEntry = () => {
     setValue('tax', Number(totalTax.toFixed(2)));
     setValue('netAmount', Number(netAmount.toFixed(2)));
 
-  }, [JSON.stringify(items), watchTotalDiscount, watchTransportCharge, watchBegersCharge, watchRoundOff, setValue, settings?.enableTax, products]);
+  }, [JSON.stringify(items), watchTotalDiscount, watchTransportCharge, watchwages, watchRoundOff, setValue, settings?.enableTax, products]);
 
   const handleProductChange = async (index: number, productId: string) => {
     const product = products.find((p: any) => p.id === Number(productId));
@@ -312,7 +312,7 @@ const PurchaseEntry = () => {
       subtotal: data.totalAmount,
       discount: data.totalDiscount,
       transportCharge: data.transportCharge,
-      begersCharge: data.begersCharge,
+      wages: data.wages,
       tax: data.tax || 0,
       grandTotal: data.netAmount,
       items: validItems.map(item => ({
@@ -358,7 +358,7 @@ const PurchaseEntry = () => {
       totalDiscountPercent: '' as any,
       totalDiscount: '' as any,
       transportCharge: '' as any,
-      begersCharge: '' as any,
+      wages: '' as any,
       roundOff: '' as any,
       netAmount: 0
     });
@@ -835,9 +835,9 @@ const PurchaseEntry = () => {
               </div>
 
               <div className="w-full sm:w-32 flex flex-col gap-1">
-                <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Begers Chg.</label>
+                <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Wages</label>
                 <input
-                  {...register('begersCharge')}
+                  {...register('wages')}
                   type="number"
                   step="0.01"
                   className="w-full px-3 py-2 border border-[#D1D5DB] bg-white focus:bg-[#F0FDF4] rounded text-[16px] outline-none text-right font-black focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] text-black"

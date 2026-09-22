@@ -54,7 +54,7 @@ const PurchaseReport = () => {
         totalAmount: formatCurrency(p.subtotal),
         taxAmount: formatCurrency(p.tax),
         transportCharge: formatCurrency(p.transportCharge || 0),
-        begersCharge: formatCurrency(p.begersCharge || 0),
+        wages: formatCurrency(p.wages || 0),
         netAmount: formatCurrency(p.grandTotal),
       }));
     },
@@ -237,7 +237,7 @@ const PurchaseReport = () => {
                   'Total Amount': p.totalAmount,
                   'Tax Amount': p.taxAmount,
                   'Transport': p.transportCharge,
-                  'Begers': p.begersCharge,
+                  'Wages': p.wages,
                   'Net Amount': p.netAmount
                 }));
                 exportToExcel(exportData, `Purchase_Report_${fromDate}_to_${toDate}`);
@@ -267,7 +267,7 @@ const PurchaseReport = () => {
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Total Amount</th>
                 {settings?.enableTax && <th className="px-4 py-3 border-r border-[#1E293B] text-right">Tax Amount</th>}
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Transport</th>
-                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Begers</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Wages</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Net Amount</th>
                 <th className="px-4 py-3 text-center">Actions</th>
               </tr>
@@ -296,7 +296,7 @@ const PurchaseReport = () => {
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.totalAmount}</td>
                     {settings?.enableTax && <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.taxAmount}</td>}
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.transportCharge}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.begersCharge}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black font-medium">{p.wages}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#10B981]">{p.netAmount}</td>
                     <td className="px-4 py-3 text-center">
                       <button type="button" 

@@ -22,7 +22,7 @@ export class PurchasesService {
           tax: createPurchaseDto.tax || 0,
           discount: createPurchaseDto.discount || 0,
           transportCharge: createPurchaseDto.transportCharge || 0,
-          begersCharge: createPurchaseDto.begersCharge || 0,
+          wages: createPurchaseDto.wages || 0,
           grandTotal: createPurchaseDto.grandTotal,
           items: {
             create: createPurchaseDto.items.map((item) => ({

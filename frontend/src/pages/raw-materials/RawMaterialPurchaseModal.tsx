@@ -77,7 +77,7 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
       doc.text(`Subtotal: ${formatCurrency(purchase.subtotal)}`, 140, finalY);
       doc.text(`Tax: ${formatCurrency(purchase.tax)}`, 140, finalY + 6);
       doc.text(`Transport Charge: ${formatCurrency(purchase.transportCharge || 0)}`, 140, finalY + 12);
-      doc.text(`Begers Charge: ${formatCurrency(purchase.begersCharge || 0)}`, 140, finalY + 18);
+      doc.text(`Wages: ${formatCurrency(purchase.wages || 0)}`, 140, finalY + 18);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text(`Grand Total: ${formatCurrency(purchase.grandTotal)}`, 140, finalY + 26);
@@ -254,8 +254,8 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
                     <span className="font-bold">{formatCurrency(purchase.transportCharge || 0)}</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600">
-                    <span className="font-medium">Begers Charge</span>
-                    <span className="font-bold">{formatCurrency(purchase.begersCharge || 0)}</span>
+                    <span className="font-medium">Wages</span>
+                    <span className="font-bold">{formatCurrency(purchase.wages || 0)}</span>
                   </div>
                 <div className="h-px bg-gray-200 my-2"></div>
                 <div className="flex justify-between items-center">
@@ -340,8 +340,8 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
                       <span>{formatCurrency(purchase.transportCharge || 0)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-black">
-                      <span className="font-bold">Begers Charge:</span>
-                      <span>{formatCurrency(purchase.begersCharge || 0)}</span>
+                      <span className="font-bold">Wages:</span>
+                      <span>{formatCurrency(purchase.wages || 0)}</span>
                     </div>
                   <div className="flex justify-between py-2 border-b-2 border-black font-bold text-xl mt-1">
                     <span>Grand Total:</span>

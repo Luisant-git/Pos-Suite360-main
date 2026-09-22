@@ -67,9 +67,9 @@ export class CreatePurchaseDto {
   @IsOptional()
   transportCharge?: number;
 
-  @IsNumber()
   @IsOptional()
-  begersCharge?: number;
+  @IsNumber()
+  wages?: number;
 
   @IsNumber()
   grandTotal: number;

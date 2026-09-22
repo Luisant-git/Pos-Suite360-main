@@ -44,7 +44,7 @@ export class CreateRawMaterialPurchaseDto {
   transportCharge: number;
 
   @IsNumber()
-  begersCharge: number;
+  wages: number;
 
   @IsNumber()
   grandTotal: number;

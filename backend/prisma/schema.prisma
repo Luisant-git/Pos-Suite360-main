@@ -246,7 +246,7 @@ model Purchase {
   tax             Decimal @default(0)
   discount        Decimal @default(0)
   transportCharge Decimal @default(0)
-  begersCharge    Decimal @default(0)
+  wages           Decimal @default(0)
   grandTotal      Decimal @default(0)
 
   paymentModeId Int
@@ -571,7 +571,7 @@ model RawMaterialPurchase {
   subtotal        Decimal @default(0)
   tax             Decimal @default(0)
   transportCharge Decimal @default(0)
-  begersCharge    Decimal @default(0)
+  wages           Decimal @default(0)
   grandTotal      Decimal @default(0)
 
   paymentModeId Int         @default(1)

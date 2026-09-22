@@ -35,7 +35,7 @@ const RawMaterialPurchaseEntry = () => {
   const [newSupplier, setNewSupplier] = useState({ name: '', phone: '', address: '', state: '' });
 
   const [transportCharge, setTransportCharge] = useState<number | ''>('');
-  const [begersCharge, setBegersCharge] = useState<number | ''>('');
+  const [wages, setwages] = useState<number | ''>('');
   
   const [items, setItems] = useState<any[]>([{ rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
 
@@ -142,7 +142,7 @@ const RawMaterialPurchaseEntry = () => {
     setDate(new Date().toISOString().split('T')[0]);
     setSupplierId(0);
     setTransportCharge('');
-    setBegersCharge('');
+    setwages('');
     setItems([{ rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
   };
 
@@ -169,8 +169,8 @@ const RawMaterialPurchaseEntry = () => {
   const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
   const tax = 0;
   const transportAmt = Number(transportCharge) || 0;
-  const begersAmt = Number(begersCharge) || 0;
-  const grandTotal = subtotal + tax + transportAmt + begersAmt;
+  const wagesAmt = Number(wages) || 0;
+  const grandTotal = subtotal + tax + transportAmt + wagesAmt;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -182,7 +182,7 @@ const RawMaterialPurchaseEntry = () => {
         subtotal,
         tax,
         transportCharge: transportAmt,
-        begersCharge: begersAmt,
+        wages: wagesAmt,
         grandTotal,
         paymentModeId: paymentModeId,
         items: validItems.map(item => ({
@@ -550,11 +550,11 @@ const RawMaterialPurchaseEntry = () => {
                 />
               </div>
               <div className="w-full sm:w-32 flex flex-col gap-1">
-                <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Begers Chg.</label>
+                <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Wages</label>
                 <input
                   type="number"
-                  value={begersCharge}
-                  onChange={(e) => setBegersCharge(e.target.value === '' ? '' : Number(e.target.value))}
+                  value={wages}
+                  onChange={(e) => setwages(e.target.value === '' ? '' : Number(e.target.value))}
                   placeholder="0.00"
                   className="w-full px-3 py-2 border border-[#D1D5DB] bg-white focus:bg-[#F0FDF4] rounded text-[16px] outline-none text-right font-black text-black focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981]"
                 />

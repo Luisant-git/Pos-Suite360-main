@@ -45,7 +45,7 @@ const RawMaterialPurchaseReport = () => {
         supplierName: p.supplier?.name || '-',
         invoiceValue: formatCurrency(p.subtotal),
         transportCharge: p.transportCharge ? formatCurrency(p.transportCharge) : '-',
-        begersCharge: p.begersCharge ? formatCurrency(p.begersCharge) : '-',
+        wages: p.wages ? formatCurrency(p.wages) : '-',
         netAmount: formatCurrency(p.grandTotal),
       }));
     },
@@ -209,7 +209,7 @@ const RawMaterialPurchaseReport = () => {
                 <th className="px-4 py-3 border-r border-[#1E293B]">Payment Mode</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Invoice Value</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Transport</th>
-                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Begers</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Wages</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Net Amount</th>
                 <th className="px-4 py-3 border-[#1E293B] text-center">Action</th>
               </tr>
@@ -233,7 +233,7 @@ const RawMaterialPurchaseReport = () => {
                     </td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black">{p.invoiceValue}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black">{p.transportCharge}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black">{p.begersCharge}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black">{p.wages}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-black">{p.netAmount}</td>
                     <td className="px-4 py-3 text-center">
                       <button 
