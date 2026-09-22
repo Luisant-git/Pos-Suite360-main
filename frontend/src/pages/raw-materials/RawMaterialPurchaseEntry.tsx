@@ -6,6 +6,7 @@ import { CheckCircle, ArrowLeft, PlusCircle, RotateCcw, List, FileText, Plus, Tr
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
+import ShortcutHelpButton from '../../components/ShortcutHelp';
 import { useSettings } from '../../contexts/SettingsContext';
 import Select from 'react-select';
 
@@ -119,6 +120,12 @@ const RawMaterialPurchaseEntry = () => {
       e.preventDefault(); focusCell(rowIndex + 1, col);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault(); if (rowIndex > 0) focusCell(rowIndex - 1, col);
+    } else if (e.key === 'Delete' && e.ctrlKey) {
+      e.preventDefault();
+      if (items.length > 1) {
+        removeItem(rowIndex);
+        setTimeout(() => focusCell(Math.min(rowIndex, items.length - 2), col), 50);
+      }
     }
   };
 
@@ -405,6 +412,7 @@ const RawMaterialPurchaseEntry = () => {
             >
               <RotateCcw size={14} /> Clear (F4)
             </button>
+            <ShortcutHelpButton />
           </div>
         </div>
 

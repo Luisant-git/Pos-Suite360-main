@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { CheckCircle, PlusCircle, RotateCcw, List, Plus, Trash2, FileText } from 'lucide-react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
+import ShortcutHelpButton from '../../components/ShortcutHelp';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 
 const generateBatchName = (prods: any[]) => {
@@ -292,6 +293,7 @@ const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => vo
             <button type="button" onClick={handleClear} className="border border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444] hover:text-white px-3 py-1 rounded flex items-center gap-1 text-[12px] transition-colors font-bold">
               <RotateCcw size={14} /> Clear (F4)
             </button>
+            <ShortcutHelpButton />
           </div>
         </div>
 
@@ -313,8 +315,19 @@ const ProductionGridEntry = ({ onSwitchToMaster }: { onSwitchToMaster?: () => vo
             </thead>
             <tbody>
               {items.map((item, index) => (
-                <tr key={index} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
-                  <td className="px-2 py-1 text-center text-[13px] border-r border-[#E5E7EB]">{index + 1}</td>
+                <tr 
+                  key={index} 
+                  className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Delete' && e.ctrlKey) {
+                      e.preventDefault();
+                      if (items.length > 1) {
+                        removeItem(index);
+                      }
+                    }
+                  }}
+                >
+                  <td className="px-2 py-1 text-center text-[13px] border-r border-[#E5E7EB] text-[#4B5563]">{index + 1}</td>
                   
                   {/* OUTCOME - Product */}
                   <td className="px-2 py-1 border-r border-[#E5E7EB]">
