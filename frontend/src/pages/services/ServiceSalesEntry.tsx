@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import ServiceReceiptPrintModal from '../../components/ServiceReceiptPrintModal';
+import ShortcutHelpButton from '../../components/ShortcutHelp';
 import Select from 'react-select';
 
 const serviceItemRowSchema = z.object({
@@ -348,6 +349,7 @@ const ServiceSalesEntry = () => {
           >
             <FileText size={14} /> Report
           </button>
+          <ShortcutHelpButton />
         </div>
 
         {/* Items Table */}
