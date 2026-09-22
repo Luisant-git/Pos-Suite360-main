@@ -557,10 +557,16 @@ const CustomerReceipts = () => {
                       <td className="px-3 py-2 text-right font-bold text-[#059669]">{formatCurrency(r.amount)}</td>
                       <td className="px-3 py-2 text-center">
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             setPrintData(r);
                             setPrintParty(r.customer);
-                            setPrintBills([]); // Historical bills not tracked, will show as advance
+                            try {
+                              const billsRes = await api.get(`/customer-receipts/unpaid-bills/${r.customerId}`);
+                              setPrintBills(billsRes.data);
+                            } catch (error) {
+                              console.error(error);
+                              setPrintBills([]);
+                            }
                             setShowPrintModal(true);
                           }}
                           className="text-[#3B82F6] hover:text-[#2563EB] transition-colors"

@@ -249,19 +249,25 @@ export default function ReceiptPrintModal({ isOpen, onClose, type, data, party, 
         {/* Right: Summary */}
         <div className="bg-white border border-[#E2E8F0] rounded p-4 flex flex-col justify-center">
           <div className="space-y-3 text-[12px] whitespace-nowrap">
-            <div className="flex justify-between font-bold text-slate-700 gap-4">
-              <span>Total Outstanding Before Payment:</span>
-              <span className="text-right">{settings?.currencySymbol} {totalDue.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-[#059669] gap-4">
+            {!isAdvance && (
+              <div className="flex justify-between font-bold text-slate-700 gap-4">
+                <span>Total Outstanding Before Payment:</span>
+                <span className="text-right">{settings?.currencySymbol} {totalDue.toFixed(2)}</span>
+              </div>
+            )}
+            <div className={`flex justify-between font-bold text-[#059669] gap-4 ${isAdvance ? 'text-lg' : ''}`}>
               <span>Amount {isCustomer ? 'Paid' : 'Settled'} (This Receipt):</span>
-              <span className="text-right">- {settings?.currencySymbol} {amount.toFixed(2)}</span>
+              <span className="text-right">{!isAdvance ? '- ' : ''}{settings?.currencySymbol} {amount.toFixed(2)}</span>
             </div>
-            <div className="border-t-2 border-[#E11D48] pt-2 mt-2 flex justify-between font-black text-[13px] text-[#E11D48] gap-4">
-              <span>Total Remaining Balance Due:</span>
-              <span className="text-right">{settings?.currencySymbol} {Math.max(0, totalDue - amount).toFixed(2)}</span>
-            </div>
-            <div className="border-b-2 border-[#E11D48] pb-1 mb-1"></div>
+            {!isAdvance && (
+              <>
+                <div className="border-t-2 border-[#E11D48] pt-2 mt-2 flex justify-between font-black text-[13px] text-[#E11D48] gap-4">
+                  <span>Total Remaining Balance Due:</span>
+                  <span className="text-right">{settings?.currencySymbol} {Math.max(0, totalDue - amount).toFixed(2)}</span>
+                </div>
+                <div className="border-b-2 border-[#E11D48] pb-1 mb-1"></div>
+              </>
+            )}
           </div>
         </div>
       </div>

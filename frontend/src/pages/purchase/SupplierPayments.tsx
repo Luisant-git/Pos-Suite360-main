@@ -108,13 +108,13 @@ const SupplierPayments = () => {
       toast.success('Payment recorded successfully!');
       
       // Setup print data
-      setPrintData({
-        ...res.data,
-        paymentType: paymentTypes.find((p: any) => p.id === res.data.paymentTypeId)
-      });
-      setPrintParty(suppliers.find((s: any) => s.id === selectedSupplierId));
-      setPrintBills([...unpaidBills]);
-      setShowPrintModal(true);
+      // setPrintData({
+      //   ...res.data,
+      //   paymentType: paymentTypes.find((p: any) => p.id === res.data.paymentTypeId)
+      // });
+      // setPrintParty(suppliers.find((s: any) => s.id === selectedSupplierId));
+      // setPrintBills([...unpaidBills]);
+      // setShowPrintModal(true);
 
       queryClient.invalidateQueries({ queryKey: ['supplierPayments'] });
       queryClient.invalidateQueries({ queryKey: ['nextPaymentNo'] });
@@ -539,7 +539,7 @@ const SupplierPayments = () => {
                   <th className="px-3 py-2 border-r border-[#334155]">Supplier</th>
                   <th className="px-3 py-2 border-r border-[#334155]">Mode</th>
                   <th className="px-3 py-2 text-right">Amount Paid</th>
-                  <th className="px-3 py-2 text-center">Actions</th>
+                  {/* <th className="px-3 py-2 text-center">Actions</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -553,15 +553,11 @@ const SupplierPayments = () => {
                       <td className="px-3 py-3 border-r border-[#E5E7EB] text-[#475569]">{p.paymentType?.name || p.paymentMode?.name || '-'}</td>
                       <td className="px-3 py-2 border-r border-[#E2E8F0] text-[#64748B]">{new Date(p.date).toISOString().split('T')[0]}</td>
                       <td className="px-3 py-2 border-r border-[#E2E8F0] font-medium text-[#334155]">{p.supplier?.name}</td>
-                      <td className="px-3 py-2 border-r border-[#E2E8F0]">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          p.paymentMode?.name?.includes('Return') ? 'bg-[#F59E0B] text-white' : 'bg-[#64748B] text-white'
-                        }`}>
-                          {p.paymentMode?.name}
-                        </span>
+                      <td className="px-3 py-2 border-r border-[#E2E8F0] text-[#475569]">
+                        {p.paymentMode?.name}
                       </td>
                       <td className="px-3 py-2 text-right font-bold text-[#E11D48]">{formatCurrency(p.amount)}</td>
-                      <td className="px-3 py-2 text-center">
+                      {/* <td className="px-3 py-2 text-center">
                         <button
                           onClick={() => {
                             setPrintData(p);
@@ -574,7 +570,7 @@ const SupplierPayments = () => {
                         >
                           <Printer size={16} />
                         </button>
-                      </td>
+                      </td> */}
                     </tr>
                   ))
                 )}
