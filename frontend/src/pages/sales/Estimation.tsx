@@ -10,6 +10,8 @@ import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
+import AddCustomRateModal from '../../components/AddCustomRateModal';
+import ShortcutHelpButton from '../../components/ShortcutHelp';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 import Select from 'react-select';
 // @ts-ignore
@@ -175,6 +177,12 @@ const Estimation = () => {
       e.preventDefault(); focusCell(rowIndex + 1, col);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault(); if (rowIndex > 0) focusCell(rowIndex - 1, col);
+    } else if (e.key === 'Delete' && e.ctrlKey) {
+      e.preventDefault();
+      if (fields.length > 1) {
+        remove(rowIndex);
+        setTimeout(() => focusCell(Math.min(rowIndex, fields.length - 2), col), 50);
+      }
     }
   };
 
@@ -783,6 +791,7 @@ const Estimation = () => {
           >
             <FileText size={14} /> Sales Report
           </button>
+          <ShortcutHelpButton />
         </div>
 
         {/* Items Grid */}

@@ -11,6 +11,7 @@ import api from '../../services/api';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
 import InvoicePrintModal from '../../components/InvoicePrintModal';
+import ShortcutHelpButton from '../../components/ShortcutHelp';
 import Select from 'react-select';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
@@ -996,6 +997,7 @@ const POS = () => {
           >
             <FileText size={14} /> Sales Report
           </button>
+          <ShortcutHelpButton />
         </div>
 
         {/* Items Grid - only this scrolls */}
