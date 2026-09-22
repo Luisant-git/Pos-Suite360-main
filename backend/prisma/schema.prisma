@@ -242,10 +242,12 @@ model Purchase {
   supplierId Int
   supplier   Supplier @relation(fields: [supplierId], references: [id])
 
-  subtotal   Decimal @default(0)
-  tax        Decimal @default(0)
-  discount   Decimal @default(0)
-  grandTotal Decimal @default(0)
+  subtotal        Decimal @default(0)
+  tax             Decimal @default(0)
+  discount        Decimal @default(0)
+  transportCharge Decimal @default(0)
+  begersCharge    Decimal @default(0)
+  grandTotal      Decimal @default(0)
 
   paymentModeId Int
   paymentMode   PaymentMode @relation(fields: [paymentModeId], references: [id])
@@ -566,9 +568,11 @@ model RawMaterialPurchase {
   supplierId Int
   supplier   Supplier @relation(fields: [supplierId], references: [id])
 
-  subtotal   Decimal @default(0)
-  tax        Decimal @default(0)
-  grandTotal Decimal @default(0)
+  subtotal        Decimal @default(0)
+  tax             Decimal @default(0)
+  transportCharge Decimal @default(0)
+  begersCharge    Decimal @default(0)
+  grandTotal      Decimal @default(0)
 
   paymentModeId Int         @default(1)
   paymentMode   PaymentMode @relation(fields: [paymentModeId], references: [id])
