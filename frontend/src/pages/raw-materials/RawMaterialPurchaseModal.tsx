@@ -76,9 +76,11 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       doc.text(`Subtotal: ${formatCurrency(purchase.subtotal)}`, 140, finalY);
       doc.text(`Tax: ${formatCurrency(purchase.tax)}`, 140, finalY + 6);
+      doc.text(`Transport Charge: ${formatCurrency(purchase.transportCharge || 0)}`, 140, finalY + 12);
+      doc.text(`Begers Charge: ${formatCurrency(purchase.begersCharge || 0)}`, 140, finalY + 18);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Grand Total: ${formatCurrency(purchase.grandTotal)}`, 140, finalY + 14);
+      doc.text(`Grand Total: ${formatCurrency(purchase.grandTotal)}`, 140, finalY + 26);
       
       doc.save(`${purchase.invoiceNo}.pdf`);
       toast.success('PDF Downloaded');
@@ -247,6 +249,14 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
                   <span className="font-medium">Tax</span>
                   <span className="font-bold">{formatCurrency(purchase.tax)}</span>
                 </div>
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span className="font-medium">Transport Charge</span>
+                    <span className="font-bold">{formatCurrency(purchase.transportCharge || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span className="font-medium">Begers Charge</span>
+                    <span className="font-bold">{formatCurrency(purchase.begersCharge || 0)}</span>
+                  </div>
                 <div className="h-px bg-gray-200 my-2"></div>
                 <div className="flex justify-between items-center">
                   <span className="font-black text-gray-800 text-lg">Grand Total</span>
@@ -325,6 +335,14 @@ const RawMaterialPurchaseModal = ({ purchaseId, onClose }: RawMaterialPurchaseMo
                     <span className="font-bold">Tax:</span>
                     <span>{formatCurrency(purchase.tax)}</span>
                   </div>
+                    <div className="flex justify-between py-2 border-b border-black">
+                      <span className="font-bold">Transport Charge:</span>
+                      <span>{formatCurrency(purchase.transportCharge || 0)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-black">
+                      <span className="font-bold">Begers Charge:</span>
+                      <span>{formatCurrency(purchase.begersCharge || 0)}</span>
+                    </div>
                   <div className="flex justify-between py-2 border-b-2 border-black font-bold text-xl mt-1">
                     <span>Grand Total:</span>
                     <span>{formatCurrency(purchase.grandTotal)}</span>

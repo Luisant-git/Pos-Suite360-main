@@ -43,6 +43,9 @@ const RawMaterialPurchaseReport = () => {
         invoiceNo: p.invoiceNo || '-',
         date: new Date(p.date).toISOString().split('T')[0],
         supplierName: p.supplier?.name || '-',
+        invoiceValue: formatCurrency(p.subtotal),
+        transportCharge: p.transportCharge ? formatCurrency(p.transportCharge) : '-',
+        begersCharge: p.begersCharge ? formatCurrency(p.begersCharge) : '-',
         netAmount: formatCurrency(p.grandTotal),
       }));
     },
@@ -204,6 +207,9 @@ const RawMaterialPurchaseReport = () => {
                 <th className="px-4 py-3 border-r border-[#1E293B]">Date</th>
                 <th className="px-4 py-3 border-r border-[#1E293B]">Supplier Name</th>
                 <th className="px-4 py-3 border-r border-[#1E293B]">Payment Mode</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Invoice Value</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Transport</th>
+                <th className="px-4 py-3 border-r border-[#1E293B] text-right">Begers</th>
                 <th className="px-4 py-3 border-r border-[#1E293B] text-right">Net Amount</th>
                 <th className="px-4 py-3 border-[#1E293B] text-center">Action</th>
               </tr>
@@ -212,20 +218,23 @@ const RawMaterialPurchaseReport = () => {
               {isLoading ? (
                 <tr><td colSpan={5} className="text-center p-6 text-gray-500">Loading report data...</td></tr>
               ) : filteredPurchases.length === 0 ? (
-                <tr><td colSpan={7} className="text-center p-6 text-gray-500">No purchase records found.</td></tr>
+                <tr><td colSpan={10} className="text-center p-6 text-gray-500">No purchase records found.</td></tr>
               ) : (
                 paginatedPurchases.map((p: any, index: number) => (
                   <tr key={p.id} className={`border-b border-[#E2E8F0] ${index % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'} hover:bg-[#EFF6FF]`}>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-[#1E293B]">{p.entryNo}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#64748B]">{p.invoiceNo}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-[#475569]">{p.date}</td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-[#334155]">{p.supplierName}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-bold text-black">{p.entryNo}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-black">{p.invoiceNo}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-black">{p.date}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] font-medium text-black">{p.supplierName}</td>
                     <td className="px-4 py-3 border-r border-[#E2E8F0]">
                       <span className="inline-block px-2 py-1 bg-[#EBF5FF] text-[#2563EB] rounded text-[10px] font-black uppercase tracking-wider">
                         {p.paymentMode?.name || 'Cash'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-[#10B981]">{p.netAmount}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black">{p.invoiceValue}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black">{p.transportCharge}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right text-black">{p.begersCharge}</td>
+                    <td className="px-4 py-3 border-r border-[#E2E8F0] text-right font-bold text-black">{p.netAmount}</td>
                     <td className="px-4 py-3 text-center">
                       <button 
                         onClick={() => setViewId(p.id)}

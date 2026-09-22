@@ -41,6 +41,12 @@ export class CreateRawMaterialPurchaseDto {
   tax: number;
 
   @IsNumber()
+  transportCharge: number;
+
+  @IsNumber()
+  begersCharge: number;
+
+  @IsNumber()
   grandTotal: number;
 
   @IsInt()

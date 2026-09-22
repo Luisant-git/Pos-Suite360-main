@@ -33,6 +33,8 @@ const RawMaterialPurchaseEntry = () => {
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [newSupplier, setNewSupplier] = useState({ name: '', phone: '', address: '', state: '' });
 
+  const [transportCharge, setTransportCharge] = useState<number | ''>('');
+  const [begersCharge, setBegersCharge] = useState<number | ''>('');
   
   const [items, setItems] = useState<any[]>([{ rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
 
@@ -132,6 +134,8 @@ const RawMaterialPurchaseEntry = () => {
     setInvoiceNo('');
     setDate(new Date().toISOString().split('T')[0]);
     setSupplierId(0);
+    setTransportCharge('');
+    setBegersCharge('');
     setItems([{ rawMaterialId: 0, widthMm: '', lengthM: '', sqM: 0, quantity: '', price: '', amount: 0 }]);
   };
 
@@ -157,7 +161,9 @@ const RawMaterialPurchaseEntry = () => {
 
   const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
   const tax = 0;
-  const grandTotal = subtotal + tax;
+  const transportAmt = Number(transportCharge) || 0;
+  const begersAmt = Number(begersCharge) || 0;
+  const grandTotal = subtotal + tax + transportAmt + begersAmt;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -168,6 +174,8 @@ const RawMaterialPurchaseEntry = () => {
         supplierId: supplierId,
         subtotal,
         tax,
+        transportCharge: transportAmt,
+        begersCharge: begersAmt,
         grandTotal,
         paymentModeId: paymentModeId,
         items: validItems.map(item => ({
@@ -522,7 +530,28 @@ const RawMaterialPurchaseEntry = () => {
               />
             </div>
             
-            <div className="w-full md:flex-[2] flex flex-col gap-1"></div>
+            <div className="w-full md:flex-[2] flex flex-col sm:flex-row gap-4 sm:gap-6 justify-end items-end">
+              <div className="w-full sm:w-32 flex flex-col gap-1">
+                <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Transport Chg.</label>
+                <input
+                  type="number"
+                  value={transportCharge}
+                  onChange={(e) => setTransportCharge(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-[#D1D5DB] bg-white focus:bg-[#F0FDF4] rounded text-[16px] outline-none text-right font-black text-black focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981]"
+                />
+              </div>
+              <div className="w-full sm:w-32 flex flex-col gap-1">
+                <label className="text-[13px] font-extrabold text-[#1F2937] uppercase">Begers Chg.</label>
+                <input
+                  type="number"
+                  value={begersCharge}
+                  onChange={(e) => setBegersCharge(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-[#D1D5DB] bg-white focus:bg-[#F0FDF4] rounded text-[16px] outline-none text-right font-black text-black focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981]"
+                />
+              </div>
+            </div>
 
           </div>
         </div>
