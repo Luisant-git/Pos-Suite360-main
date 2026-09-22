@@ -48,7 +48,7 @@ export default function ViewEstimationModal({ estimationId, onClose }: Props) {
     const cityLine = [settings?.city, settings?.state, settings?.country].filter(Boolean).join(', ');
     if (cityLine) { t(cityLine, col, y, { size: 9, bold: true, color: '#475569' }); y += 5; }
     if (settings?.phone) { t(`Tel: ${settings.phone}`, col, y, { size: 9, color: '#475569' }); y += 5; }
-    t('ESTIMATION', W - margin, margin + 4, { size: 18, bold: true, color: '#1A63A8' });
+    t('BILL', W - margin, margin + 4, { size: 18, bold: true, color: '#1A63A8' });
     doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
     doc.text(`Est No: #${estNo}`, W - margin, margin + 11, { align: 'right' });
     doc.text(`Date: ${date}`, W - margin, margin + 17, { align: 'right' });

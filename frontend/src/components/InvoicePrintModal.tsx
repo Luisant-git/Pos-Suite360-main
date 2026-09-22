@@ -163,7 +163,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       if (settings?.gstin) { addText(`GSTIN: ${settings.gstin}`, col, y, { size: 9, color: '#475569' }); y += 5; }
 
       // Invoice label top-right
-      addText(isEstimation ? 'ESTIMATION' : 'TAX INVOICE', W - margin, margin + 4, { size: 16, bold: true, color: '#1A63A8', align: 'right' });
+      addText(isEstimation ? 'BILL' : 'TAX INVOICE', W - margin, margin + 4, { size: 16, bold: true, color: '#1A63A8', align: 'right' });
       doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor('#334155');
       doc.text(`${isEstimation ? 'Est No' : 'Invoice No'}: #${invoiceNo}`, W - margin, margin + 11, { align: 'right' });
 
@@ -680,7 +680,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
       </div>
       <div className="border-t border-dashed border-black my-1" />
       <div className="text-[10px] mb-1">
-        <p className="font-bold">{isEstimation ? 'ESTIMATION' : 'INVOICE'}: #{invoiceNo}</p>
+        <p className="font-bold">{isEstimation ? 'BILL' : 'INVOICE'}: #{invoiceNo}</p>
         <p>Date: {date}</p>
         {sale?.customer?.name !== 'Cash Customer' && <p>Customer: {customerName}</p>}
         {sale?.customer?.phone && sale?.customer?.name !== 'Cash Customer' && <p>Phone: {sale.customer.phone}</p>}
@@ -764,7 +764,7 @@ const InvoicePrintModal = ({ isOpen, onClose, sale: initialSale, hiddenRenderer 
           </div>
         </div>
         <div className="text-right">
-          <h2 className={`${isA5 ? 'text-lg' : 'text-3xl'} font-black text-[#1A63A8] tracking-wider mb-1`}>{isEstimation ? 'ESTIMATION' : 'TAX INVOICE'}</h2>
+          <h2 className={`${isA5 ? 'text-lg' : 'text-3xl'} font-black text-[#1A63A8] tracking-wider mb-1`}>{isEstimation ? 'BILL' : 'TAX INVOICE'}</h2>
           <p className={`font-bold text-slate-700 ${isA5 ? 'text-[9px]' : 'text-sm'}`}>{isEstimation ? 'Est No' : 'Invoice No'}: #{invoiceNo}</p>
         </div>
       </div>
