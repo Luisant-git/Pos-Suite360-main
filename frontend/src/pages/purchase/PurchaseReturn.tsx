@@ -277,7 +277,16 @@ const PurchaseReturn = () => {
                   </tr>
                 ) : (
                   returnItems.map((item, index) => (
-                    <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
+                    <tr 
+                      key={item.id} 
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Delete' && e.ctrlKey) {
+                          e.preventDefault();
+                          handleReturnQtyChange(index, '0');
+                        }
+                      }}
+                    >
                       <td data-label="#" className="px-4 py-2 border-r border-gray-200 text-center">{index + 1}</td>
                       <td data-label="Product" className="px-4 py-2 border-r border-gray-200 font-medium">
                         {item.product.name} <span className="text-gray-400 text-xs ml-1">({item.product.code})</span>

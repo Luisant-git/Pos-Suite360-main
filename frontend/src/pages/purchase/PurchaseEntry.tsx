@@ -10,6 +10,8 @@ import api from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
 import SearchableSelect from '../../components/SearchableSelect';
 import LeaveConfirmModal from '../../components/LeaveConfirmModal';
+import AddCustomRateModal from '../../components/AddCustomRateModal';
+import ShortcutHelpButton from '../../components/ShortcutHelp';
 import Select from 'react-select';
 
 const indianStates = [
@@ -130,6 +132,12 @@ const PurchaseEntry = () => {
       e.preventDefault(); focusCell(rowIndex + 1, col);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault(); if (rowIndex > 0) focusCell(rowIndex - 1, col);
+    } else if (e.key === 'Delete' && e.ctrlKey) {
+      e.preventDefault();
+      if (fields.length > 1) {
+        remove(rowIndex);
+        setTimeout(() => focusCell(Math.min(rowIndex, fields.length - 2), col), 50);
+      }
     }
   };
 
@@ -561,6 +569,7 @@ const PurchaseEntry = () => {
           >
             <FileText size={14} /> Purchase Report
           </button>
+          <ShortcutHelpButton />
         </div>
 
         {/* Items Grid */}
