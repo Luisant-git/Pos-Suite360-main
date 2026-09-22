@@ -677,6 +677,7 @@ const MainLayout = () => {
         </div>
       </main>
       </div>
+
     </div>
   );
 };
